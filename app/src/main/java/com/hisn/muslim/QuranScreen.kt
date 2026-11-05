@@ -1,0 +1,387 @@
+package com.hisn.muslim
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+private sealed class Block {
+    class Head(val surah: Int) : Block()
+    class Run(val text: AnnotatedString) : Block()
+}
+
+private fun buildPageBlocks(page: Int): List<Block> {
+    val list = Quran.byPage[page] ?: return emptyList()
+    val out = mutableListOf<Block>()
+    var sb = AnnotatedString.Builder()
+    var has = false
+    for (a in list) {
+        if (a.num == 1) {
+            if (has) {
+                out += Block.Run(sb.toAnnotatedString())
+                sb = AnnotatedString.Builder()
+                has = false
+            }
+            out += Block.Head(a.surah)
+        }
+        sb.append(a.text + " ")
+        sb.pushStyle(SpanStyle(color = Gold))
+        sb.append("﴿${Quran.arabicDigits(a.num)}﴾ ")
+        sb.pop()
+        has = true
+    }
+    if (has) out += Block.Run(sb.toAnnotatedString())
+    return out
+}
+
+@Composable
+fun QuranScreen(prefs: Prefs, jumpTo: Int, onJumpConsumed: () -> Unit) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var ready by remember { mutableStateOf(Quran.loaded) }
+    var downloading by remember { mutableStateOf(false) }
+    var progress by remember { mutableIntStateOf(0) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var section by remember { mutableIntStateOf(0) } // 0 قراءة، 1 السور، 2 الختمة
+    var page by remember { mutableIntStateOf(prefs.quranPage.coerceIn(1, Quran.TOTAL_PAGES)) }
+
+    LaunchedEffect(Unit) {
+        if (!ready && Quran.isDownloaded(ctx)) {
+            ready = withContext(Dispatchers.IO) { Quran.load(ctx) }
+        }
+    }
+    LaunchedEffect(jumpTo) {
+        if (jumpTo > 0) {
+            page = jumpTo.coerceIn(1, Quran.TOTAL_PAGES)
+            prefs.quranPage = page
+            section = 0
+            onJumpConsumed()
+        }
+    }
+
+    if (!ready) {
+        Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.Center) {
+            Glass {
+                SectionTitle("المصحف الشريف")
+                Text(
+                    "لعرض المصحف داخل التطبيق لازم تحمّل نصه مرة واحدة (حوالي ٢–٣ ميجا)، وبعدها يشتغل بدون إنترنت.",
+                    fontSize = 15.sp, lineHeight = 24.sp
+                )
+                Text("مصدر النص: Al-Quran Cloud (نص Tanzil، رواية حفص عن عاصم).", fontSize = 11.sp, color = Muted)
+                Spacer(Modifier.height(14.dp))
+                if (downloading) {
+                    LinearProgressIndicator(
+                        progress = { progress / 100f }, modifier = Modifier.fillMaxWidth(), color = Gold
+                    )
+                    Text("جاري التحميل… $progress%", color = Gold, fontSize = 13.sp)
+                } else {
+                    Button(
+                        onClick = {
+                            error = null
+                            downloading = true
+                            progress = 0
+                            scope.launch {
+                                val res = withContext(Dispatchers.IO) {
+                                    Quran.download(ctx) { progress = it }
+                                }
+                                downloading = false
+                                if (res == null) ready = true else error = res
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                    ) { Text("⬇ تحميل المصحف") }
+                }
+                error?.let { Text(it, color = Color(0xFFFF8A80), fontSize = 12.sp) }
+            }
+        }
+        return
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            GoldChip("القراءة", section == 0) { section = 0 }
+            GoldChip("السور والأجزاء", section == 1) { section = 1 }
+            GoldChip("ختمة / ورد", section == 2) { section = 2 }
+        }
+        when (section) {
+            0 -> ReaderPane(prefs, page) { page = it; prefs.quranPage = it }
+            1 -> SurahList { p -> page = p; prefs.quranPage = p; section = 0 }
+            else -> KhatmaPane(prefs) { p -> page = p; prefs.quranPage = p; section = 0 }
+        }
+    }
+}
+
+@Composable
+private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
+    var font by remember { mutableIntStateOf(prefs.quranFont) }
+    var readTick by remember { mutableIntStateOf(0) }
+    val blocks = remember(page) { buildPageBlocks(page) }
+    val first = Quran.byPage[page]?.firstOrNull()
+    val isRead = remember(page, readTick) { page in prefs.khatmaPagesRead() }
+
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text("صفحة ${Quran.arabicDigits(page)} من ${Quran.arabicDigits(Quran.TOTAL_PAGES)}", color = Gold, fontWeight = FontWeight.Bold)
+                if (first != null) Text("الجزء ${Quran.arabicDigits(first.juz)} • ${Quran.surahName(first.surah)}", color = Muted, fontSize = 12.sp)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { font = (font - 2).coerceAtLeast(18); prefs.quranFont = font }) { Text("أ-", color = Gold, fontSize = 18.sp) }
+                TextButton(onClick = { font = (font + 2).coerceAtMost(44); prefs.quranFont = font }) { Text("أ+", color = Gold, fontSize = 20.sp) }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+
+        key(page) {
+            val scroll = rememberScrollState()
+            Column(
+                Modifier.weight(1f).fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color(0xCC0B1A14))
+                    .verticalScroll(scroll)
+                    .padding(18.dp)
+            ) {
+                blocks.forEach { b ->
+                    when (b) {
+                        is Block.Head -> {
+                            Column(
+                                Modifier.fillMaxWidth().padding(vertical = 10.dp)
+                                    .background(Color(0x33E8C766), RoundedCornerShape(14.dp)).padding(10.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(Quran.surahName(b.surah), color = Gold, fontSize = (font - 2).sp, fontWeight = FontWeight.Bold, fontFamily = Serif)
+                                if (b.surah != 1 && b.surah != 9) {
+                                    Text("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ", color = Color.White, fontSize = (font - 2).sp, fontFamily = Serif)
+                                }
+                            }
+                        }
+                        is Block.Run -> Text(
+                            b.text, color = Color.White, fontSize = font.sp,
+                            lineHeight = (font * 2.0f).sp, fontFamily = Serif, textAlign = TextAlign.Justify
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Row(
+            Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedButton(onClick = { if (page > 1) onPage(page - 1) }) { Text("السابقة", color = Gold) }
+            if (prefs.khatmaActive) {
+                Button(
+                    onClick = {
+                        prefs.markPageRead(page)
+                        readTick++
+                        if (page < Quran.TOTAL_PAGES) onPage(page + 1)
+                    },
+                    enabled = !isRead,
+                    colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                ) { Text(if (isRead) "✓ مقروءة" else "أتممت الصفحة ✓") }
+            }
+            OutlinedButton(onClick = { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }) { Text("التالية", color = Gold) }
+        }
+    }
+}
+
+@Composable
+private fun SurahList(onOpen: (Int) -> Unit) {
+    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item {
+            Text("الأجزاء", color = Gold, fontWeight = FontWeight.Bold)
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                for (j in 1..30) GoldChip("${Quran.arabicDigits(j)}", false) { Quran.juzFirstPage[j]?.let(onOpen) }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text("السور", color = Gold, fontWeight = FontWeight.Bold)
+        }
+        items(Quran.surahs) { s ->
+            Glass(Modifier.clickable { onOpen(s.firstPage) }) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(38.dp).clip(CircleShape).background(Color(0x33E8C766)),
+                        contentAlignment = Alignment.Center
+                    ) { Text(Quran.arabicDigits(s.number), color = Gold, fontSize = 14.sp) }
+                    Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                        Text(s.name, fontSize = 19.sp, fontFamily = Serif, fontWeight = FontWeight.Bold)
+                        Text(
+                            "${if (s.revelation.equals("Meccan", true)) "مكية" else "مدنية"} • ${Quran.arabicDigits(s.ayahCount)} آية",
+                            color = Muted, fontSize = 12.sp
+                        )
+                    }
+                    Text("ص ${Quran.arabicDigits(s.firstPage)}", color = Muted, fontSize = 13.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun KhatmaPane(prefs: Prefs, onOpenPage: (Int) -> Unit) {
+    val ctx = LocalContext.current
+    var tick by remember { mutableIntStateOf(0) }
+    val st = remember(tick) { Khatma.stats(prefs) }
+    var days by remember { mutableIntStateOf(prefs.khatmaDays) }
+    var remind by remember { mutableStateOf(prefs.wirdReminder) }
+    var wirdTime by remember { mutableIntStateOf(prefs.wirdTime) }
+
+    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        if (st == null) {
+            item {
+                Glass {
+                    SectionTitle("ابدأ ختمة جديدة")
+                    Text("اختار المدة اللي عايز تختم فيها القرآن، والتطبيق يحسب وردك اليومي.", color = Muted, fontSize = 13.sp)
+                    Spacer(Modifier.height(10.dp))
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(7, 10, 15, 20, 30, 60).forEach { d -> GoldChip("$d يوم", days == d) { days = d } }
+                    }
+                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedButton(onClick = { days = (days - 1).coerceAtLeast(1) }) { Text("−", color = Gold) }
+                        Text("  $days يوم  ", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        OutlinedButton(onClick = { days = (days + 1).coerceAtMost(365) }) { Text("+", color = Gold) }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "وردك اليومي ≈ ${Khatma.pagesPerDay(days)} صفحة (${"%.1f".format(java.util.Locale.US, Khatma.pagesPerDay(days) / 20f)} جزء تقريبًا)",
+                        color = Gold, fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = {
+                            prefs.startKhatma(days)
+                            Reminders.scheduleWird(ctx)
+                            tick++
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                    ) { Text("ابدأ الختمة") }
+                }
+            }
+        } else {
+            item {
+                Glass {
+                    SectionTitle("ختمة القرآن")
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("${st.read} / ${Khatma.TOTAL} صفحة", fontWeight = FontWeight.Bold)
+                        Text("${(st.read * 100 / Khatma.TOTAL)}%", color = Gold, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    LinearProgressIndicator(
+                        progress = { st.read / Khatma.TOTAL.toFloat() },
+                        modifier = Modifier.fillMaxWidth().height(10.dp).clip(CircleShape),
+                        color = Gold, trackColor = Color(0x33FFFFFF)
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Text("المدة: ${st.daysTotal} يوم • المتبقي: ${st.daysLeft} يوم", color = Muted, fontSize = 13.sp)
+                    Text("موعد الانتهاء المتوقع: ${st.finishDate}", color = Muted, fontSize = 13.sp)
+                }
+            }
+            item {
+                Glass {
+                    SectionTitle("ورد اليوم")
+                    Text(
+                        "المطلوب اليوم: ${st.goalToday} صفحة • قرأت: ${st.readToday}",
+                        fontSize = 17.sp, fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    LinearProgressIndicator(
+                        progress = { if (st.goalToday == 0) 1f else (st.readToday / st.goalToday.toFloat()).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
+                        color = Gold, trackColor = Color(0x33FFFFFF)
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    if (st.remaining == 0) {
+                        Text("🎉 ما شاء الله، أتممت الختمة. تقبّل الله منك.", color = Gold, fontWeight = FontWeight.Bold)
+                    } else {
+                        Button(
+                            onClick = { onOpenPage(st.nextPage) },
+                            colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                        ) { Text("كمّل القراءة من صفحة ${st.nextPage}") }
+                    }
+                }
+            }
+            item {
+                Glass {
+                    SectionTitle("تذكير الورد")
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("ذكّرني بالورد يوميًا")
+                        Switch(
+                            checked = remind,
+                            onCheckedChange = { remind = it; prefs.wirdReminder = it; Reminders.scheduleWird(ctx) },
+                            colors = SwitchDefaults.colors(checkedTrackColor = Gold, checkedThumbColor = Color.Black)
+                        )
+                    }
+                    if (remind) {
+                        TextButton(onClick = {
+                            pickTime(ctx, wirdTime) { m -> wirdTime = m; prefs.wirdTime = m; Reminders.scheduleWird(ctx) }
+                        }) { Text("الوقت: ${fmtMinutes(wirdTime)}  (اضغط للتغيير)", color = Gold) }
+                    }
+                }
+            }
+            item {
+                TextButton(onClick = { prefs.stopKhatma(); Reminders.scheduleWird(ctx); tick++ }) {
+                    Text("إنهاء الختمة الحالية", color = Color(0xFFFF8A80))
+                }
+            }
+        }
+    }
+}

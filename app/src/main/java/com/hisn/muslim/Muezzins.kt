@@ -2,7 +2,9 @@ package com.hisn.muslim
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.MediaMetadataRetriever
 import android.media.MediaPlayer
+import android.net.Uri
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
@@ -11,14 +13,16 @@ import java.net.URL
 class Muezzin(val key: String, val name: String, val group: String, val remoteId: Int) {
     /** رابط التحميل (موقع assabile.com) */
     val url get() = "https://www.assabile.com/download/adhan/$remoteId"
+    val isCustom get() = remoteId == 0
 }
 
 object Muezzins {
     const val EGY = "مؤذنون مصريون"
     const val HARAM = "الحرمان الشريفان"
     const val OTHER = "آخرون"
+    const val MINE = "ملفك الخاص (أعلى جودة)"
 
-    /** مدة الأذان "القصير": بيشتغل أول ٣٠ ثانية (التكبير وبداية الشهادتين) */
+    /** مدة الأذان "القصير": بيشتغل أول ٣٠ ثانية */
     const val SHORT_SECONDS = 30
 
     val all = listOf(
@@ -33,8 +37,11 @@ object Muezzins {
         Muezzin("ismail_sheikh", "الشيخ إسماعيل الشيخ", EGY, 8),
         Muezzin("makkah", "الحرم المكي - علي أحمد ملا", HARAM, 119),
         Muezzin("madinah", "الحرم المدني - عاصم بخاري", HARAM, 129),
-        Muezzin("afasy", "مشاري العفاسي", OTHER, 130)
+        Muezzin("afasy", "مشاري العفاسي", OTHER, 130),
+        Muezzin("custom", "ملف أذان من جهازك", MINE, 0)
     )
+
+    val groups = listOf(EGY, HARAM, OTHER, MINE)
 
     fun byKey(key: String): Muezzin = all.firstOrNull { it.key == key } ?: all.first()
 
@@ -46,6 +53,59 @@ object Muezzins {
 
     fun delete(ctx: Context, m: Muezzin) {
         file(ctx, m).delete()
+    }
+
+    /** وصف الملف: المدة والجودة التقريبية (kbps) */
+    fun info(ctx: Context, m: Muezzin): String {
+        val f = file(ctx, m)
+        if (!f.exists()) return ""
+        return try {
+            val r = MediaMetadataRetriever()
+            r.setDataSource(f.absolutePath)
+            val ms = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+            val br = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toLongOrNull()
+                ?: if (ms > 0) f.length() * 8 * 1000 / ms else 0L
+            r.release()
+            val sec = ms / 1000
+            "%d:%02d • ≈%d kbps".format(sec / 60, sec % 60, br / 1000)
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    /** نسخ ملف أذان اختاره المستخدم من جهازه (أي صيغة صوت يفتحها الأندرويد: mp3, m4a, ogg, flac, wav) */
+    fun importCustom(ctx: Context, uri: Uri): String? {
+        val m = byKey("custom")
+        val tmp = File(dir(ctx), "custom.part")
+        return try {
+            ctx.contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(tmp).use { out -> input.copyTo(out) }
+            } ?: return "تعذّر فتح الملف"
+            if (!validAudio(tmp)) {
+                tmp.delete()
+                return "الملف ده مش ملف صوت صالح"
+            }
+            val target = file(ctx, m)
+            target.delete()
+            if (!tmp.renameTo(target)) "تعذّر حفظ الملف" else null
+        } catch (e: Exception) {
+            tmp.delete()
+            "تعذّر استيراد الملف"
+        }
+    }
+
+    private fun validAudio(f: File): Boolean {
+        if (f.length() < 20_000) return false
+        val probe = MediaPlayer()
+        return try {
+            probe.setDataSource(f.absolutePath)
+            probe.prepare()
+            true
+        } catch (e: Exception) {
+            false
+        } finally {
+            probe.release()
+        }
     }
 
     /**
@@ -61,7 +121,7 @@ object Muezzins {
                 connectTimeout = 15_000
                 readTimeout = 30_000
                 instanceFollowRedirects = true
-                setRequestProperty("User-Agent", "Mozilla/5.0 (Android) HisnAlMuslim/1.0")
+                setRequestProperty("User-Agent", "Mozilla/5.0 (Android) HisnAlMuslim/2.0")
             }
             if (conn.responseCode !in 200..299) return "فشل التحميل (كود ${conn.responseCode})"
             val type = conn.contentType.orEmpty().lowercase()
@@ -80,20 +140,9 @@ object Muezzins {
                     }
                 }
             }
-            if (tmp.length() < 20_000) {
-                tmp.delete()
-                return "الملف المحمّل صغير جدًا أو غير صالح"
-            }
-            // تأكد إن الملف بيتفتح كصوت
-            val probe = MediaPlayer()
-            try {
-                probe.setDataSource(tmp.absolutePath)
-                probe.prepare()
-            } catch (e: Exception) {
+            if (!validAudio(tmp)) {
                 tmp.delete()
                 return "الملف المحمّل مش ملف صوت صالح"
-            } finally {
-                probe.release()
             }
             target.delete()
             if (!tmp.renameTo(target)) return "تعذّر حفظ الملف"

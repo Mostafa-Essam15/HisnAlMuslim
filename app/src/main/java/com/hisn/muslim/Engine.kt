@@ -82,17 +82,24 @@ object Scheduler {
 
 class AdhanReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val prayer = intent.getStringExtra("prayer") ?: return
+        val prayerName = intent.getStringExtra("prayer") ?: return
         ContextCompat.startForegroundService(
             context,
-            Intent(context, AdhanService::class.java).putExtra("prayer", prayer)
+            Intent(context, AdhanService::class.java).putExtra("prayer", prayerName)
         )
         Scheduler.schedule(context)
+
+        // بعد الأذان بمدة: «هل صليت؟»
+        val prefs = Prefs(context)
+        val prayer = runCatching { Prayer.valueOf(prayerName) }.getOrNull()
+        if (prayer != null && prefs.checkEnabled) {
+            Reminders.scheduleCheck(context, prayer, prefs.checkAfterMin, 0)
+        }
     }
 }
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        Scheduler.schedule(context)
+        Reminders.scheduleAll(context)
     }
 }

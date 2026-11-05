@@ -184,6 +184,22 @@ object Content {
         )
     )
 
+    /** ذكر عشوائي قصير للبوب اب (النص، المصدر) */
+    fun randomPopupDhikr(): Pair<String, String> {
+        val pool = azkar.filter { it.text.length <= 170 && !it.text.startsWith("قراءة سور") }
+            .map { d ->
+                val suffix = if (d.count > 1) "\n(×${d.count})" else ""
+                (d.text + suffix) to d.source
+            }
+        val extra = listOf(
+            "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ" to "حبيبتان إلى الرحمن — متفق عليه",
+            "أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ وَأَتُوبُ إِلَيْهِ" to "استغفار",
+            "اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ" to "الصلاة على النبي ﷺ",
+            "لَا إِلَهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ" to "دعوة ذي النون — الأنبياء: ٨٧"
+        )
+        return (pool + extra).random()
+    }
+
     val tasbih = listOf(
         "سبحان الله",
         "الحمد لله",

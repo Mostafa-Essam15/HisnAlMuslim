@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- هلال -->
+    <path
+        android:fillColor="#F2C94C"
+        android:pathData="M60,20 A8,8 0,1,0 60,32 A6.5,6.5 0,0,1 60,20 Z" />
+    <!-- نجمة صغيرة جنب الهلال -->
+    <path
+        android:fillColor="#F2C94C"
+        android:pathData="M63,26 l1.1,2.2 2.4,0.3 -1.8,1.7 0.5,2.4 -2.2,-1.2 -2.2,1.2 0.5,-2.4 -1.8,-1.7 2.4,-0.3 z" />
+    <!-- القبة -->
+    <path
+        android:fillColor="#F2C94C"
+        android:pathData="M38,68 C38,56 45,49 54,43 C63,49 70,56 70,68 Z" />
+    <!-- رأس القبة -->
+    <path
+        android:fillColor="#F2C94C"
+        android:pathData="M53,34 L55,34 L55.6,43 L52.4,43 Z" />
+    <!-- المئذنة اليسرى -->
+    <path
+        android:fillColor="#F2C94C"
+        android:pathData="M27,80 L27,54 L31,54 L31,80 Z" />
+    <path
+        android:fillColor="#F2C94C"
+        android:pathData="M26,54 L29,45 L32,54 Z" />
+    <!-- المئذنة اليمنى -->
+    <path
+        android:fillColor="#F2C94C"
+        android:pathData="M77,80 L77,54 L81,54 L81,80 Z" />
+    <path
+        android:fillColor="#F2C94C"
+        android:pathData="M76,54 L79,45 L82,54 Z" />
+    <!-- جسم المسجد -->
+    <path
+        android:fillColor="#F2C94C"
+        android:pathData="M34,68 L74,68 L74,80 L34,80 Z" />
+    <!-- باب مقوّس -->
+    <path
+        android:fillColor="#0B3D2E"
+        android:pathData="M50,80 L50,73 C50,69.5 58,69.5 58,73 L58,80 Z" />
+</vector>
