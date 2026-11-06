@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
@@ -203,6 +204,7 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
     val tick = refreshTick.intValue
     var adhanOn by remember { mutableStateOf(prefs.adhanEnabled) }
     var full by remember { mutableStateOf(prefs.fullAdhan) }
+    var playInSilent by remember { mutableStateOf(prefs.playInSilent) }
     var volume by remember { mutableIntStateOf(prefs.adhanVolume) }
     var muezzin by remember { mutableStateOf(prefs.muezzin) }
     var method by remember { mutableStateOf(prefs.method) }
@@ -246,6 +248,49 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                 SwitchRow("تشغيل الأذان في وقت الصلاة", adhanOn) { adhanOn = it; prefs.adhanEnabled = it; reschedule() }
                 SwitchRow("أذان كامل (وإلا قصير: أول ${Muezzins.SHORT_SECONDS} ثانية)", full) { full = it; prefs.fullAdhan = it }
                 Spacer(Modifier.height(6.dp))
+                SwitchRow("تشغيل الأذان في وضع الصامت", playInSilent) {
+                    playInSilent = it; prefs.playInSilent = it
+                }
+                val ringer = ctx.getSystemService(AudioManager::class.java).ringerMode
+                val ringerLabel = when (ringer) {
+                    AudioManager.RINGER_MODE_SILENT -> "صامت"
+                    AudioManager.RINGER_MODE_VIBRATE -> "اهتزاز"
+                    else -> "عادي"
+                }
+                val dndActive = DndGuard.isActive(ctx)
+                val dndAccess = DndGuard.hasAccess(ctx)
+                Text(
+                    if (playInSilent)
+                        "الأذان بيشتغل على قناة المنبّه، فبيُسمع حتى لو الموبايل على الصامت أو الاهتزاز."
+                    else
+                        "الأذان هيلتزم بوضع الصامت: لو الموبايل صامت هيظهر إشعار بدون صوت.",
+                    fontSize = 12.sp, color = Muted
+                )
+                Text(
+                    "وضع الصوت الحالي: $ringerLabel • عدم الإزعاج: ${if (dndActive) "مفعّل" else "غير مفعّل"}",
+                    fontSize = 12.sp, color = Muted
+                )
+                if (playInSilent) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "«عدم الإزعاج» حاجة منفصلة عن الصامت. لو شغّال على «صمت تام» بيكتم المنبهات كمان، وعشان الأذان يشتغل وقتها " +
+                            "لازم تدّي التطبيق إذن «الوصول لسياسة الإشعارات»: هيحوّل مؤقتًا لـ«المنبهات فقط» أثناء الأذان ويرجّعه بعد ما يخلص. " +
+                            "التطبيق ما بيغيّر حاجة من غير الإذن ده، وبتقدر تسحبه من إعدادات الأندرويد في أي وقت.",
+                        fontSize = 12.sp, color = Muted
+                    )
+                    StatusRow(dndAccess, "إذن الوصول لسياسة عدم الإزعاج", "فتح الإعدادات") {
+                        ctx.startActivity(
+                            Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
+                    Text(
+                        "بعض الأجهزة (شاومي، أوبو، فيفو، هواوي، سامسونج) فيها قيود إضافية على التطبيقات في الخلفية؛ " +
+                            "لو الأذان ما اشتغلش على جهازك فعّل «التشغيل التلقائي» واستثنِ التطبيق من توفير البطارية.",
+                        fontSize = 11.sp, color = Muted
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
                 Text("مستوى صوت الأذان: $volume%", fontSize = 14.sp)
                 Slider(
                     value = volume.toFloat(), onValueChange = { volume = it.toInt() },
@@ -260,7 +305,7 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { AdhanService.start(ctx, Prayer.DHUHR) }) { Text("تجربة الأذان", color = Gold) }
+                    OutlinedButton(onClick = { AdhanService.start(ctx, Prayer.DHUHR, test = true) }) { Text("تجربة الأذان", color = Gold) }
                     OutlinedButton(onClick = {
                         ctx.sendBroadcast(
                             Intent(ctx, ReminderReceiver::class.java).putExtra("type", "CHECK").putExtra("prayer", "FAJR")

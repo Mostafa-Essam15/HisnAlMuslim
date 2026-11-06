@@ -63,6 +63,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // بنحدّث حالة الأذونات (عدم الإزعاج، المنبهات الدقيقة…) لما نرجع من شاشة إعدادات الأندرويد
+        refreshTick.intValue++
+        Scheduler.schedule(this)
+    }
+
     @SuppressLint("MissingPermission")
     fun fetchLocation() {
         val ok = ContextCompat.checkSelfPermission(

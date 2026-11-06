@@ -32,6 +32,7 @@ class AdhanService : Service() {
     private var audioManager: AudioManager? = null
     private var prevVolume = -1
     private var focusRequest: AudioFocusRequest? = null
+    private var keepNotification = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -42,9 +43,21 @@ class AdhanService : Service() {
         }
         val prayer = runCatching { Prayer.valueOf(intent?.getStringExtra("prayer") ?: "") }
             .getOrDefault(Prayer.FAJR)
+        val isTest = intent?.getBooleanExtra("test", false) ?: false
+        val scheduledAt = intent?.getLongExtra("at", 0L) ?: 0L
         val prefs = Prefs(this)
 
         Notif.ensureChannels(this)
+        val am = getSystemService(AudioManager::class.java)
+        audioManager = am
+        val ringerNormal = am.ringerMode == AudioManager.RINGER_MODE_NORMAL
+        val lateMs = if (scheduledAt > 0) System.currentTimeMillis() - scheduledAt else 0L
+        val decision = AdhanPolicy.decide(isTest, ringerNormal, prefs.playInSilent, lateMs)
+
+        // نفس الأذان شغّال فعلًا → ما نبدأهوش تاني (منع التكرار)
+        val duplicate = decision == AdhanPolicy.Decision.PLAY && !isTest &&
+            AdhanState.playing.value && AdhanState.prayer.value == prayer && player != null
+
         val tip = Content.tip(prayer)
         val stopPi = PendingIntent.getService(
             this, 2, Intent(this, AdhanService::class.java).setAction(ACTION_STOP),
@@ -57,41 +70,65 @@ class AdhanService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        // الحالة لازم تتظبط قبل ما الشاشة الكاملة تفتح
-        AdhanState.prayer.value = prayer
-        AdhanState.playing.value = true
+        val notification = if (decision == AdhanPolicy.Decision.PLAY) {
+            // الحالة لازم تتظبط قبل ما الشاشة الكاملة تفتح
+            AdhanState.prayer.value = prayer
+            AdhanState.playing.value = true
+            Notif.builder(
+                this, Notif.CH_ADHAN, "حان الآن موعد أذان ${prayer.ar}", "${tip.kind}: ${tip.text}",
+                "${tip.kind}: ${tip.text}\n${tip.source}"
+            )
+                .setContentIntent(fullPi)
+                .setFullScreenIntent(fullPi, true)
+                .addAction(0, "إيقاف الأذان", stopPi)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .build()
+        } else {
+            val why = if (decision == AdhanPolicy.Decision.SKIP_SILENT)
+                "الموبايل على الصامت أو الاهتزاز، فالأذان ظهر كإشعار بدون صوت. لتشغيله بصوت فعّل «تشغيل الأذان في وضع الصامت» من الإعدادات."
+            else "وصل التنبيه متأخرًا عن وقت الأذان، فما اتشغّلش الصوت."
+            Notif.builder(this, Notif.CH_ADHAN, "حان موعد أذان ${prayer.ar}", why)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                .setAutoCancel(true)
+                .build()
+        }
 
-        val notification = Notif.builder(
-            this, Notif.CH_ADHAN, "حان الآن موعد أذان ${prayer.ar}", "${tip.kind}: ${tip.text}",
-            "${tip.kind}: ${tip.text}\n${tip.source}"
-        )
-            .setContentIntent(fullPi)
-            .setFullScreenIntent(fullPi, true)
-            .addAction(0, "إيقاف الأذان", stopPi)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setOngoing(true)
-            .setAutoCancel(false)
-            .build()
-
+        // لازم نناديها خلال ٥ ثواني من startForegroundService في كل الحالات
         ServiceCompat.startForeground(
             this, NOTIF_ID, notification,
             if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK else 0
         )
-        play(prefs)
+
+        when {
+            decision != AdhanPolicy.Decision.PLAY -> {
+                // سيب الإشعار ظاهر واقفل الخدمة
+                keepNotification = true
+                stopForeground(STOP_FOREGROUND_DETACH)
+                stopSelf()
+            }
+            duplicate -> Unit
+            else -> play(prefs)
+        }
         return START_NOT_STICKY
     }
 
     private fun play(prefs: Prefs) {
         releasePlayer()
-        val am = getSystemService(AudioManager::class.java)
-        audioManager = am
+        val am = audioManager ?: getSystemService(AudioManager::class.java)
 
         val attrs = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_ALARM)
             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
             .build()
+
+        // «عدم الإزعاج - صمت تام» بيكتم المنبهات كمان. لو المستخدم فعّل الخيار وأدّى الإذن بنفسه،
+        // نحوّل مؤقتًا لـ«المنبهات فقط» ونرجّع الحالة القديمة بعد الأذان.
+        if (prefs.playInSilent) DndGuard.allowAlarmsTemporarily(this, prefs)
 
         // التركيز الصوتي: يوقف أي مشغّل تاني أثناء الأذان
         val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
@@ -100,16 +137,16 @@ class AdhanService : Service() {
         am.requestAudioFocus(req)
         focusRequest = req
 
-        // مستوى صوت الأذان (قناة المنبه) حسب الإعدادات
+        // مستوى الصوت اللي اخترته بيتطبق فورًا (من غير تصاعد تدريجي)
         try {
-            prevVolume = am.getStreamVolume(AudioManager.STREAM_ALARM)
+            if (prevVolume < 0) prevVolume = am.getStreamVolume(AudioManager.STREAM_ALARM)
             val max = am.getStreamMaxVolume(AudioManager.STREAM_ALARM)
             am.setStreamVolume(
                 AudioManager.STREAM_ALARM,
                 (max * prefs.adhanVolume / 100f).roundToInt().coerceIn(1, max), 0
             )
         } catch (e: Exception) {
-            prevVolume = -1 // وضع عدم الإزعاج ممكن يمنع تغيير الصوت
+            // وضع عدم الإزعاج ممكن يمنع تغيير مستوى الصوت؛ بنكمّل بالمستوى الحالي
         }
 
         val muezzin = Muezzins.byKey(prefs.muezzin)
@@ -128,28 +165,11 @@ class AdhanService : Service() {
             mp.setOnCompletionListener { stopSelf() }
             mp.setOnErrorListener { _, _, _ -> stopSelf(); true }
             mp.prepare()
-            mp.setVolume(0f, 0f)
-            mp.start()
+            mp.start() // بأعلى مستوى للمشغّل، والتحكم بالصوت من قناة المنبه فقط
             player = mp
-            fadeIn(mp)
         } catch (e: Exception) {
             stopSelf()
         }
-    }
-
-    /** تصاعد تدريجي للصوت في ثانيتين عشان ما يفاجئش */
-    private fun fadeIn(mp: MediaPlayer) {
-        var step = 0
-        val r = object : Runnable {
-            override fun run() {
-                if (player !== mp) return
-                step++
-                val v = (step / 12f).coerceAtMost(1f)
-                runCatching { mp.setVolume(v, v) }
-                if (step < 12) handler.postDelayed(this, 160)
-            }
-        }
-        handler.post(r)
     }
 
     private fun releasePlayer() {
@@ -168,7 +188,8 @@ class AdhanService : Service() {
             focusRequest?.let { am.abandonAudioFocusRequest(it) }
             if (prevVolume >= 0) runCatching { am.setStreamVolume(AudioManager.STREAM_ALARM, prevVolume, 0) }
         }
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        DndGuard.restore(this, Prefs(this))
+        if (!keepNotification) stopForeground(STOP_FOREGROUND_REMOVE)
         super.onDestroy()
     }
 
@@ -176,9 +197,13 @@ class AdhanService : Service() {
         const val NOTIF_ID = 10
         const val ACTION_STOP = "com.hisn.muslim.STOP"
 
-        fun start(ctx: Context, prayer: Prayer) {
+        fun start(ctx: Context, prayer: Prayer, scheduledAt: Long = 0L, test: Boolean = false) {
             ContextCompat.startForegroundService(
-                ctx, Intent(ctx, AdhanService::class.java).putExtra("prayer", prayer.name)
+                ctx,
+                Intent(ctx, AdhanService::class.java)
+                    .putExtra("prayer", prayer.name)
+                    .putExtra("at", scheduledAt)
+                    .putExtra("test", test)
             )
         }
 

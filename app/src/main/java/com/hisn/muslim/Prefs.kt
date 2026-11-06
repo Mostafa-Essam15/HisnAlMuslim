@@ -45,6 +45,18 @@ class Prefs(ctx: Context) {
     var adhanVolume: Int
         get() = sp.getInt("adhanVol", 80)
         set(v) = put("adhanVol", v)
+    /** تشغيل الأذان في وضع الصامت/الاهتزاز (الأذان بيشتغل على قناة المنبه) */
+    var playInSilent: Boolean
+        get() = sp.getBoolean("playSilent", true)
+        set(v) = put("playSilent", v)
+    /** آخر أذان اشتغل (صلاة@وقت الجدولة) عشان ما يتكررش لو التنبيه اتسلّم مرتين */
+    var lastFireKey: String
+        get() = str("lastFire", "")
+        set(v) = put("lastFire", v)
+    /** حالة «عدم الإزعاج» قبل ما التطبيق يغيّرها مؤقتًا أثناء الأذان (0 = ما غيّرناش حاجة) */
+    var prevDnd: Int
+        get() = sp.getInt("prevDnd", 0)
+        set(v) = put("prevDnd", v)
     fun prayerEnabled(p: Prayer) = sp.getBoolean("en_${p.name}", true)
     fun setPrayerEnabled(p: Prayer, v: Boolean) = put("en_${p.name}", v)
 

@@ -38,4 +38,6 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     // حساب مواقيت الصلاة
     implementation("com.batoulapps.adhan:adhan:1.2.1")
+
+    testImplementation("junit:junit:4.13.2")
 }

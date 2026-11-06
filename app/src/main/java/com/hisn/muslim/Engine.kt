@@ -49,8 +49,9 @@ object Engine {
 }
 
 object Scheduler {
-    private fun pending(ctx: Context, prayer: String): PendingIntent {
-        val i = Intent(ctx, AdhanReceiver::class.java).putExtra("prayer", prayer)
+    /** كود الطلب ثابت (١) عشان يكون فيه تنبيه أذان واحد بس: أي جدولة جديدة بتستبدل القديم ومفيش تكرار. */
+    private fun pending(ctx: Context, prayer: String, at: Long = 0L): PendingIntent {
+        val i = Intent(ctx, AdhanReceiver::class.java).putExtra("prayer", prayer).putExtra("at", at)
         return PendingIntent.getBroadcast(
             ctx, 1, i, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -61,17 +62,21 @@ object Scheduler {
         return Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()
     }
 
-    /** يجدولو تنبيه واحد للأذان القادم، وبعد ما يشتغل بيجدول اللي بعده. */
-    fun schedule(ctx: Context) {
+    /**
+     * يجدولو تنبيه واحد للأذان القادم، وبعد ما يشتغل بيجدول اللي بعده.
+     * @param afterFire بنمرّرها true من مستقبِل الأذان بعد ما التنبيه يشتغل: مهلة دقيقة عشان ما نعيد
+     * جدولة نفس الأذان بملّي ثواني. في أي جدولة تانية (فتح التطبيق، تغيير التوقيت) المهلة صفر،
+     * عشان أذان بعد أقل من دقيقة ما يتلغيش بالغلط.
+     */
+    fun schedule(ctx: Context, afterFire: Boolean = false) {
         val p = Prefs(ctx)
         val am = ctx.getSystemService(AlarmManager::class.java)
         if (!p.adhanEnabled) {
             am.cancel(pending(ctx, "FAJR"))
             return
         }
-        // مهلة دقيقة عشان ما نعيد جدولة نفس الأذان لو التنبيه اشتغل قبله بملّي ثواني
-        val (pr, date) = Engine.next(p, onlyEnabled = true, graceMs = 60_000) ?: return
-        val pi = pending(ctx, pr.name)
+        val (pr, date) = Engine.next(p, onlyEnabled = true, graceMs = if (afterFire) 60_000 else 0) ?: return
+        val pi = pending(ctx, pr.name, date.time)
         if (canExact(ctx)) {
             am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, date.time, pi)
         } else {
@@ -83,23 +88,40 @@ object Scheduler {
 class AdhanReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val prayerName = intent.getStringExtra("prayer") ?: return
-        ContextCompat.startForegroundService(
-            context,
-            Intent(context, AdhanService::class.java).putExtra("prayer", prayerName)
-        )
-        Scheduler.schedule(context)
+        val at = intent.getLongExtra("at", 0L)
+        val prefs = Prefs(context)
+        val prayer = runCatching { Prayer.valueOf(prayerName) }.getOrNull() ?: return
+
+        // منع التكرار: نفس الصلاة بنفس وقت الجدولة اتعالجت قبل كده
+        val key = if (at > 0) "$prayerName@$at" else ""
+        if (AdhanPolicy.isDuplicate(prefs.lastFireKey, key)) {
+            Scheduler.schedule(context, afterFire = true)
+            return
+        }
+        if (key.isNotEmpty()) prefs.lastFireKey = key
+
+        if (prefs.adhanEnabled && prefs.prayerEnabled(prayer)) {
+            AdhanService.start(context, prayer, scheduledAt = at)
+        }
+        Scheduler.schedule(context, afterFire = true)
 
         // بعد الأذان بمدة: «هل صليت؟»
-        val prefs = Prefs(context)
-        val prayer = runCatching { Prayer.valueOf(prayerName) }.getOrNull()
-        if (prayer != null && prefs.checkEnabled) {
+        if (prefs.checkEnabled) {
             Reminders.scheduleCheck(context, prayer, prefs.checkAfterMin, 0)
         }
     }
 }
 
+/**
+ * بيعيد الجدولة بعد: إعادة تشغيل الجهاز، تحديث التطبيق، تغيير المنطقة الزمنية، تغيير التاريخ أو الساعة،
+ * وتغيّر إذن «المنبهات الدقيقة». ولو التطبيق كان غيّر «عدم الإزعاج» مؤقتًا وفضل كده، بيرجّعه.
+ */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        val prefs = Prefs(context)
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+            DndGuard.restore(context, prefs)
+        }
         Reminders.scheduleAll(context)
     }
 }
