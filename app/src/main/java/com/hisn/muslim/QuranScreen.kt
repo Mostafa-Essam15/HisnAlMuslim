@@ -57,7 +57,7 @@ private sealed class Block {
     class Run(val text: AnnotatedString) : Block()
 }
 
-private fun buildPageBlocks(page: Int): List<Block> {
+private fun buildPageBlocks(page: Int, accent: Color, hi: Pair<Int, Int>?, hiBg: Color): List<Block> {
     val list = Quran.byPage[page] ?: return emptyList()
     val out = mutableListOf<Block>()
     var sb = AnnotatedString.Builder()
@@ -71,8 +71,11 @@ private fun buildPageBlocks(page: Int): List<Block> {
             }
             out += Block.Head(a.surah)
         }
+        if (hi != null && hi.first == a.surah && hi.second == a.num) sb.pushStyle(SpanStyle(background = hiBg))
+        else sb.pushStyle(SpanStyle())
         sb.append(a.text + " ")
-        sb.pushStyle(SpanStyle(color = Gold))
+        sb.pop()
+        sb.pushStyle(SpanStyle(color = accent))
         sb.append("﴿${Quran.arabicDigits(a.num)}﴾ ")
         sb.pop()
         has = true
@@ -146,17 +149,21 @@ fun QuranScreen(prefs: Prefs, jumpTo: Int, onJumpConsumed: () -> Unit) {
 
     Column(Modifier.fillMaxSize()) {
         Row(
-            Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             GoldChip("القراءة", section == 0) { section = 0 }
             GoldChip("السور والأجزاء", section == 1) { section = 1 }
             GoldChip("ختمة / ورد", section == 2) { section = 2 }
+            GoldChip("بحث", section == 3) { section = 3 }
+            GoldChip("العلامات", section == 4) { section = 4 }
         }
         when (section) {
             0 -> ReaderPane(prefs, page) { page = it; prefs.quranPage = it }
             1 -> SurahList { p -> page = p; prefs.quranPage = p; section = 0 }
-            else -> KhatmaPane(prefs) { p -> page = p; prefs.quranPage = p; section = 0 }
+            2 -> KhatmaPane(prefs) { p -> page = p; prefs.quranPage = p; section = 0 }
+            3 -> SearchPane { p -> page = p; prefs.quranPage = p; section = 0 }
+            else -> BookmarksPane(prefs) { p -> page = p; prefs.quranPage = p; section = 0 }
         }
     }
 }
@@ -165,9 +172,23 @@ fun QuranScreen(prefs: Prefs, jumpTo: Int, onJumpConsumed: () -> Unit) {
 private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
     var font by remember { mutableIntStateOf(prefs.quranFont) }
     var readTick by remember { mutableIntStateOf(0) }
-    val blocks = remember(page) { buildPageBlocks(page) }
+    val ctx = LocalContext.current
+    var theme by remember { mutableIntStateOf(prefs.quranTheme) }
+    var bmTick by remember { mutableIntStateOf(0) }
+    var repeat by remember { mutableIntStateOf(prefs.repeatMode) }
+    var reciter by remember { mutableStateOf(prefs.reciter) }
+    var showReciters by remember { mutableStateOf(false) }
+    val pageBg = when (theme) { 0 -> Color(0xFFF5ECD6); 1 -> Color(0xFFFFFFFF); else -> Color(0xCC0B1A14) }
+    val ink = if (theme == 2) Color.White else Color(0xFF2B2118)
+    val accent = if (theme == 2) Gold else Color(0xFF8A6A1F)
+    val hiBg = if (theme == 2) Color(0x55E8C766) else Color(0x55C9A227)
+    val cur = QuranAudio.current
+    val blocks = remember(page, theme, cur) { buildPageBlocks(page, accent, cur, hiBg) }
+    val bookmarked = remember(page, bmTick) { page in prefs.bookmarks() }
+    val pageAyahs = Quran.byPage[page].orEmpty()
+    androidx.compose.runtime.DisposableEffect(page) { onDispose { QuranAudio.stop() } }
     val first = Quran.byPage[page]?.firstOrNull()
-    val isRead = remember(page, readTick) { page in prefs.khatmaPagesRead() }
+    val isRead = remember(page, readTick) { page in prefs.khatmaPagesRead() || page in prefs.pagesReadOn(prefs.dayKey()) }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         Row(
@@ -180,6 +201,12 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 if (first != null) Text("الجزء ${Quran.arabicDigits(first.juz)} • ${Quran.surahName(first.surah)}", color = Muted, fontSize = 12.sp)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { prefs.toggleBookmark(page); bmTick++ }) {
+                    Text(if (bookmarked) "★" else "☆", color = Gold, fontSize = 22.sp)
+                }
+                TextButton(onClick = { theme = (theme + 1) % 3; prefs.quranTheme = theme }) {
+                    Text(when (theme) { 0 -> "ورق"; 1 -> "أبيض"; else -> "داكن" }, color = Gold, fontSize = 13.sp)
+                }
                 TextButton(onClick = { font = (font - 2).coerceAtLeast(18); prefs.quranFont = font }) { Text("أ-", color = Gold, fontSize = 18.sp) }
                 TextButton(onClick = { font = (font + 2).coerceAtMost(44); prefs.quranFont = font }) { Text("أ+", color = Gold, fontSize = 20.sp) }
             }
@@ -191,7 +218,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
             Column(
                 Modifier.weight(1f).fillMaxWidth()
                     .clip(RoundedCornerShape(22.dp))
-                    .background(Color(0xCC0B1A14))
+                    .background(pageBg)
                     .verticalScroll(scroll)
                     .padding(18.dp)
             ) {
@@ -200,17 +227,17 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                         is Block.Head -> {
                             Column(
                                 Modifier.fillMaxWidth().padding(vertical = 10.dp)
-                                    .background(Color(0x33E8C766), RoundedCornerShape(14.dp)).padding(10.dp),
+                                    .background(accent.copy(alpha = 0.18f), RoundedCornerShape(14.dp)).padding(10.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text(Quran.surahName(b.surah), color = Gold, fontSize = (font - 2).sp, fontWeight = FontWeight.Bold, fontFamily = Serif)
+                                Text(Quran.surahName(b.surah), color = accent, fontSize = (font - 2).sp, fontWeight = FontWeight.Bold, fontFamily = Serif)
                                 if (b.surah != 1 && b.surah != 9) {
-                                    Text("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ", color = Color.White, fontSize = (font - 2).sp, fontFamily = Serif)
+                                    Text("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ", color = ink, fontSize = (font - 2).sp, fontFamily = Serif)
                                 }
                             }
                         }
                         is Block.Run -> Text(
-                            b.text, color = Color.White, fontSize = font.sp,
+                            b.text, color = ink, fontSize = font.sp,
                             lineHeight = (font * 2.0f).sp, fontFamily = Serif, textAlign = TextAlign.Justify
                         )
                     }
@@ -218,24 +245,48 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
+        // التلاوة
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Button(
+                onClick = {
+                    if (QuranAudio.loading) QuranAudio.stop()
+                    else if (QuranAudio.current != null) QuranAudio.pauseResume()
+                    else QuranAudio.play(ctx, reciter, pageAyahs, 0, { prefs.repeatMode }) { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+            ) { Text(if (QuranAudio.loading) "…" else if (QuranAudio.playing) "⏸ إيقاف مؤقت" else "▶ استمع") }
+            OutlinedButton(onClick = { QuranAudio.stop() }) { Text("⏹", color = Gold) }
+            OutlinedButton(onClick = { repeat = (repeat + 1) % 3; prefs.repeatMode = repeat }) {
+                Text(when (repeat) { 1 -> "🔂 آية"; 2 -> "🔁 صفحة"; else -> "تكرار: لا" }, color = Gold, fontSize = 12.sp)
+            }
+            OutlinedButton(onClick = { showReciters = !showReciters }) {
+                Text(QuranAudio.reciters.firstOrNull { it.id == reciter }?.name ?: "القارئ", color = Gold, fontSize = 12.sp, maxLines = 1)
+            }
+        }
+        if (showReciters) {
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                QuranAudio.reciters.forEach { r ->
+                    GoldChip(r.name, reciter == r.id) { reciter = r.id; prefs.reciter = r.id; QuranAudio.stop() }
+                }
+            }
+        }
+        QuranAudio.error?.let { Text(it, color = Color(0xFFFF8A80), fontSize = 12.sp) }
         Row(
             Modifier.fillMaxWidth().padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedButton(onClick = { if (page > 1) onPage(page - 1) }) { Text("السابقة", color = Gold) }
-            if (prefs.khatmaActive) {
-                Button(
-                    onClick = {
-                        prefs.markPageRead(page)
-                        readTick++
-                        if (page < Quran.TOTAL_PAGES) onPage(page + 1)
-                    },
-                    enabled = !isRead,
-                    colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-                ) { Text(if (isRead) "✓ مقروءة" else "أتممت الصفحة ✓") }
-            }
+            Button(
+                onClick = {
+                    prefs.recordPageRead(page)
+                    readTick++
+                    if (page < Quran.TOTAL_PAGES) onPage(page + 1)
+                },
+                enabled = !isRead,
+                colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+            ) { Text(if (isRead) "✓ مقروءة" else "أتممت الصفحة ✓") }
             OutlinedButton(onClick = { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }) { Text("التالية", color = Gold) }
         }
     }
@@ -380,6 +431,56 @@ private fun KhatmaPane(prefs: Prefs, onOpenPage: (Int) -> Unit) {
             item {
                 TextButton(onClick = { prefs.stopKhatma(); Reminders.scheduleWird(ctx); tick++ }) {
                     Text("إنهاء الختمة الحالية", color = Color(0xFFFF8A80))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchPane(onOpen: (Int) -> Unit) {
+    var q by remember { mutableStateOf("") }
+    val results = remember(q) { Quran.search(q) }
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        androidx.compose.material3.OutlinedTextField(
+            value = q, onValueChange = { q = it }, singleLine = true,
+            modifier = Modifier.fillMaxWidth(), label = { Text("ابحث في القرآن (بدون تشكيل)") }
+        )
+        Spacer(Modifier.height(8.dp))
+        if (q.trim().length >= 2 && results.isEmpty()) Text("لا نتائج", color = Muted)
+        if (results.size >= 100) Text("أول ١٠٠ نتيجة فقط — دقّق البحث", color = Muted, fontSize = 12.sp)
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(results) { a ->
+                Glass(Modifier.clickable { onOpen(a.page) }) {
+                    Text(a.text, fontFamily = Serif, fontSize = 18.sp, lineHeight = 30.sp)
+                    Text("${Quran.surahName(a.surah)} • آية ${Quran.arabicDigits(a.num)} • ص ${Quran.arabicDigits(a.page)}", color = Gold, fontSize = 12.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BookmarksPane(prefs: Prefs, onOpen: (Int) -> Unit) {
+    var tick by remember { mutableIntStateOf(0) }
+    val list = remember(tick) { prefs.bookmarks().sorted() }
+    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item {
+            Glass(Modifier.clickable { onOpen(prefs.quranPage) }) {
+                Text("آخر موضع قراءة: صفحة ${Quran.arabicDigits(prefs.quranPage)}", color = Gold, fontWeight = FontWeight.Bold)
+                Text("اضغط للمتابعة", color = Muted, fontSize = 12.sp)
+            }
+        }
+        if (list.isEmpty()) item { Text("لا علامات بعد. اضغط ☆ أثناء القراءة لحفظ الصفحة.", color = Muted) }
+        items(list) { pg ->
+            val f = Quran.byPage[pg]?.firstOrNull()
+            Glass(Modifier.clickable { onOpen(pg) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("صفحة ${Quran.arabicDigits(pg)}", fontWeight = FontWeight.Bold)
+                        if (f != null) Text("${Quran.surahName(f.surah)} • الجزء ${Quran.arabicDigits(f.juz)}", color = Muted, fontSize = 12.sp)
+                    }
+                    TextButton(onClick = { prefs.toggleBookmark(pg); tick++ }) { Text("حذف", color = Color(0xFFFF8A80)) }
                 }
             }
         }

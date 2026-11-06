@@ -134,6 +134,24 @@ object Quran {
         return t
     }
 
+    private var normCache: List<String>? = null
+
+    /** بحث في نص المصحف بدون تشكيل (يوحّد الألف والياء والتاء المربوطة) */
+    fun search(query: String, limit: Int = 100): List<Ayah> {
+        val q = fold(query.trim())
+        if (q.length < 2) return emptyList()
+        val cache = normCache ?: ayahs.map { fold(it.text) }.also { normCache = it }
+        val out = ArrayList<Ayah>()
+        for (i in ayahs.indices) {
+            if (cache[i].contains(q)) { out.add(ayahs[i]); if (out.size >= limit) break }
+        }
+        return out
+    }
+
+    private fun fold(s: String): String = norm(s)
+        .replace('أ', 'ا').replace('إ', 'ا').replace('آ', 'ا')
+        .replace('ى', 'ي').replace('ة', 'ه')
+
     private fun norm(s: String): String {
         val sb = StringBuilder()
         for (ch in s) {
