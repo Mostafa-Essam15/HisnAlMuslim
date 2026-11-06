@@ -104,6 +104,8 @@ class AdhanService : Service() {
             if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK else 0
         )
 
+        if (decision == AdhanPolicy.Decision.PLAY && !duplicate) forceAdhanOnScreen(prayer, tip)
+
         when {
             decision != AdhanPolicy.Decision.PLAY -> {
                 // سيب الإشعار ظاهر واقفل الخدمة
@@ -172,6 +174,30 @@ class AdhanService : Service() {
         }
     }
 
+    /** إظهار شاشة الأذان إجباريًا: نافذة فوق التطبيقات (لو الإذن مفعّل) + محاولة فتح الشاشة الكاملة مباشرة */
+    private fun forceAdhanOnScreen(prayer: Prayer, tip: Tip) {
+        ForcedOverlay.show(
+            this, "adhan", "🕌 حان الآن موعد", "أذان ${prayer.ar}", "${tip.kind}: ${tip.text}\n${tip.source}",
+            listOf(
+                OverlayButton("⏹ إيقاف الأذان", true) {
+                    ForcedOverlay.dismiss(this, "adhan")
+                    AdhanService.stop(this)
+                },
+                OverlayButton("فتح التطبيق", false) {
+                    ForcedOverlay.dismiss(this, "adhan")
+                    startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }
+            )
+        )
+        // بإذن «العرض فوق التطبيقات» النظام بيسمح بفتح الشاشة من الخلفية؛ لو رفض فالإشعار ملء الشاشة بيكمّل
+        runCatching {
+            startActivity(
+                Intent(this, AdhanActivity::class.java).putExtra("prayer", prayer.name)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            )
+        }
+    }
+
     private fun releasePlayer() {
         player?.let {
             runCatching { if (it.isPlaying) it.stop() }
@@ -181,6 +207,7 @@ class AdhanService : Service() {
     }
 
     override fun onDestroy() {
+        ForcedOverlay.dismiss(this, "adhan")
         AdhanState.playing.value = false
         handler.removeCallbacksAndMessages(null)
         releasePlayer()

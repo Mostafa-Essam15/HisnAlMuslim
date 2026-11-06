@@ -443,6 +443,15 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     )
                 }
+                StatusRow(
+                    ForcedOverlay.can(ctx),
+                    "العرض فوق التطبيقات (يُظهر الأذان وسؤال «هل صليت؟» إجباريًا على الشاشة)", "السماح"
+                ) {
+                    ctx.startActivity(
+                        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${ctx.packageName}"))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }
                 val fsOk = Build.VERSION.SDK_INT < 34 ||
                     ctx.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
                 StatusRow(fsOk, "شاشة الأذان الكاملة فوق شاشة القفل", "السماح") {

@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.location.Address
 import android.location.Geocoder
 import android.content.pm.PackageManager
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -56,6 +57,14 @@ class MainActivity : ComponentActivity() {
         permLauncher.launch(req.toTypedArray())
         Notif.ensureChannels(this)
         Reminders.scheduleAll(this)
+        // إذن «العرض فوق التطبيقات» ضروري لظهور الأذان وسؤال «هل صليت؟» إجباريًا على الشاشة؛ بنطلبه مرة واحدة
+        val pf = Prefs(this)
+        if (!ForcedOverlay.can(this) && !pf.sp.getBoolean("overlayAsked", false)) {
+            pf.sp.edit().putBoolean("overlayAsked", true).apply()
+            startActivity(
+                Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:$packageName"))
+            )
+        }
         setContent {
             HisnTheme {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) { App() }

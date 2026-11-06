@@ -374,6 +374,7 @@ class ReminderReceiver : BroadcastReceiver() {
                 p.setDone(p.dayKey(), prayer.fardKey)
                 Reminders.cancelCheck(ctx, prayer)
                 Notif.cancel(ctx, Notif.idCheck(prayer))
+                ForcedOverlay.dismiss(ctx, "check_${prayer.name}")
             }
             "LATER" -> if (prayer != null) {
                 // بس نخفي الإشعار، والتذكير التالي متجدول بالفعل
@@ -462,6 +463,15 @@ class ReminderReceiver : BroadcastReceiver() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
         Notif.notify(ctx, Notif.idPeriod(prayer), n)
+        val k = "period_${prayer.name}"
+        ForcedOverlay.show(
+            ctx, k, "⏱ انتهى وقت الصلاة", "هل أتممت صلاة ${prayer.ar}؟", "يمكنك تسجيلها «قضاء» إن فاتتك.",
+            listOf(
+                ForcedOverlay.reminderButton(ctx, k, "✅ نعم، أتممتها", true, "P_YES", prayer),
+                ForcedOverlay.reminderButton(ctx, k, "↩ قضاء", false, "P_QADA", prayer),
+                ForcedOverlay.reminderButton(ctx, k, "⏳ لاحقاً", false, "P_LATER", prayer)
+            )
+        )
         Reminders.cancelCheck(ctx, prayer)
         Notif.cancel(ctx, Notif.idCheck(prayer))
     }
@@ -489,6 +499,14 @@ class ReminderReceiver : BroadcastReceiver() {
             .setOnlyAlertOnce(false)
             .build()
         Notif.notify(ctx, Notif.idCheck(prayer), n)
+        val k = "check_${prayer.name}"
+        ForcedOverlay.show(
+            ctx, k, "🤲 تذكير", "هل صليت ${prayer.ar}؟", "اضغط «صليت» لتسجيلها، أو «لسه» وهنفكرك بعد ${p.laterMin} دقيقة.",
+            listOf(
+                ForcedOverlay.reminderButton(ctx, k, "✅ صليت", true, "DONE", prayer),
+                ForcedOverlay.reminderButton(ctx, k, "⏳ لسه", false, "LATER", prayer)
+            )
+        )
 
         // تذكير تاني بعد المدة اللي اخترتها لحد ما تؤكد (بحد أقصى ٦ مرات وقبل الصلاة اللي بعدها)
         val nextPrayer = Engine.next(p)?.second?.time ?: Long.MAX_VALUE
