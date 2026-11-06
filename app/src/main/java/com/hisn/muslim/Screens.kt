@@ -248,26 +248,40 @@ fun AzkarTasbihScreen(prefs: Prefs) {
             GoldChip("السبحة والاستغفار", mode == 1) { mode = 1 }
             GoldChip("القبلة", mode == 2) { mode = 2 }
         }
-        when (mode) { 0 -> AzkarScreen(); 1 -> TasbihScreen(prefs); else -> QiblaScreen(prefs) }
+        when (mode) { 0 -> AzkarScreen(prefs); 1 -> TasbihScreen(prefs); else -> QiblaScreen(prefs) }
     }
 }
 
 @Composable
-fun AzkarScreen() {
+fun AzkarScreen(prefs: Prefs) {
     var cat by remember { mutableStateOf("الكل") }
+    var query by remember { mutableStateOf("") }
+    var favTick by remember { mutableIntStateOf(0) }
     val counters = remember { mutableStateMapOf<Int, Int>() }
-    val shown = Content.azkar.withIndex().filter { cat == "الكل" || cat in it.value.cats }
+    val favs = remember(favTick) { prefs.favorites() }
+    val day = prefs.dayKey()
+    val q = query.trim()
+    val shown = Content.azkar.withIndex().filter {
+        (cat == "الكل" || (cat == "المفضلة" && it.index.toString() in favs) || cat in it.value.cats) &&
+            (q.isEmpty() || it.value.text.contains(q) || it.value.source.contains(q))
+    }
 
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Content.azkarCats.forEach { c -> GoldChip(c, cat == c) { cat = c } }
+            (Content.azkarCats + "المفضلة").forEach { c -> GoldChip(c, cat == c) { cat = c } }
         }
+        androidx.compose.material3.OutlinedTextField(
+            value = query, onValueChange = { query = it }, singleLine = true,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), label = { Text("بحث في الأذكار") }
+        )
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            if (shown.isEmpty()) item { Text(if (cat == "المفضلة") "لا أذكار مفضلة بعد (اضغط ☆)." else "لا نتائج", color = Muted) }
             items(shown) { (idx, z) ->
                 val c = counters[idx] ?: 0
+                val fav = idx.toString() in favs
                 Glass {
                     Text(z.text, fontSize = 19.sp, lineHeight = 32.sp, fontFamily = Serif)
                     Spacer(Modifier.height(6.dp))
@@ -275,14 +289,31 @@ fun AzkarScreen() {
                     Spacer(Modifier.height(10.dp))
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Button(
-                            onClick = { if (c < z.count) counters[idx] = c + 1 },
+                            onClick = {
+                                if (c < z.count) {
+                                    counters[idx] = c + 1
+                                    // إتمام كل أذكار قسم (الصباح/المساء) في اليوم
+                                    if (c + 1 >= z.count) {
+                                        listOf("الصباح", "المساء").filter { it in z.cats }.forEach { k ->
+                                            val ids = Content.azkar.withIndex().filter { k in it.value.cats }.map { it.index }
+                                            val all = ids.all { i -> (if (i == idx) c + 1 else counters[i] ?: 0) >= Content.azkar[i].count }
+                                            if (all) prefs.setAdhkarDone(day, k, true)
+                                        }
+                                    }
+                                }
+                            },
                             enabled = c < z.count,
                             colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
                         ) { Text(if (c >= z.count) "تم ✅" else "$c / ${z.count}") }
                         if (c > 0) TextButton(onClick = { counters[idx] = 0 }) { Text("إعادة", color = Gold) }
+                        Spacer(Modifier.weight(1f))
+                        TextButton(onClick = { prefs.toggleFavorite(idx.toString()); favTick++ }) {
+                            Text(if (fav) "★" else "☆", color = Gold, fontSize = 22.sp)
+                        }
                     }
                 }
             }
         }
     }
 }
+
