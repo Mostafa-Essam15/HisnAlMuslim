@@ -59,6 +59,21 @@ object Engine {
         return Date()
     }
 
+    /** نوافذ وضع التركيز حول الصلوات المفعّلة (من قبل الأذان بـ X إلى بعده بـ Y) ليوم أمس واليوم وغدًا */
+    fun focusWindows(p: Prefs): List<Pair<Long, Long>> {
+        val out = ArrayList<Pair<Long, Long>>()
+        for (off in -1..1) {
+            val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, off) }
+            val t = times(p, cal.time)
+            for (pr in Prayer.values()) {
+                if (!p.focusPrayer(pr)) continue
+                val at = timeOf(t, pr).time
+                out += (at - p.focusBeforeMin * 60_000L) to (at + p.focusAfterMin * 60_000L)
+            }
+        }
+        return out.sortedBy { it.first }
+    }
+
     /** أقرب نهاية وقت صلاة قادمة (صلاة، يوم الصلاة، وقت النهاية) */
     fun nextPeriodEnd(p: Prefs, now: Long = System.currentTimeMillis()): Triple<Prayer, Date, Date>? {
         for (off in -1..1) {
@@ -168,6 +183,7 @@ class BootReceiver : BroadcastReceiver() {
         val prefs = Prefs(context)
         if (intent.action == Intent.ACTION_BOOT_COMPLETED || intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
             DndGuard.restore(context, prefs)
+            Reminders.focusRestore(context, prefs)
         }
         Reminders.scheduleAll(context)
     }

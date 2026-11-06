@@ -361,6 +361,37 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
             }
         }
 
+        // ───── وضع التركيز ─────
+        item {
+            Glass {
+                SectionTitle("وضع التركيز حول الصلاة", Icons.Rounded.Notifications)
+                var fOn by remember { mutableStateOf(prefs.focusOn) }
+                var fb by remember { mutableIntStateOf(prefs.focusBeforeMin) }
+                var fa by remember { mutableIntStateOf(prefs.focusAfterMin) }
+                SwitchRow("تفعيل «عدم الإزعاج» تلقائيًا حول أوقات الصلاة", fOn) { fOn = it; prefs.focusOn = it; reschedule() }
+                Text(
+                    "بيحوّل الهاتف لوضع «عدم الإزعاج: الأولوية فقط» قبل الأذان ويرجّع وضعك السابق بعد المدة. " +
+                        "لازم تمنح التطبيق إذن «الوصول لسياسة الإشعارات»، وما بيغيّر حاجة من غيره. الأذان نفسه بيفضل شغّال (قناة المنبّه).",
+                    fontSize = 12.sp, color = Muted
+                )
+                StatusRow(DndGuard.hasAccess(ctx), "إذن الوصول لسياسة عدم الإزعاج", "فتح الإعدادات") {
+                    ctx.startActivity(
+                        Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }
+                if (fOn) {
+                    Text("قبل الأذان بـ:", fontSize = 13.sp, color = Muted)
+                    ChipRow(listOf(0, 5, 10, 15).map { "$it د" to it }, fb) { fb = it; prefs.focusBeforeMin = it; reschedule() }
+                    Text("بعد الأذان بـ:", fontSize = 13.sp, color = Muted)
+                    ChipRow(listOf(10, 20, 30, 45).map { "$it د" to it }, fa) { fa = it; prefs.focusAfterMin = it; reschedule() }
+                    Prayer.values().forEach { pr ->
+                        var on by remember { mutableStateOf(prefs.focusPrayer(pr)) }
+                        SwitchRow(pr.ar, on) { on = it; prefs.setFocusPrayer(pr, it); reschedule() }
+                    }
+                }
+            }
+        }
+
         // ───── الصيام والنوافل ─────
         item {
             Glass {

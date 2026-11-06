@@ -87,6 +87,8 @@ object Reminders {
     private const val RC_POPUP = 203
     private const val RC_WIRD = 204
     private const val RC_PERIOD = 210
+    private const val RC_FOCUS_ON = 230
+    private const val RC_FOCUS_OFF = 231
     private const val RC_PERIOD_LATER = 220 // + ordinal
 
     private fun pi(ctx: Context, rc: Int, type: String, prayer: Prayer? = null, count: Int = 0): PendingIntent {
@@ -116,6 +118,48 @@ object Reminders {
         schedulePopup(ctx)
         scheduleWird(ctx)
         schedulePeriodEnd(ctx)
+        scheduleFocus(ctx)
+    }
+
+    private fun nm(ctx: Context) = ctx.getSystemService(android.app.NotificationManager::class.java)
+
+    /** بيجدول بداية/نهاية وضع التركيز (عدم الإزعاج حول الصلاة). بيشتغل بس لو المستخدم فعّله ومنح إذن الوصول لسياسة الإشعارات. */
+    fun scheduleFocus(ctx: Context) {
+        val p = Prefs(ctx)
+        val am = ctx.getSystemService(AlarmManager::class.java)
+        am.cancel(pi(ctx, RC_FOCUS_ON, "FOCUS_ON"))
+        am.cancel(pi(ctx, RC_FOCUS_OFF, "FOCUS_OFF"))
+        if (!p.focusOn || !DndGuard.hasAccess(ctx)) { focusRestore(ctx, p); return }
+        val now = System.currentTimeMillis()
+        val ws = Engine.focusWindows(p)
+        val cur = ws.firstOrNull { now >= it.first && now < it.second && now >= p.focusOverrideUntil }
+        if (cur != null) {
+            focusApply(ctx, p)
+            setAt(ctx, RC_FOCUS_OFF, cur.second, "FOCUS_OFF")
+        } else {
+            val next = ws.firstOrNull { it.first > now }
+            if (next != null) setAt(ctx, RC_FOCUS_ON, next.first, "FOCUS_ON")
+            focusRestore(ctx, p)
+        }
+    }
+
+    fun focusApply(ctx: Context, p: Prefs) {
+        val n = nm(ctx)
+        val cur = n.currentInterruptionFilter
+        // لو المستخدم أصلًا على وضع عدم إزعاج، ما نغيّرش حاجة
+        if (p.focusPrev == 0 && cur == android.app.NotificationManager.INTERRUPTION_FILTER_ALL) {
+            runCatching {
+                n.setInterruptionFilter(android.app.NotificationManager.INTERRUPTION_FILTER_PRIORITY)
+                p.focusPrev = cur
+            }
+        }
+    }
+
+    fun focusRestore(ctx: Context, p: Prefs) {
+        val prev = p.focusPrev
+        if (prev == 0) return
+        p.focusPrev = 0
+        if (DndGuard.hasAccess(ctx)) runCatching { nm(ctx).setInterruptionFilter(prev) }
     }
 
     /** تنبيه عند انتهاء وقت الصلاة الحالية لسؤالك: هل أتممتها؟ */
@@ -396,6 +440,7 @@ class ReminderReceiver : BroadcastReceiver() {
                 Notif.cancel(ctx, Notif.idCheck(prayer))
                 refreshTick.intValue++
             }
+            "FOCUS_ON", "FOCUS_OFF" -> Reminders.scheduleFocus(ctx)
             "DUHA" -> {
                 val n = Notif.builder(
                     ctx, Notif.CH_REMIND, "☀️ وقت صلاة الضحى",
