@@ -9,6 +9,8 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import com.batoulapps.adhan.CalculationMethod
 import com.batoulapps.adhan.Coordinates
+import com.batoulapps.adhan.HighLatitudeRule
+import com.batoulapps.adhan.Madhab
 import com.batoulapps.adhan.PrayerTimes
 import com.batoulapps.adhan.data.DateComponents
 import java.util.Calendar
@@ -21,7 +23,52 @@ object Engine {
         } catch (e: Exception) {
             CalculationMethod.EGYPTIAN.parameters
         }
+        if (p.asrMethod == "HANAFI") params.madhab = Madhab.HANAFI
+        if (p.highLat != "DEFAULT") {
+            runCatching { HighLatitudeRule.valueOf(p.highLat) }.getOrNull()?.let { params.highLatitudeRule = it }
+        }
+        params.adjustments.fajr = p.adj(Prayer.FAJR)
+        params.adjustments.dhuhr = p.adj(Prayer.DHUHR)
+        params.adjustments.asr = p.adj(Prayer.ASR)
+        params.adjustments.maghrib = p.adj(Prayer.MAGHRIB)
+        params.adjustments.isha = p.adj(Prayer.ISHA)
         return PrayerTimes(Coordinates(p.lat, p.lng), DateComponents.from(date), params)
+    }
+
+    /** نهاية وقت الصلاة: الفجر→الشروق، الظهر→العصر، العصر→المغرب، المغرب→العشاء، العشاء→فجر اليوم التالي */
+    fun endOf(p: Prefs, date: Date, pr: Prayer): Date {
+        val t = times(p, date)
+        return when (pr) {
+            Prayer.FAJR -> t.sunrise
+            Prayer.DHUHR -> t.asr
+            Prayer.ASR -> t.maghrib
+            Prayer.MAGHRIB -> t.isha
+            Prayer.ISHA -> {
+                val c = Calendar.getInstance().apply { time = date; add(Calendar.DAY_OF_YEAR, 1) }
+                times(p, c.time).fajr
+            }
+        }
+    }
+
+    /** تاريخ اليوم الذي تنتمي إليه آخر فترة منتهية لهذه الصلاة (العشاء بعد منتصف الليل تتبع الأمس) */
+    fun dayOfPeriod(p: Prefs, pr: Prayer, now: Long = System.currentTimeMillis()): Date {
+        for (off in 0 downTo -1) {
+            val d = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, off) }.time
+            if (endOf(p, d, pr).time <= now + 60_000L) return d
+        }
+        return Date()
+    }
+
+    /** أقرب نهاية وقت صلاة قادمة (صلاة، يوم الصلاة، وقت النهاية) */
+    fun nextPeriodEnd(p: Prefs, now: Long = System.currentTimeMillis()): Triple<Prayer, Date, Date>? {
+        for (off in -1..1) {
+            val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, off) }
+            for (pr in Prayer.values()) {
+                val e = endOf(p, cal.time, pr)
+                if (e.time > now) return Triple(pr, cal.time, e)
+            }
+        }
+        return null
     }
 
     fun timeOf(t: PrayerTimes, pr: Prayer): Date = when (pr) {

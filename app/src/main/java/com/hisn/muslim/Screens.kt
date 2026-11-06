@@ -115,7 +115,10 @@ fun HomeScreen(prefs: Prefs) {
                         color = Muted, fontSize = 14.sp
                     )
                 }
-                Text(Fasting.hijriText(prefs), color = Muted, fontSize = 13.sp)
+                Text(
+                    Fasting.hijriText(prefs) + " • " + java.text.SimpleDateFormat("EEEE d MMMM yyyy", java.util.Locale("ar")).format(java.util.Date()),
+                    color = Muted, fontSize = 13.sp
+                )
                 Spacer(Modifier.height(10.dp))
                 if (next != null) {
                     val diff = ((next.second.time - now) / 1000).coerceAtLeast(0)

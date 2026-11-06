@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -344,6 +345,10 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
         item {
             Glass {
                 SectionTitle("تأكيد أداء الصلاة", Icons.Rounded.CheckCircle)
+                var trackOn by remember { mutableStateOf(prefs.trackingEnabled) }
+                var periodOn by remember { mutableStateOf(prefs.periodPopupOn) }
+                SwitchRow("تتبّع الصلوات (أديت / قضاء)", trackOn) { trackOn = it; prefs.trackingEnabled = it; reschedule() }
+                SwitchRow("اسألني عند انتهاء وقت الصلاة: نعم / قضاء / لاحقاً", periodOn) { periodOn = it; prefs.periodPopupOn = it; reschedule() }
                 SwitchRow("اسألني «هل صليت؟» بعد الأذان", checkOn) { checkOn = it; prefs.checkEnabled = it }
                 if (checkOn) {
                     Spacer(Modifier.height(6.dp))
@@ -473,6 +478,33 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
         item {
             Glass {
                 SectionTitle("طريقة حساب المواقيت", Icons.Rounded.AccessTime)
+                var hanafi by remember { mutableStateOf(prefs.asrMethod == "HANAFI") }
+                var adjTick by remember { mutableIntStateOf(0) }
+                SwitchRow("العصر على المذهب الحنفي (ظل مثلين)", hanafi) {
+                    hanafi = it; prefs.asrMethod = if (it) "HANAFI" else "SHAFI"; reschedule(); refreshTick.intValue++
+                }
+                Spacer(Modifier.height(6.dp))
+                Text("تعديل يدوي للمواقيت بالدقائق (لمطابقة مسجد/تقويم محلي):", fontSize = 13.sp, color = Muted)
+                Prayer.values().forEach { pr ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(pr.ar, Modifier.weight(1f))
+                        GoldChip("−", false) { prefs.setAdj(pr, prefs.adj(pr) - 1); adjTick++; reschedule(); refreshTick.intValue++ }
+                        Text(
+                            "${if (prefs.adj(pr) > 0) "+" else ""}${prefs.adj(pr).also { adjTick }}",
+                            Modifier.width(44.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        GoldChip("+", false) { prefs.setAdj(pr, prefs.adj(pr) + 1); adjTick++; reschedule(); refreshTick.intValue++ }
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Text("خطوط العرض العالية (بلاد الليل/النهار الطويل):", fontSize = 13.sp, color = Muted)
+                var hl by remember { mutableStateOf(prefs.highLat) }
+                listOf(
+                    "DEFAULT" to "افتراضي", "MIDDLE_OF_THE_NIGHT" to "منتصف الليل",
+                    "SEVENTH_OF_THE_NIGHT" to "سُبع الليل", "TWILIGHT_ANGLE" to "زاوية الشفق"
+                ).forEach { (id, name) ->
+                    RadioRow(name, hl == id) { hl = id; prefs.highLat = id; reschedule(); refreshTick.intValue++ }
+                }
                 Content.methods.forEach { (id, name) ->
                     RadioRow(name, method == id) {
                         method = id; prefs.method = id; reschedule(); refreshTick.intValue++

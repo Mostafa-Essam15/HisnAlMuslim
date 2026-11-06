@@ -41,6 +41,7 @@ object Notif {
     const val ID_POPUP = 403
     const val ID_WIRD = 404
     fun idCheck(p: Prayer) = 300 + p.ordinal
+    fun idPeriod(p: Prayer) = 320 + p.ordinal
 
     fun ensureChannels(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java)
@@ -85,6 +86,8 @@ object Reminders {
     private const val RC_FASTING = 202
     private const val RC_POPUP = 203
     private const val RC_WIRD = 204
+    private const val RC_PERIOD = 210
+    private const val RC_PERIOD_LATER = 220 // + ordinal
 
     private fun pi(ctx: Context, rc: Int, type: String, prayer: Prayer? = null, count: Int = 0): PendingIntent {
         val i = Intent(ctx, ReminderReceiver::class.java)
@@ -112,6 +115,20 @@ object Reminders {
         scheduleFasting(ctx)
         schedulePopup(ctx)
         scheduleWird(ctx)
+        schedulePeriodEnd(ctx)
+    }
+
+    /** تنبيه عند انتهاء وقت الصلاة الحالية لسؤالك: هل أتممتها؟ */
+    fun schedulePeriodEnd(ctx: Context) {
+        val p = Prefs(ctx)
+        val am = ctx.getSystemService(AlarmManager::class.java)
+        if (!p.trackingEnabled || !p.periodPopupOn) { am.cancel(pi(ctx, RC_PERIOD, "PERIOD")); return }
+        val n = Engine.nextPeriodEnd(p) ?: return
+        setAt(ctx, RC_PERIOD, n.third.time, "PERIOD", n.first, 0)
+    }
+
+    fun schedulePeriodLater(ctx: Context, prayer: Prayer, afterMin: Int) {
+        setAt(ctx, RC_PERIOD_LATER + prayer.ordinal, System.currentTimeMillis() + afterMin * 60_000L, "PERIODP", prayer, 0)
     }
 
     // تأكيد الصلاة بعد الأذان
@@ -362,6 +379,22 @@ class ReminderReceiver : BroadcastReceiver() {
                 // بس نخفي الإشعار، والتذكير التالي متجدول بالفعل
                 Notif.cancel(ctx, Notif.idCheck(prayer))
             }
+            "PERIOD", "PERIODP" -> {
+                if (prayer != null) onPeriodEnd(ctx, p, prayer, type == "PERIODP")
+                if (type == "PERIOD") Reminders.schedulePeriodEnd(ctx)
+            }
+            "P_YES", "P_QADA", "P_LATER" -> if (prayer != null) {
+                val day = p.dayKey(Engine.dayOfPeriod(p, prayer))
+                when (type) {
+                    "P_YES" -> p.setPrayerStatus(day, prayer, 2)
+                    "P_QADA" -> p.setPrayerStatus(day, prayer, 1)
+                    else -> Reminders.schedulePeriodLater(ctx, prayer, p.laterMin.coerceAtLeast(5))
+                }
+                Reminders.cancelCheck(ctx, prayer)
+                Notif.cancel(ctx, Notif.idPeriod(prayer))
+                Notif.cancel(ctx, Notif.idCheck(prayer))
+                refreshTick.intValue++
+            }
             "DUHA" -> {
                 val n = Notif.builder(
                     ctx, Notif.CH_REMIND, "☀️ وقت صلاة الضحى",
@@ -403,6 +436,34 @@ class ReminderReceiver : BroadcastReceiver() {
                 Reminders.scheduleWird(ctx)
             }
         }
+    }
+
+    private fun onPeriodEnd(ctx: Context, p: Prefs, prayer: Prayer, isLater: Boolean) {
+        if (!p.trackingEnabled || !p.periodPopupOn) return
+        val day = p.dayKey(Engine.dayOfPeriod(p, prayer))
+        if (p.prayerStatus(day, prayer) != 0) return
+        if (!isLater) { if (p.wasPrompted(day, prayer)) return; p.markPrompted(day, prayer) }
+
+        fun action(label: String, type: String, rc: Int) = NotificationCompat.Action(
+            0, label,
+            PendingIntent.getBroadcast(
+                ctx, rc,
+                Intent(ctx, ReminderReceiver::class.java).putExtra("type", type).putExtra("prayer", prayer.name),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        )
+        val n = Notif.builder(
+            ctx, Notif.CH_CHECK, "انتهى وقت ${prayer.ar}",
+            "هل أتممت صلاة ${prayer.ar}؟ يمكنك تسجيلها «قضاء» إن فاتتك."
+        )
+            .addAction(action("✅ نعم", "P_YES", 600 + prayer.ordinal * 3))
+            .addAction(action("↩ قضاء", "P_QADA", 601 + prayer.ordinal * 3))
+            .addAction(action("⏳ لاحقاً", "P_LATER", 602 + prayer.ordinal * 3))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+        Notif.notify(ctx, Notif.idPeriod(prayer), n)
+        Reminders.cancelCheck(ctx, prayer)
+        Notif.cancel(ctx, Notif.idCheck(prayer))
     }
 
     private fun onCheck(ctx: Context, p: Prefs, prayer: Prayer, count: Int) {

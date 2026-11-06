@@ -7,7 +7,7 @@ import java.util.Date
 import java.util.Locale
 
 class Prefs(ctx: Context) {
-    private val sp = ctx.applicationContext.getSharedPreferences("hisn", Context.MODE_PRIVATE)
+    val sp = ctx.applicationContext.getSharedPreferences("hisn", Context.MODE_PRIVATE)
 
     private fun str(k: String, d: String) = sp.getString(k, d) ?: d
     private fun put(k: String, v: String) = sp.edit().putString(k, v).apply()
@@ -47,7 +47,7 @@ class Prefs(ctx: Context) {
         set(v) = put("adhanVol", v)
     /** تشغيل الأذان في وضع الصامت/الاهتزاز (الأذان بيشتغل على قناة المنبه) */
     var playInSilent: Boolean
-        get() = sp.getBoolean("playSilent", true)
+        get() = sp.getBoolean("playSilent", false)
         set(v) = put("playSilent", v)
     /** آخر أذان اشتغل (صلاة@وقت الجدولة) عشان ما يتكررش لو التنبيه اتسلّم مرتين */
     var lastFireKey: String
@@ -61,8 +61,9 @@ class Prefs(ctx: Context) {
     fun setPrayerEnabled(p: Prayer, v: Boolean) = put("en_${p.name}", v)
 
     // ───── المظهر ─────
+    /** رقم الخلفية: ‎-1 = تلقائي حسب وقت اليوم، 0..4 مشاهد جاهزة، 5 = صورتك */
     var bg: Int
-        get() = sp.getInt("bg", 0)
+        get() = sp.getInt("bg", -1)
         set(v) = put("bg", v)
     var tasbihCount: Int
         get() = sp.getInt("tasbihCount", 0)
