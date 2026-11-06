@@ -246,8 +246,9 @@ fun AzkarTasbihScreen(prefs: Prefs) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             GoldChip("الأذكار", mode == 0) { mode = 0 }
             GoldChip("السبحة والاستغفار", mode == 1) { mode = 1 }
+            GoldChip("القبلة", mode == 2) { mode = 2 }
         }
-        if (mode == 0) AzkarScreen() else TasbihScreen(prefs)
+        when (mode) { 0 -> AzkarScreen(); 1 -> TasbihScreen(prefs); else -> QiblaScreen(prefs) }
     }
 }
 
@@ -283,38 +284,5 @@ fun AzkarScreen() {
                 }
             }
         }
-    }
-}
-
-@Composable
-fun TasbihScreen(prefs: Prefs) {
-    var count by remember { mutableIntStateOf(prefs.tasbihCount) }
-    var idx by remember { mutableIntStateOf(prefs.tasbihIndex) }
-
-    Column(
-        Modifier.fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Content.tasbih.forEachIndexed { i, t ->
-                GoldChip(t, idx == i) { idx = i; count = 0; prefs.tasbihIndex = i; prefs.tasbihCount = 0 }
-            }
-        }
-        Spacer(Modifier.height(32.dp))
-        Text(
-            Content.tasbih[idx], fontSize = 28.sp, fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center, color = Gold, fontFamily = Serif
-        )
-        Spacer(Modifier.height(32.dp))
-        Box(
-            Modifier.size(230.dp).clip(CircleShape)
-                .background(androidx.compose.ui.graphics.Brush.radialGradient(listOf(Gold, GoldDeep)))
-                .clickable { count++; prefs.tasbihCount = count },
-            contentAlignment = Alignment.Center
-        ) {
-            Text("$count", fontSize = 68.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-        }
-        Spacer(Modifier.height(24.dp))
-        OutlinedButton(onClick = { count = 0; prefs.tasbihCount = 0 }) { Text("تصفير العدّاد", color = Gold) }
     }
 }
