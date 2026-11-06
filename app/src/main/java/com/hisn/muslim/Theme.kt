@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Home
@@ -45,6 +46,7 @@ val appTabs = listOf(
     Tab("المصحف", Icons.Rounded.MenuBook),
     Tab("الأذكار", Icons.Rounded.AutoAwesome),
     Tab("التحديات", Icons.Rounded.EmojiEvents),
+    Tab("المزيد", Icons.Rounded.Apps),
     Tab("الإعدادات", Icons.Rounded.Settings)
 )
 

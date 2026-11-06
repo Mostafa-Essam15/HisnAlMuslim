@@ -187,6 +187,7 @@ fun App() {
                     1 -> QuranScreen(prefs, quranJump) { quranJump = 0 }
                     2 -> AzkarTasbihScreen(prefs)
                     3 -> ChallengesScreen(prefs)
+                    4 -> MoreScreen(prefs)
                     else -> SettingsScreen(
                         prefs, bg, bgVersion,
                         onBg = { bg = it; prefs.bg = it },
