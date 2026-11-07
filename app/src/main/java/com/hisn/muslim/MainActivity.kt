@@ -160,6 +160,12 @@ fun App() {
             kotlinx.coroutines.delay(60_000)
         }
     }
+    val autoPhoto by androidx.compose.runtime.produceState(Photos.forNow(prefs), tickNow) {
+        while (true) {
+            value = Photos.forNow(prefs)
+            kotlinx.coroutines.delay(30_000)
+        }
+    }
     var bgVersion by remember { mutableIntStateOf(0) }
     var quranJump by remember { mutableIntStateOf(0) }
 
@@ -172,7 +178,7 @@ fun App() {
     }
 
     Box(Modifier.fillMaxSize()) {
-        AppBackground(bg, bgVersion, auto)
+        AppBackground(bg, bgVersion, auto, autoPhoto)
         Scaffold(
             containerColor = Color.Transparent,
             contentColor = Color.White,

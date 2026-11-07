@@ -247,11 +247,11 @@ fun saveCustomBg(ctx: Context, uri: Uri): Boolean = try {
 }
 
 @Composable
-fun AppBackground(bg: Int, version: Int, auto: Int = 0, modifier: Modifier = Modifier) {
+fun AppBackground(bg: Int, version: Int, auto: Int = 0, autoPhoto: Int = PHOTO_BASE + 2, modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
     val eff = when (bg) {
         BG_AUTO -> auto
-        BG_AUTO_PHOTO -> Photos.forScene(auto)
+        BG_AUTO_PHOTO -> autoPhoto
         else -> bg
     }
     Box(modifier.fillMaxSize()) {

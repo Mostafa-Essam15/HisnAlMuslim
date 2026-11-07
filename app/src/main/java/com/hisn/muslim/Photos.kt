@@ -22,8 +22,21 @@ object Photos {
 
     fun name(i: Int) = "bg/bg%02d.jpg".format(i)
 
-    /** صورة مناسبة لمشهد الوقت الحالي (من sceneNow)، بتتبدّل من يوم لتاني */
-    fun forScene(scene: Int): Int {
+    /**
+     * صورة الوقت الحالي في وضع «صور تلقائي»: بتتغيّر مع كل أذان (كل صلاة ليها ترتيبها)،
+     * وكمان لما المشهد يتغيّر (مثلًا بعد الشروق)، وبتتبدّل من يوم لتاني.
+     */
+    fun forNow(p: Prefs, now: Long = System.currentTimeMillis()): Int {
+        val scene = sceneNow(p, now)
+        val prev = try { Engine.previous(p, now) } catch (e: Exception) { null }
+        val cal = Calendar.getInstance().apply { if (prev != null) time = prev.second }
+        val doy = cal.get(Calendar.DAY_OF_YEAR)
+        val ord = prev?.first?.ordinal ?: 0
+        return forScene(scene, doy * 7 + ord * 3)
+    }
+
+    /** صورة مناسبة لمشهد معيّن؛ seed بيحدد أي صورة من المجموعة */
+    fun forScene(scene: Int, seed: Int = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)): Int {
         val pool = when (scene) {
             0 -> night
             1 -> dawn + day.take(2)
@@ -32,8 +45,7 @@ object Photos {
             2 -> maghrib
             else -> day
         }
-        val d = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
-        return PHOTO_BASE + pool[d % pool.size]
+        return PHOTO_BASE + pool[Math.floorMod(seed, pool.size)]
     }
 
     /** بيحمّل صورة مصغّرة/كاملة من الـ assets (inSampleSize لتخفيف الذاكرة) */
