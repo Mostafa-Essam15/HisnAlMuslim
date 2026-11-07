@@ -417,6 +417,29 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
             }
         }
 
+        // ───── تذكير أذكار الصباح والمساء ─────
+        item {
+            var on by remember { mutableStateOf(prefs.adhkarReminders) }
+            var am by remember { mutableIntStateOf(prefs.morningMin) }
+            var pm by remember { mutableIntStateOf(prefs.eveningMin) }
+            fun fmtMin(m: Int) = String.format(java.util.Locale.US, "%02d:%02d", m / 60, m % 60)
+            Glass {
+                SectionTitle("تذكير أذكار الصباح والمساء", Icons.Rounded.AutoAwesome)
+                SwitchRow("إشعار يومي بالأذكار", on) { on = it; prefs.adhkarReminders = it; reschedule() }
+                Text("لا يظهر التذكير لو أتممت أذكار القسم في نفس اليوم.", fontSize = 12.sp, color = Muted)
+                if (on) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { pickTime(ctx, am) { m -> am = m; prefs.morningMin = m; reschedule() } }) {
+                            Text("الصباح ${fmtMin(am)}")
+                        }
+                        OutlinedButton(onClick = { pickTime(ctx, pm) { m -> pm = m; prefs.eveningMin = m; reschedule() } }) {
+                            Text("المساء ${fmtMin(pm)}")
+                        }
+                    }
+                }
+            }
+        }
+
         // ───── بوب اب الأذكار ─────
         item {
             Glass {

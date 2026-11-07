@@ -40,6 +40,8 @@ object Notif {
     const val ID_FAST = 402
     const val ID_POPUP = 403
     const val ID_WIRD = 404
+    const val ID_ADHKAR_AM = 405
+    const val ID_ADHKAR_PM = 406
     fun idCheck(p: Prayer) = 300 + p.ordinal
     fun idPeriod(p: Prayer) = 320 + p.ordinal
 
@@ -87,6 +89,8 @@ object Reminders {
     private const val RC_POPUP = 203
     private const val RC_WIRD = 204
     private const val RC_PERIOD = 210
+    private const val RC_ADHKAR_AM = 240
+    private const val RC_ADHKAR_PM = 241
     private const val RC_FOCUS_ON = 230
     private const val RC_FOCUS_OFF = 231
     private const val RC_PERIOD_LATER = 220 // + ordinal
@@ -119,6 +123,7 @@ object Reminders {
         scheduleWird(ctx)
         schedulePeriodEnd(ctx)
         scheduleFocus(ctx)
+        scheduleAdhkar(ctx)
     }
 
     private fun nm(ctx: Context) = ctx.getSystemService(android.app.NotificationManager::class.java)
@@ -249,6 +254,16 @@ object Reminders {
         val p = Prefs(ctx)
         if (!p.popupOn) { cancelAlarm(ctx, RC_POPUP, "POPUP"); return }
         setAt(ctx, RC_POPUP, nextPopupTime(p, System.currentTimeMillis()), "POPUP")
+    }
+
+    fun scheduleAdhkar(ctx: Context) {
+        val p = Prefs(ctx)
+        val now = System.currentTimeMillis()
+        if (!p.adhkarReminders) {
+            cancelAlarm(ctx, RC_ADHKAR_AM, "ADHKAR_AM"); cancelAlarm(ctx, RC_ADHKAR_PM, "ADHKAR_PM"); return
+        }
+        setAt(ctx, RC_ADHKAR_AM, nextDailyAt(p.morningMin, now), "ADHKAR_AM")
+        setAt(ctx, RC_ADHKAR_PM, nextDailyAt(p.eveningMin, now), "ADHKAR_PM")
     }
 
     fun scheduleWird(ctx: Context) {
@@ -469,6 +484,19 @@ class ReminderReceiver : BroadcastReceiver() {
                 val item = Content.randomPopupDhikr()
                 if (AzkarPopup.canOverlay(ctx)) AzkarPopup.show(ctx, item) else AzkarPopup.popupAsNotification(ctx, item)
                 Reminders.schedulePopup(ctx)
+            }
+            "ADHKAR_AM", "ADHKAR_PM" -> {
+                val morning = type == "ADHKAR_AM"
+                val cat = if (morning) "الصباح" else "المساء"
+                // لو أتممت الأذكار النهارده مفيش داعي للتذكير
+                if (cat !in p.adhkarDone(p.dayKey())) {
+                    val n = Notif.builder(
+                        ctx, Notif.CH_REMIND, if (morning) "🌅 أذكار الصباح" else "🌇 أذكار المساء",
+                        "حان وقت أذكار ${if (morning) "الصباح" else "المساء"}. افتح التطبيق وأتمّها."
+                    ).build()
+                    Notif.notify(ctx, if (morning) Notif.ID_ADHKAR_AM else Notif.ID_ADHKAR_PM, n)
+                }
+                Reminders.scheduleAdhkar(ctx)
             }
             "WIRD" -> {
                 val st = Khatma.stats(p)

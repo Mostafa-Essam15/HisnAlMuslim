@@ -239,6 +239,10 @@ fun HomeScreen(prefs: Prefs) {
 fun ChallengesScreen(prefs: Prefs) {
     val day = prefs.dayKey()
     val streak = prefs.streak()
+    var qTick by remember { mutableIntStateOf(0) }
+    val pendingQada = remember(qTick, refreshTick.intValue) {
+        prefs.lastDays(30).flatMap { d -> Prayer.values().filter { prefs.prayerStatus(d, it) == 1 }.map { d to it } }
+    }
 
     class Ch(val title: String, val desc: String, val cur: Int, val goal: Int)
 
@@ -256,6 +260,22 @@ fun ChallengesScreen(prefs: Prefs) {
                 SectionTitle("سلسلة المحافظة الحالية", Icons.Rounded.EmojiEvents)
                 Text("$streak يوم", fontSize = 40.sp, fontWeight = FontWeight.Bold, fontFamily = Serif)
                 Text("تُحسب الأيام التي سجّلت فيها الفروض الخمسة كاملة.", fontSize = 12.sp, color = Muted)
+            }
+        }
+        item {
+            Glass {
+                SectionTitle("سجل القضاء (آخر ٣٠ يومًا)", Icons.Rounded.AccessTime)
+                if (pendingQada.isEmpty()) {
+                    Text("لا صلوات مسجّلة للقضاء.", color = Muted, fontSize = 13.sp)
+                } else {
+                    Text("عليك قضاء ${pendingQada.size} صلاة. اضغط «تم القضاء» بعد أدائها.", color = Muted, fontSize = 13.sp)
+                    pendingQada.forEach { (d, p) ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("${p.ar} — $d", fontSize = 15.sp)
+                            TextButton(onClick = { prefs.setPrayerStatus(d, p, 2); qTick++ }) { Text("تم القضاء", color = Gold) }
+                        }
+                    }
+                }
             }
         }
         items(list) { c ->
