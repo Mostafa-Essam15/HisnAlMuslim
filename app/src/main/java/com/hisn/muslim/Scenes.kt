@@ -249,7 +249,11 @@ fun saveCustomBg(ctx: Context, uri: Uri): Boolean = try {
 @Composable
 fun AppBackground(bg: Int, version: Int, auto: Int = 0, modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
-    val eff = if (bg == BG_AUTO) auto else bg
+    val eff = when (bg) {
+        BG_AUTO -> auto
+        BG_AUTO_PHOTO -> Photos.forScene(auto)
+        else -> bg
+    }
     Box(modifier.fillMaxSize()) {
         androidx.compose.animation.Crossfade(targetState = eff, animationSpec = androidx.compose.animation.core.tween(1500), label = "bg") { e ->
             Box(Modifier.fillMaxSize()) {
@@ -257,7 +261,10 @@ fun AppBackground(bg: Int, version: Int, auto: Int = 0, modifier: Modifier = Mod
                     MosqueScene(e, Modifier.fillMaxSize())
                     Box(Modifier.fillMaxSize().background(Color(0x22000000)))
                 } else {
-                    val bmp = remember(version) { loadCustomBg(ctx) }
+                    val isPhoto = e >= PHOTO_BASE && e < PHOTO_BASE + 100
+                    val bmp = remember(e, version) {
+                        if (isPhoto) Photos.load(ctx, e - PHOTO_BASE, 1) else loadCustomBg(ctx)
+                    }
                     if (bmp != null) {
                         Image(bmp, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     } else {

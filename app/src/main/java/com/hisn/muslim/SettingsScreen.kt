@@ -561,6 +561,10 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                     Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    BgTile(selected = bg == BG_AUTO_PHOTO, label = "صور تلقائي", onClick = { onBg(BG_AUTO_PHOTO) }) {
+                        val b0 = remember { Photos.load(ctx, 4, 8) }
+                        if (b0 != null) Image(b0, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    }
                     BgTile(selected = bg == BG_AUTO, label = "تلقائي (حسب الوقت)", onClick = { onBg(BG_AUTO) }) {
                         MosqueScene(sceneNow(prefs), Modifier.fillMaxSize())
                     }
@@ -573,6 +577,19 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                         val bmp = remember(bgVersion) { loadCustomBg(ctx) }
                         BgTile(selected = bg == customBgIndex, label = "صورتك", onClick = { onBg(customBgIndex) }) {
                             if (bmp != null) Image(bmp, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("صور المساجد", fontSize = 13.sp, color = Muted)
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    for (i in 1..Photos.COUNT) {
+                        BgTile(selected = bg == PHOTO_BASE + i, label = "صورة $i", onClick = { onBg(PHOTO_BASE + i) }) {
+                            val th = remember(i) { Photos.load(ctx, i, 8) }
+                            if (th != null) Image(th, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                         }
                     }
                 }

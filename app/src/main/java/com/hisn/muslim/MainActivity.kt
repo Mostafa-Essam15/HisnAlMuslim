@@ -152,7 +152,7 @@ fun App() {
         }
         Unit
     }
-    var bg by remember { mutableIntStateOf(prefs.bg.coerceAtMost(customBgIndex)) }
+    var bg by remember { mutableIntStateOf(prefs.bg.let { if (it in 101..199 || it > PHOTO_BASE + Photos.COUNT) customBgIndex else it }) }
     val tickNow = refreshTick.intValue
     val auto by androidx.compose.runtime.produceState(sceneNow(prefs), tickNow) {
         while (true) {

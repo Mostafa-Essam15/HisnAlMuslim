@@ -61,9 +61,9 @@ class Prefs(ctx: Context) {
     fun setPrayerEnabled(p: Prayer, v: Boolean) = put("en_${p.name}", v)
 
     // ───── المظهر ─────
-    /** رقم الخلفية: ‎-1 = تلقائي حسب وقت اليوم، 0..4 مشاهد جاهزة، 5 = صورتك */
+    /** رقم الخلفية: ‎-2 = صور تلقائي حسب الوقت، ‎-1 = مشاهد مرسومة تلقائي، 0..5 مشاهد، 100 = صورتك، 200+ = صورة مرفقة */
     var bg: Int
-        get() = sp.getInt("bg", -1)
+        get() = sp.getInt("bg", -2)
         set(v) = put("bg", v)
     var tasbihCount: Int
         get() = sp.getInt("tasbihCount", 0)
