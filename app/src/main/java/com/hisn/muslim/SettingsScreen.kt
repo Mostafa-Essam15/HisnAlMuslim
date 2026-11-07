@@ -238,6 +238,17 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
         }
     }
 
+    var fajrVersion by remember { mutableIntStateOf(0) }
+    var fajrOn by remember { mutableStateOf(prefs.fajrCustomOn) }
+    var fajrMsg by remember { mutableStateOf("") }
+    val pickFajr = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            val err = Muezzins.importFajr(ctx, uri)
+            fajrMsg = err ?: "تم حفظ أذان الفجر"
+            fajrVersion++
+        }
+    }
+
     fun reschedule() = Reminders.scheduleAll(ctx)
 
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -325,6 +336,29 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                         "لأعلى جودة اختار «ملف أذان من جهازك» (mp3 / m4a / flac / wav).",
                     fontSize = 12.sp, color = Muted
                 )
+            }
+        }
+        item {
+            val has = remember(fajrVersion) { Muezzins.hasFajr(ctx) }
+            Glass {
+                SectionTitle("أذان الفجر", Icons.Rounded.VolumeUp)
+                Text(
+                    "أذان الفجر يختلف عن باقي الصلوات بزيادة «الصلاة خير من النوم». " +
+                        "أضف ملف أذان فجر من جهازك وسيُشغَّل وقت الفجر فقط، كاملًا دائمًا. " +
+                        "لو ما أضفتش ملف، يُشغَّل أذان المؤذن المختار كباقي الصلوات.",
+                    fontSize = 13.sp, color = Muted
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { pickFajr.launch("audio/*") }) {
+                        Text(if (has) "تغيير ملف الفجر" else "إضافة ملف أذان الفجر")
+                    }
+                    if (has) OutlinedButton(onClick = { Muezzins.deleteFajr(ctx); fajrMsg = "تم حذف ملف الفجر"; fajrVersion++ }) {
+                        Text("حذف")
+                    }
+                }
+                if (fajrMsg.isNotBlank()) Text(fajrMsg, fontSize = 12.sp, color = Gold)
+                if (has) SwitchRow("استخدام ملف الفجر الخاص", fajrOn) { fajrOn = it; prefs.fajrCustomOn = it }
             }
         }
         items(Muezzins.groups) { group ->

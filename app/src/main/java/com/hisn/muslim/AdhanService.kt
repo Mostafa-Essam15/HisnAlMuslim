@@ -114,12 +114,12 @@ class AdhanService : Service() {
                 stopSelf()
             }
             duplicate -> Unit
-            else -> play(prefs)
+            else -> play(prefs, prayer)
         }
         return START_NOT_STICKY
     }
 
-    private fun play(prefs: Prefs) {
+    private fun play(prefs: Prefs, prayer: Prayer) {
         releasePlayer()
         val am = audioManager ?: getSystemService(AudioManager::class.java)
 
@@ -155,7 +155,10 @@ class AdhanService : Service() {
         try {
             val mp = MediaPlayer()
             mp.setAudioAttributes(attrs)
-            if (Muezzins.isDownloaded(this, muezzin)) {
+            if (prayer == Prayer.FAJR && prefs.fajrCustomOn && Muezzins.hasFajr(this)) {
+                // أذان الفجر الخاص بيشتغل كامل دايمًا: «الصلاة خير من النوم» بتيجي بعد أول ٣٠ ثانية
+                mp.setDataSource(Muezzins.fajrFile(this).absolutePath)
+            } else if (Muezzins.isDownloaded(this, muezzin)) {
                 mp.setDataSource(Muezzins.file(this, muezzin).absolutePath)
                 // الأذان القصير: أول ٣٠ ثانية فقط
                 if (!prefs.fullAdhan) handler.postDelayed({ stopSelf() }, Muezzins.SHORT_SECONDS * 1000L)
@@ -177,7 +180,7 @@ class AdhanService : Service() {
     /** إظهار شاشة الأذان إجباريًا: نافذة فوق التطبيقات (لو الإذن مفعّل) + محاولة فتح الشاشة الكاملة مباشرة */
     private fun forceAdhanOnScreen(prayer: Prayer, tip: Tip) {
         ForcedOverlay.show(
-            this, "adhan", "🕌 حان الآن موعد", "أذان ${prayer.ar}", "${tip.kind}: ${tip.text}\n${tip.source}",
+            this, "adhan", "🕌 حان الآن موعد", "أذان ${prayer.ar}", "${tip.kind}: ${tip.text}\n${tip.source}" + (if (prayer == Prayer.FAJR) "\n\nفي أذان الفجر يُقال: «الصلاة خير من النوم» مرتين" else ""),
             listOf(
                 OverlayButton("⏹ إيقاف الأذان", true) {
                     ForcedOverlay.dismiss(this, "adhan")

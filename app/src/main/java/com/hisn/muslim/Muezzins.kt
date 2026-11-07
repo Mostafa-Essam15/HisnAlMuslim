@@ -94,6 +94,33 @@ object Muezzins {
         }
     }
 
+    // ───── أذان الفجر الخاص (فيه «الصلاة خير من النوم») ─────
+
+    fun fajrFile(ctx: Context): File = File(dir(ctx), "fajr_custom.mp3")
+
+    fun hasFajr(ctx: Context): Boolean = fajrFile(ctx).let { it.exists() && it.length() > 20_000 }
+
+    fun deleteFajr(ctx: Context) { fajrFile(ctx).delete() }
+
+    fun importFajr(ctx: Context, uri: Uri): String? {
+        val tmp = File(dir(ctx), "fajr.part")
+        return try {
+            ctx.contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(tmp).use { out -> input.copyTo(out) }
+            } ?: return "تعذّر فتح الملف"
+            if (!validAudio(tmp)) {
+                tmp.delete()
+                return "الملف ده مش ملف صوت صالح"
+            }
+            val target = fajrFile(ctx)
+            target.delete()
+            if (!tmp.renameTo(target)) "تعذّر حفظ الملف" else null
+        } catch (e: Exception) {
+            tmp.delete()
+            "تعذّر استيراد الملف"
+        }
+    }
+
     private fun validAudio(f: File): Boolean {
         if (f.length() < 20_000) return false
         val probe = MediaPlayer()

@@ -237,3 +237,10 @@ var Prefs.morningMin: Int
 var Prefs.eveningMin: Int
     get() = sp.getInt("eveningMin", 17 * 60 + 30)
     set(v) { sp.edit().putInt("eveningMin", v).apply() }
+
+// ───────────── أذان الفجر ─────────────
+
+/** استخدام ملف أذان الفجر الخاص (لو المستخدم أضافه) بدل أذان باقي الصلوات */
+var Prefs.fajrCustomOn: Boolean
+    get() = sp.getBoolean("fajrCustomOn", true)
+    set(v) { sp.edit().putBoolean("fajrCustomOn", v).apply() }

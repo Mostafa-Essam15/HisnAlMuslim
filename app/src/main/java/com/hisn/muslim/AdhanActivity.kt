@@ -150,6 +150,13 @@ fun AdhanScreen(prayer: Prayer, city: String, onStop: () -> Unit, onOpenApp: () 
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(tip.source, color = Muted, fontSize = 12.sp)
+                    if (prayer == Prayer.FAJR) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "في أذان الفجر يُقال: «الصلاة خير من النوم» مرتين",
+                            color = Gold, fontSize = 14.sp, textAlign = TextAlign.Center
+                        )
+                    }
                 }
                 Spacer(Modifier.height(22.dp))
                 Button(
