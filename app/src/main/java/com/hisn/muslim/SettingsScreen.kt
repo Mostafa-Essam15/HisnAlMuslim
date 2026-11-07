@@ -561,6 +561,9 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                     Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    BgTile(selected = bg == BG_AUTO, label = "تلقائي (حسب الوقت)", onClick = { onBg(BG_AUTO) }) {
+                        MosqueScene(sceneNow(prefs), Modifier.fillMaxSize())
+                    }
                     sceneStyles.forEachIndexed { i, s ->
                         BgTile(selected = bg == i, label = s.name, onClick = { onBg(i) }) {
                             MosqueScene(i, Modifier.fillMaxSize())

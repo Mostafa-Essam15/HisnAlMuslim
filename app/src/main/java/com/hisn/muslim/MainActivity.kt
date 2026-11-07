@@ -144,7 +144,22 @@ fun App() {
     val ctx = LocalContext.current
     val prefs = remember { Prefs(ctx) }
     var tab by remember { mutableIntStateOf(0) }
+    // ترحيل: كان رقم «صورتك» = ٥ قبل إضافة مشهد النهار
+    remember {
+        if (!prefs.sp.getBoolean("bgMig2", false)) {
+            prefs.sp.edit().putBoolean("bgMig2", true).apply()
+            if (prefs.bg == 5 && hasCustomBg(ctx)) prefs.bg = customBgIndex
+        }
+        Unit
+    }
     var bg by remember { mutableIntStateOf(prefs.bg.coerceAtMost(customBgIndex)) }
+    val tickNow = refreshTick.intValue
+    val auto by androidx.compose.runtime.produceState(sceneNow(prefs), tickNow) {
+        while (true) {
+            value = sceneNow(prefs)
+            kotlinx.coroutines.delay(60_000)
+        }
+    }
     var bgVersion by remember { mutableIntStateOf(0) }
     var quranJump by remember { mutableIntStateOf(0) }
 
@@ -157,7 +172,7 @@ fun App() {
     }
 
     Box(Modifier.fillMaxSize()) {
-        AppBackground(bg, bgVersion)
+        AppBackground(bg, bgVersion, auto)
         Scaffold(
             containerColor = Color.Transparent,
             contentColor = Color.White,

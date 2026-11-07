@@ -62,11 +62,43 @@ val sceneStyles = listOf(
         "الصحراء الذهبية",
         listOf(Color(0xFF2A1A0E), Color(0xFF8A5A2B), Color(0xFFE8B96A)),
         Color(0xFF1B1108), Color(0xFFFFF0C8), Color(0xFFFFE08A), false
+    ),
+    SceneStyle(
+        "النهار",
+        listOf(Color(0xFF2E6FB5), Color(0xFF6FB1E6), Color(0xFFCFE8F7)),
+        Color(0xFF1C2B38), Color(0xFFFFF6D8), Color(0xFFFFFFFF), false
     )
 )
 
+/** رقم تيار الخلفية «تلقائي حسب وقت اليوم» */
+const val BG_AUTO = -1
+
+/** المشهد المناسب لوقت اليوم الحالي حسب مواقيت الصلاة (ليل، فجر، نهار، عصر ذهبي، غروب) */
+fun sceneNow(p: Prefs, now: Long = System.currentTimeMillis()): Int {
+    return try {
+        val t = Engine.times(p, java.util.Date(now))
+        val fajr = t.fajr.time
+        val sunrise = t.sunrise.time
+        val dhuhr = t.dhuhr.time
+        val asr = t.asr.time
+        val maghrib = t.maghrib.time
+        val isha = t.isha.time
+        val m30 = 30 * 60_000L
+        when {
+            now < fajr || now >= isha -> 0
+            now < sunrise + m30 -> 1
+            now < asr -> 5
+            now < maghrib - m30 -> 4
+            now < isha -> 2
+            else -> 0
+        }
+    } catch (e: Exception) {
+        0
+    }
+}
+
 /** رقم الخلفية = عدد المشاهد الجاهزة → صورتك الخاصة من المعرض */
-val customBgIndex get() = sceneStyles.size
+const val customBgIndex = 100
 
 @Composable
 fun MosqueScene(styleIndex: Int, modifier: Modifier = Modifier) {
@@ -215,24 +247,29 @@ fun saveCustomBg(ctx: Context, uri: Uri): Boolean = try {
 }
 
 @Composable
-fun AppBackground(bg: Int, version: Int, modifier: Modifier = Modifier) {
+fun AppBackground(bg: Int, version: Int, auto: Int = 0, modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
+    val eff = if (bg == BG_AUTO) auto else bg
     Box(modifier.fillMaxSize()) {
-        if (bg < sceneStyles.size) {
-            MosqueScene(bg, Modifier.fillMaxSize())
-            Box(Modifier.fillMaxSize().background(Color(0x22000000)))
-        } else {
-            val bmp = remember(version) { loadCustomBg(ctx) }
-            if (bmp != null) {
-                Image(bmp, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            } else {
-                MosqueScene(0, Modifier.fillMaxSize())
+        androidx.compose.animation.Crossfade(targetState = eff, animationSpec = androidx.compose.animation.core.tween(1500), label = "bg") { e ->
+            Box(Modifier.fillMaxSize()) {
+                if (e in 0 until sceneStyles.size) {
+                    MosqueScene(e, Modifier.fillMaxSize())
+                    Box(Modifier.fillMaxSize().background(Color(0x22000000)))
+                } else {
+                    val bmp = remember(version) { loadCustomBg(ctx) }
+                    if (bmp != null) {
+                        Image(bmp, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    } else {
+                        MosqueScene(0, Modifier.fillMaxSize())
+                    }
+                    Box(
+                        Modifier.fillMaxSize().background(
+                            Brush.verticalGradient(listOf(Color(0x80000000), Color(0x55000000), Color(0xAA000000)))
+                        )
+                    )
+                }
             }
-            Box(
-                Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(listOf(Color(0x80000000), Color(0x55000000), Color(0xAA000000)))
-                )
-            )
         }
     }
 }
