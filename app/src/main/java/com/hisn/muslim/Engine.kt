@@ -94,6 +94,21 @@ object Engine {
         Prayer.ISHA -> t.isha
     }
 
+    /** آخر صلاة دخل وقتها (اليوم أو أمس) */
+    fun previous(p: Prefs, now: Long = System.currentTimeMillis()): Pair<Prayer, Date>? {
+        var best: Pair<Prayer, Date>? = null
+        for (off in -1..0) {
+            val cal = Calendar.getInstance()
+            cal.add(Calendar.DAY_OF_YEAR, off)
+            val t = times(p, cal.time)
+            for (pr in Prayer.values()) {
+                val d = timeOf(t, pr)
+                if (d.time <= now && (best == null || d.time > best.second.time)) best = pr to d
+            }
+        }
+        return best
+    }
+
     /** أقرب صلاة قادمة (اليوم أو غدًا) */
     fun next(p: Prefs, onlyEnabled: Boolean = false, graceMs: Long = 0): Pair<Prayer, Date>? {
         val now = System.currentTimeMillis() + graceMs

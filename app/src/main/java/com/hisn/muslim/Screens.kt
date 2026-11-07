@@ -1,6 +1,8 @@
 package com.hisn.muslim
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -98,6 +100,7 @@ fun HomeScreen(prefs: Prefs) {
     var done by remember(day) { mutableStateOf(prefs.done(day)) }
     val times = remember(tick, day) { Engine.times(prefs) }
     val next = remember(tick, now / 60000) { Engine.next(prefs) }
+    val prev = remember(tick, now / 60000) { Engine.previous(prefs) }
     val fmt = remember { SimpleDateFormat("hh:mm a", Locale("ar")) }
     val tomorrowFast = remember(tick, day) { Fasting.reason(prefs, LocalDate.now().plusDays(1)) }
     val todayFast = remember(tick, day) { Fasting.reason(prefs, LocalDate.now()) }
@@ -129,6 +132,21 @@ fun HomeScreen(prefs: Prefs) {
                         fontSize = 44.sp, fontWeight = FontWeight.Light
                     )
                     Text("الساعة ${fmt.format(next.second)}", color = Muted)
+                    if (prev != null) {
+                        val span = (next.second.time - prev.second.time).coerceAtLeast(1)
+                        val frac = ((now - prev.second.time).toFloat() / span).coerceIn(0f, 1f)
+                        Spacer(Modifier.height(10.dp))
+                        LinearProgressIndicator(
+                            progress = { frac },
+                            modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+                            color = Gold, trackColor = Color(0x33FFFFFF)
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(next.first.ar, fontSize = 12.sp, color = Muted)
+                            Text("منذ ${prev.first.ar}", fontSize = 12.sp, color = Muted)
+                        }
+                    }
                 }
                 if (!prefs.hasLocation) {
                     Spacer(Modifier.height(8.dp))
@@ -137,6 +155,24 @@ fun HomeScreen(prefs: Prefs) {
                         fontSize = 12.sp, color = Color(0xFFFFB4A8)
                     )
                 }
+            }
+        }
+        item {
+            val fard = done.count { it.endsWith("_FARD") }
+            val qada = prefs.qadaCount(day)
+            Glass {
+                SectionTitle("ملخص عبادة اليوم", Icons.Rounded.EmojiEvents)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("الفروض: $fard/5", fontWeight = FontWeight.Bold)
+                    Text("السنن: ${prefs.sunnahCount(day)}/${prefs.sunnahTotal()}", fontWeight = FontWeight.Bold)
+                    if (qada > 0) Text("قضاء: $qada", color = Gold, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(6.dp))
+                LinearProgressIndicator(
+                    progress = { (fard / 5f).coerceIn(0f, 1f) },
+                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
+                    color = Gold, trackColor = Color(0x33FFFFFF)
+                )
             }
         }
         if (todayFast != null || tomorrowFast != null) {
@@ -163,7 +199,8 @@ fun HomeScreen(prefs: Prefs) {
         }
         items(Prayer.values().toList()) { pr ->
             val isNext = next?.first == pr
-            Glass {
+            val isCurrent = prev?.first == pr && !isNext
+            Glass(modifier = if (isNext) Modifier.border(1.5.dp, Gold, RoundedCornerShape(24.dp)) else Modifier) {
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -172,6 +209,8 @@ fun HomeScreen(prefs: Prefs) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.AccessTime, null, tint = if (isNext) Gold else Muted, modifier = Modifier.size(20.dp))
                         Text("  " + pr.ar, fontSize = 21.sp, fontWeight = FontWeight.Bold, fontFamily = Serif)
+                        if (isNext) Text("  القادمة", fontSize = 12.sp, color = Gold)
+                        else if (isCurrent) Text("  الوقت الحالي", fontSize = 12.sp, color = Muted)
                     }
                     Text(fmt.format(Engine.timeOf(times, pr)), fontSize = 20.sp, color = Gold, fontWeight = FontWeight.SemiBold)
                 }
