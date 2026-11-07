@@ -18,7 +18,7 @@ class LogicTest {
     }
 
     @Test fun khatmaPagesPerDayRoundsUp() {
-        assertEquals(20, Khatma.pagesPerDay(30))
+        assertEquals(21, Khatma.pagesPerDay(30)) // 604/30 = 20.13 فتتقرّب لفوق
         assertEquals(604, Khatma.pagesPerDay(1))
         assertEquals(604, Khatma.pagesPerDay(0)) // حماية من القسمة على صفر
     }
