@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -74,7 +76,7 @@ object Occasions {
 private fun hijriOf(p: Prefs, d: LocalDate): HijrahDate = HijrahDate.from(d.plusDays(p.hijriAdj.toLong()))
 
 @Composable
-fun MoreScreen(prefs: Prefs) {
+fun MoreScreen(prefs: Prefs, onOpenQuran: (Int) -> Unit = {}) {
     var sec by remember { mutableIntStateOf(0) }
     Column(Modifier.fillMaxSize()) {
         Row(
@@ -85,12 +87,79 @@ fun MoreScreen(prefs: Prefs) {
             GoldChip("رمضان", sec == 1) { sec = 1 }
             GoldChip("إحصاءات العبادة", sec == 2) { sec = 2 }
             GoldChip("نسخ احتياطي", sec == 3) { sec = 3 }
+            GoldChip("بحث", sec == 4) { sec = 4 }
         }
         when (sec) {
             0 -> CalendarPane(prefs)
             1 -> RamadanPane(prefs)
             2 -> StatsPane(prefs)
+            4 -> SearchPane(prefs, onOpenQuran)
             else -> BackupPane(prefs)
+        }
+    }
+}
+
+// ───────────── البحث العام ─────────────
+
+@Composable
+private fun SearchPane(prefs: Prefs, onOpenQuran: (Int) -> Unit) {
+    val ctx = LocalContext.current
+    var q by remember { mutableStateOf("") }
+    val query = q.trim()
+    val azkar = remember(query) {
+        if (query.length < 2) emptyList()
+        else Content.azkar.filter { it.text.contains(query) || it.source.contains(query) }.take(30)
+    }
+    val tips = remember(query) {
+        if (query.length < 2) emptyList()
+        else Prayer.values().flatMap { pr -> (0 until 8).map { Content.tip(pr, it) } }
+            .distinctBy { it.text }.filter { it.text.contains(query) || it.source.contains(query) }.take(20)
+    }
+    var ayat by remember { mutableStateOf<List<Ayah>>(emptyList()) }
+    var quranReady by remember { mutableStateOf(Quran.loaded) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (!Quran.loaded) quranReady = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { Quran.load(ctx) }
+    }
+    androidx.compose.runtime.LaunchedEffect(query, quranReady) {
+        ayat = if (quranReady && query.length >= 2) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { Quran.search(query, 30) } else emptyList()
+    }
+    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item {
+            androidx.compose.material3.OutlinedTextField(
+                value = q, onValueChange = { q = it }, singleLine = true,
+                modifier = Modifier.fillMaxWidth(), label = { Text("ابحث في الأذكار والمصحف والفوائد") }
+            )
+            if (!quranReady) Text("المصحف غير محمّل بعد؛ حمّله من تبويب المصحف ليظهر في البحث.", fontSize = 11.sp, color = Muted)
+        }
+        if (query.length >= 2 && azkar.isEmpty() && tips.isEmpty() && ayat.isEmpty()) {
+            item { Text("لا نتائج", color = Muted) }
+        }
+        if (ayat.isNotEmpty()) {
+            item { Text("المصحف (${ayat.size})", color = Gold, fontWeight = FontWeight.Bold) }
+            items(ayat) { a ->
+                Glass(Modifier.clickable { onOpenQuran(a.page) }) {
+                    Text(a.text, fontFamily = Serif, fontSize = 18.sp, lineHeight = 30.sp)
+                    Text("${Quran.surahName(a.surah)} • آية ${Quran.arabicDigits(a.num)} • صفحة ${Quran.arabicDigits(a.page)} (اضغط للفتح)", fontSize = 12.sp, color = Muted)
+                }
+            }
+        }
+        if (azkar.isNotEmpty()) {
+            item { Text("الأذكار (${azkar.size})", color = Gold, fontWeight = FontWeight.Bold) }
+            items(azkar) { z ->
+                Glass {
+                    Text(z.text, fontFamily = Serif, fontSize = 17.sp, lineHeight = 28.sp)
+                    Text("${z.cats.joinToString("، ")} • ${z.source}", fontSize = 12.sp, color = Muted)
+                }
+            }
+        }
+        if (tips.isNotEmpty()) {
+            item { Text("الفوائد والأحاديث (${tips.size})", color = Gold, fontWeight = FontWeight.Bold) }
+            items(tips) { t ->
+                Glass {
+                    Text(t.text, fontFamily = Serif, fontSize = 17.sp, lineHeight = 28.sp)
+                    Text("${t.kind} • ${t.source}", fontSize = 12.sp, color = Muted)
+                }
+            }
         }
     }
 }

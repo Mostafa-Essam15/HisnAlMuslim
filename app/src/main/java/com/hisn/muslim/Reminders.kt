@@ -129,6 +129,7 @@ object Reminders {
         scheduleFocus(ctx)
         scheduleAdhkar(ctx)
         scheduleRamadan(ctx)
+        PrayerWidget.updateAll(ctx)
     }
 
     private fun nm(ctx: Context) = ctx.getSystemService(android.app.NotificationManager::class.java)

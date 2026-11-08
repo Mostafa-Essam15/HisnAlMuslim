@@ -181,6 +181,7 @@ class AdhanReceiver : BroadcastReceiver() {
             AdhanService.start(context, prayer, scheduledAt = at)
         }
         Scheduler.schedule(context, afterFire = true)
+        PrayerWidget.updateAll(context)
 
         // بعد الأذان بمدة: «هل صليت؟»
         if (prefs.checkEnabled) {
