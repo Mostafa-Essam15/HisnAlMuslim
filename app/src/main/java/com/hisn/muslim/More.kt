@@ -90,6 +90,7 @@ fun MoreScreen(prefs: Prefs, onOpenQuran: (Int) -> Unit = {}) {
             GoldChip("نسخ احتياطي", sec == 3) { sec = 3 }
             GoldChip("بحث", sec == 4) { sec = 4 }
             GoldChip("الأحاديث (تجريبي)", sec == 5) { sec = 5 }
+            GoldChip("الأدعية", sec == 6) { sec = 6 }
         }
         when (sec) {
             0 -> CalendarPane(prefs)
@@ -97,6 +98,7 @@ fun MoreScreen(prefs: Prefs, onOpenQuran: (Int) -> Unit = {}) {
             2 -> StatsPane(prefs)
             4 -> SearchPane(prefs, onOpenQuran)
             5 -> HadithPane(prefs)
+            6 -> DuasPane(prefs)
             else -> BackupPane(prefs)
         }
     }
