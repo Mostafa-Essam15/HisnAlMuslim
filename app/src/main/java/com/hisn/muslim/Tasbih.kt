@@ -54,7 +54,7 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 
-private fun vibrate(ctx: Context, ms: Long) {
+fun vibrate(ctx: Context, ms: Long) {
     try {
         @Suppress("DEPRECATION")
         val v = ctx.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator ?: return

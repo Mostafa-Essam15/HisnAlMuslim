@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -346,24 +347,40 @@ fun AzkarScreen(prefs: Prefs) {
                     Spacer(Modifier.height(6.dp))
                     Text(z.source, fontSize = 12.sp, color = Muted)
                     Spacer(Modifier.height(10.dp))
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Button(
-                            onClick = {
-                                if (c < z.count) {
-                                    counters[idx] = c + 1
-                                    // إتمام كل أذكار قسم (الصباح/المساء) في اليوم
-                                    if (c + 1 >= z.count) {
-                                        listOf("الصباح", "المساء").filter { it in z.cats }.forEach { k ->
-                                            val ids = Content.azkar.withIndex().filter { k in it.value.cats }.map { it.index }
-                                            val all = ids.all { i -> (if (i == idx) c + 1 else counters[i] ?: 0) >= Content.azkar[i].count }
-                                            if (all) prefs.setAdhkarDone(day, k, true)
-                                        }
-                                    }
+                    val ctxA = androidx.compose.ui.platform.LocalContext.current
+                    val tap = {
+                        if (c < z.count) {
+                            counters[idx] = c + 1
+                            if (prefs.vibrateOn) vibrate(ctxA, if (c + 1 >= z.count) 150 else 20)
+                            // إتمام كل أذكار قسم (الصباح/المساء) في اليوم
+                            if (c + 1 >= z.count) {
+                                listOf("الصباح", "المساء").filter { it in z.cats }.forEach { k ->
+                                    val ids = Content.azkar.withIndex().filter { k in it.value.cats }.map { it.index }
+                                    val all = ids.all { i -> (if (i == idx) c + 1 else counters[i] ?: 0) >= Content.azkar[i].count }
+                                    if (all) prefs.setAdhkarDone(day, k, true)
                                 }
-                            },
-                            enabled = c < z.count,
-                            colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-                        ) { Text(if (c >= z.count) "تم ✅" else "$c / ${z.count}") }
+                            }
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        // زرار العدّ: دايرة كبيرة بالرقم الحالي، اضغط عليها لكل مرة
+                        Box(
+                            Modifier.size(64.dp).clip(CircleShape)
+                                .background(if (c >= z.count) Color(0x66E8C766) else Gold)
+                                .clickable(enabled = c < z.count) { tap() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                if (c >= z.count) "✅" else Quran.arabicDigits(c),
+                                color = Color.Black, fontSize = 24.sp, fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text("العدد المطلوب: ${Quran.arabicDigits(z.count)} ${if (z.count == 1) "مرة" else "مرات"}", fontWeight = FontWeight.Bold)
+                            Text(if (c >= z.count) "تم ✅" else "اضغط الدائرة عند كل مرة (المتبقي ${Quran.arabicDigits(z.count - c)})", fontSize = 12.sp, color = Muted)
+                        }
+                        Spacer(Modifier.width(8.dp))
                         if (c > 0) TextButton(onClick = { counters[idx] = 0 }) { Text("إعادة", color = Gold) }
                         Spacer(Modifier.weight(1f))
                         TextButton(onClick = { prefs.toggleFavorite(idx.toString()); favTick++ }) {
