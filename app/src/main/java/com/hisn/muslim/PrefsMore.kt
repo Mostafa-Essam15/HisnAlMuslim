@@ -270,3 +270,10 @@ fun Prefs.homeLayout(): List<Pair<String, Boolean>> {
 fun Prefs.setHomeLayout(l: List<Pair<String, Boolean>>) {
     sp.edit().putString("homeLayout", l.joinToString(",") { "${it.first}:${if (it.second) 1 else 0}" }).apply()
 }
+
+// ───────────── وضع قراءة المصحف ─────────────
+
+/** 0 = النص العثماني (الافتراضي)، 1 = مصحف المدينة بصفحاته الحقيقية */
+var Prefs.mushafMode: Int
+    get() = sp.getInt("mushafMode", 0)
+    set(v) { sp.edit().putInt("mushafMode", v).apply() }

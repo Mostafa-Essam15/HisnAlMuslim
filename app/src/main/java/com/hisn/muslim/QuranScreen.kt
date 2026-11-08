@@ -1,6 +1,8 @@
 package com.hisn.muslim
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -175,6 +177,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
     val ctx = LocalContext.current
     var theme by remember { mutableIntStateOf(prefs.quranTheme) }
     var bmTick by remember { mutableIntStateOf(0) }
+    var mode by remember { mutableIntStateOf(prefs.mushafMode) }
     var repeat by remember { mutableIntStateOf(prefs.repeatMode) }
     var reciter by remember { mutableStateOf(prefs.reciter) }
     var showReciters by remember { mutableStateOf(false) }
@@ -204,6 +207,9 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 TextButton(onClick = { prefs.toggleBookmark(page); bmTick++ }) {
                     Text(if (bookmarked) "★" else "☆", color = Gold, fontSize = 22.sp)
                 }
+                TextButton(onClick = { mode = 1 - mode; prefs.mushafMode = mode }) {
+                    Text(if (mode == 1) "النص" else "المصحف", color = Gold, fontSize = 13.sp)
+                }
                 TextButton(onClick = { theme = (theme + 1) % 3; prefs.quranTheme = theme }) {
                     Text(when (theme) { 0 -> "ورق"; 1 -> "أبيض"; else -> "داكن" }, color = Gold, fontSize = 13.sp)
                 }
@@ -213,33 +219,58 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
         }
         Spacer(Modifier.height(6.dp))
 
+        if (mode == 1) {
+            key(page) {
+                var drag by remember { mutableStateOf(0f) }
+                Box(
+                    Modifier.weight(1f).fillMaxWidth()
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(pageBg)
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                        .pointerInput(page) {
+                            detectHorizontalDragGestures(
+                                onDragStart = { drag = 0f },
+                                onDragEnd = {
+                                    // السحب من اليسار لليمين = الصفحة التالية (اتجاه المصحف)
+                                    if (drag > 120f && page < Quran.TOTAL_PAGES) onPage(page + 1)
+                                    else if (drag < -120f && page > 1) onPage(page - 1)
+                                },
+                                onHorizontalDrag = { _, d -> drag += d }
+                            )
+                        }
+                ) {
+                    MushafPageView(page, ink, accent, hiBg, cur, Modifier.fillMaxSize())
+                }
+            }
+        } else {
         key(page) {
-            val scroll = rememberScrollState()
-            Column(
-                Modifier.weight(1f).fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(pageBg)
-                    .verticalScroll(scroll)
-                    .padding(18.dp)
-            ) {
-                blocks.forEach { b ->
-                    when (b) {
-                        is Block.Head -> {
-                            Column(
-                                Modifier.fillMaxWidth().padding(vertical = 10.dp)
-                                    .background(accent.copy(alpha = 0.18f), RoundedCornerShape(14.dp)).padding(10.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(Quran.surahName(b.surah), color = accent, fontSize = (font - 2).sp, fontWeight = FontWeight.Bold, fontFamily = Serif)
-                                if (b.surah != 1 && b.surah != 9) {
-                                    Text("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ", color = ink, fontSize = (font - 2).sp, fontFamily = Serif)
+                val scroll = rememberScrollState()
+                Column(
+                    Modifier.weight(1f).fillMaxWidth()
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(pageBg)
+                        .verticalScroll(scroll)
+                        .padding(18.dp)
+                ) {
+                    blocks.forEach { b ->
+                        when (b) {
+                            is Block.Head -> {
+                                Column(
+                                    Modifier.fillMaxWidth().padding(vertical = 10.dp)
+                                        .background(accent.copy(alpha = 0.18f), RoundedCornerShape(14.dp)).padding(10.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(Quran.surahName(b.surah), color = accent, fontSize = (font - 2).sp, fontWeight = FontWeight.Bold, fontFamily = Serif)
+                                    if (b.surah != 1 && b.surah != 9) {
+                                        Text("بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ", color = ink, fontSize = (font - 2).sp, fontFamily = Serif)
+                                    }
                                 }
                             }
+                            is Block.Run -> Text(
+                                b.text, color = ink, fontSize = font.sp,
+                                lineHeight = (font * 2.0f).sp, fontFamily = Serif, textAlign = TextAlign.Justify
+                            )
                         }
-                        is Block.Run -> Text(
-                            b.text, color = ink, fontSize = font.sp,
-                            lineHeight = (font * 2.0f).sp, fontFamily = Serif, textAlign = TextAlign.Justify
-                        )
                     }
                 }
             }
