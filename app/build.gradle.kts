@@ -12,11 +12,24 @@ android {
         applicationId = "com.hisn.muslim"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
+        // رقم الإصدار بيزيد مع كل بناء على GitHub عشان التحديث فوق النسخة القديمة يشتغل
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()?.plus(100) ?: 2
         versionName = "2.0"
     }
 
+    // مفتاح توقيع ثابت: كل النسخ بنفس التوقيع فتتثبّت فوق بعض من غير ما تفقد بياناتك.
+    // (مفتاح تجريبي للتوزيع الشخصي؛ لنسخة متجر يُستخدم مفتاح خاص غير منشور.)
+    signingConfigs {
+        create("hisn") {
+            storeFile = file("hisn-debug.jks")
+            storePassword = "hisnapp123"
+            keyAlias = "hisn"
+            keyPassword = "hisnapp123"
+        }
+    }
+
     buildTypes {
+        debug { signingConfig = signingConfigs.getByName("hisn") }
         release { isMinifyEnabled = false }
     }
     compileOptions {
