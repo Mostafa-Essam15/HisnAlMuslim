@@ -28,4 +28,14 @@ class LogicTest {
         assertNotNull(Occasions.of(12, 10))
         assertNull(Occasions.of(3, 12)) // لا مولد ولا احتفالات غير متفق عليها
     }
+
+    @Test fun arabicFoldIgnoresDiacriticsAndAlefForms() {
+        assertEquals(Quran.fold("الْحَمْدُ لِلَّهِ"), Quran.fold("الحمد لله"))
+        assertEquals(Quran.fold("إِيمَان"), Quran.fold("ايمان"))
+        assertEquals(Quran.fold("رحمة"), Quran.fold("رحمه"))
+    }
+
+    @Test fun arabicDigitsConvert() {
+        assertEquals("٦٠٤", Quran.arabicDigits(604))
+    }
 }

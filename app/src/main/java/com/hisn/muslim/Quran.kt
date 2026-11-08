@@ -148,7 +148,7 @@ object Quran {
         return out
     }
 
-    private fun fold(s: String): String = norm(s)
+    fun fold(s: String): String = norm(s)
         .replace('أ', 'ا').replace('إ', 'ا').replace('آ', 'ا')
         .replace('ى', 'ي').replace('ة', 'ه')
 

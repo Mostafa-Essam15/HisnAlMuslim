@@ -210,6 +210,7 @@ private fun SearchPane(prefs: Prefs, onOpenQuran: (Int) -> Unit) {
         else Prayer.values().flatMap { pr -> (0 until 8).map { Content.tip(pr, it) } }
             .distinctBy { it.text }.filter { it.text.contains(query) || it.source.contains(query) }.take(20)
     }
+    val hadiths = remember(query) { if (query.length < 2) emptyList() else HadithApi.searchCached(ctx, query) }
     var ayat by remember { mutableStateOf<List<Ayah>>(emptyList()) }
     var quranReady by remember { mutableStateOf(Quran.loaded) }
     androidx.compose.runtime.LaunchedEffect(Unit) {
@@ -222,11 +223,11 @@ private fun SearchPane(prefs: Prefs, onOpenQuran: (Int) -> Unit) {
         item {
             androidx.compose.material3.OutlinedTextField(
                 value = q, onValueChange = { q = it }, singleLine = true,
-                modifier = Modifier.fillMaxWidth(), label = { Text("ابحث في الأذكار والمصحف والفوائد") }
+                modifier = Modifier.fillMaxWidth(), label = { Text("ابحث في المصحف والأذكار والأحاديث المحفوظة") }
             )
             if (!quranReady) Text("المصحف غير محمّل بعد؛ حمّله من تبويب المصحف ليظهر في البحث.", fontSize = 11.sp, color = Muted)
         }
-        if (query.length >= 2 && azkar.isEmpty() && tips.isEmpty() && ayat.isEmpty()) {
+        if (query.length >= 2 && azkar.isEmpty() && tips.isEmpty() && ayat.isEmpty() && hadiths.isEmpty()) {
             item { Text("لا نتائج", color = Muted) }
         }
         if (ayat.isNotEmpty()) {
@@ -244,6 +245,17 @@ private fun SearchPane(prefs: Prefs, onOpenQuran: (Int) -> Unit) {
                 Glass {
                     Text(z.text, fontFamily = Serif, fontSize = 17.sp, lineHeight = 28.sp)
                     Text("${z.cats.joinToString("، ")} • ${z.source}", fontSize = 12.sp, color = Muted)
+                }
+            }
+        }
+        if (hadiths.isNotEmpty()) {
+            item { Text("الأحاديث المحفوظة (${hadiths.size})", color = Gold, fontWeight = FontWeight.Bold) }
+            items(hadiths) { d ->
+                Glass {
+                    Text(d.text, fontFamily = Serif, fontSize = 17.sp, lineHeight = 28.sp)
+                    if (d.attribution.isNotBlank()) Text(d.attribution, fontSize = 12.sp, color = Muted)
+                    if (d.grade.isNotBlank()) Text("الدرجة: ${d.grade}", fontSize = 12.sp, color = Gold)
+                    if (d.reference.isNotBlank()) Text("التخريج: ${d.reference}", fontSize = 11.sp, color = Muted)
                 }
             }
         }

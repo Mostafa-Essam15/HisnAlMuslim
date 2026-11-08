@@ -74,4 +74,29 @@ object HadithApi {
             o.optString("explanation"), o.optString("reference")
         )
     }
+
+    /** بحث في الأحاديث المحفوظة على الجهاز (اللي فتحتها قبل كده) — استرجاع فقط، من غير توليد نصوص. */
+    fun searchCached(ctx: Context, query: String, limit: Int = 20): List<HDetail> {
+        val q = Quran.fold(query.trim())
+        if (q.length < 2) return emptyList()
+        val dir = File(ctx.filesDir, "hadith")
+        val files = dir.listFiles { f -> f.name.startsWith("one_") && f.name.endsWith(".json") } ?: return emptyList()
+        val out = ArrayList<HDetail>()
+        for (f in files) {
+            try {
+                val o = JSONObject(f.readText())
+                val text = o.optString("hadeeth")
+                if (text.isNotBlank() && (Quran.fold(text).contains(q) || Quran.fold(o.optString("title")).contains(q))) {
+                    out.add(HDetail(
+                        f.name.removePrefix("one_").removeSuffix(".json"), o.optString("title"), text,
+                        o.optString("attribution"), o.optString("grade"), o.optString("explanation"), o.optString("reference")
+                    ))
+                    if (out.size >= limit) break
+                }
+            } catch (e: Exception) {
+                // ملف تالف: نتجاهله
+            }
+        }
+        return out
+    }
 }
