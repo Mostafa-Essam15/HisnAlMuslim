@@ -159,12 +159,14 @@ fun QuranScreen(prefs: Prefs, jumpTo: Int, onJumpConsumed: () -> Unit) {
             GoldChip("ختمة / ورد", section == 2) { section = 2 }
             GoldChip("بحث", section == 3) { section = 3 }
             GoldChip("العلامات", section == 4) { section = 4 }
+            GoldChip("الحفظ والمراجعة", section == 5) { section = 5 }
         }
         when (section) {
             0 -> ReaderPane(prefs, page) { page = it; prefs.quranPage = it }
             1 -> SurahList { p -> page = p; prefs.quranPage = p; section = 0 }
             2 -> KhatmaPane(prefs) { p -> page = p; prefs.quranPage = p; section = 0 }
             3 -> SearchPane { p -> page = p; prefs.quranPage = p; section = 0 }
+            5 -> MemorizePane(prefs)
             else -> BookmarksPane(prefs) { p -> page = p; prefs.quranPage = p; section = 0 }
         }
     }
