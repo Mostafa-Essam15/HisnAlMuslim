@@ -20,13 +20,17 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,7 +41,31 @@ val GoldDeep = Color(0xFFD4AF37)
 val Ink = Color(0xFF07130F)
 val CardBg = Color(0xB3071611)
 val Muted = Color(0xFFC9D4CF)
-val Serif = FontFamily.Serif
+/** خط المحتوى الشرعي (آيات، أذكار، أحاديث، أسماء الصلوات): Amiri — ترخيص OFL */
+val Serif = FontFamily(
+    Font(R.font.amiri_regular, FontWeight.Normal),
+    Font(R.font.amiri_bold, FontWeight.Bold)
+)
+
+/** خط الواجهة: Tajawal — ترخيص OFL */
+val UiFont = FontFamily(
+    Font(R.font.tajawal_regular, FontWeight.Normal),
+    Font(R.font.tajawal_medium, FontWeight.Medium),
+    Font(R.font.tajawal_bold, FontWeight.Bold)
+)
+
+private val hisnTypography = Typography().let { b ->
+    Typography(
+        displayLarge = b.displayLarge.copy(fontFamily = UiFont), displayMedium = b.displayMedium.copy(fontFamily = UiFont),
+        displaySmall = b.displaySmall.copy(fontFamily = UiFont), headlineLarge = b.headlineLarge.copy(fontFamily = UiFont),
+        headlineMedium = b.headlineMedium.copy(fontFamily = UiFont), headlineSmall = b.headlineSmall.copy(fontFamily = UiFont),
+        titleLarge = b.titleLarge.copy(fontFamily = UiFont), titleMedium = b.titleMedium.copy(fontFamily = UiFont),
+        titleSmall = b.titleSmall.copy(fontFamily = UiFont), bodyLarge = b.bodyLarge.copy(fontFamily = UiFont),
+        bodyMedium = b.bodyMedium.copy(fontFamily = UiFont), bodySmall = b.bodySmall.copy(fontFamily = UiFont),
+        labelLarge = b.labelLarge.copy(fontFamily = UiFont), labelMedium = b.labelMedium.copy(fontFamily = UiFont),
+        labelSmall = b.labelSmall.copy(fontFamily = UiFont)
+    )
+}
 
 class Tab(val title: String, val icon: ImageVector)
 
@@ -62,7 +90,8 @@ fun HisnTheme(content: @Composable () -> Unit) {
             background = Ink,
             onBackground = Color.White
         ),
-        content = content
+        typography = hisnTypography,
+        content = { ProvideTextStyle(TextStyle(fontFamily = UiFont), content) }
     )
 }
 
