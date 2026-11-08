@@ -191,8 +191,9 @@ object Khatma {
         val elapsed = ChronoUnit.DAYS.between(start, LocalDate.now()).toInt().coerceAtLeast(0)
         val daysLeft = (p.khatmaDays - elapsed).coerceAtLeast(1)
         val remaining = (TOTAL - read.size).coerceAtLeast(0)
-        val goal = if (remaining + readToday == 0) 0
+        val auto = if (remaining + readToday == 0) 0
         else ceil((remaining + readToday).toDouble() / daysLeft).toInt()
+        val goal = if (p.khatmaGoalOverride > 0 && remaining + readToday > 0) p.khatmaGoalOverride else auto
         val next = (1..TOTAL).firstOrNull { it !in read } ?: TOTAL
         val finish = start.plusDays((p.khatmaDays - 1).toLong()).toString()
         return Stats(read.size, remaining, daysLeft, p.khatmaDays, goal, readToday, next, finish)

@@ -451,6 +451,23 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
             }
         }
 
+        // ───── رمضان ─────
+        item {
+            var ram by remember { mutableStateOf(prefs.ramadanReminders) }
+            var suh by remember { mutableIntStateOf(prefs.suhoorBeforeMin) }
+            Glass {
+                SectionTitle("تذكيرات رمضان", Icons.Rounded.Spa)
+                SwitchRow("تذكير السحور والإفطار (في أيام رمضان فقط)", ram) { ram = it; prefs.ramadanReminders = it; reschedule() }
+                if (ram) {
+                    Text("التذكير بالسحور قبل الفجر بـ:", fontSize = 12.sp, color = Muted)
+                    ChipRow(listOf("٣٠ د" to 30, "٤٥ د" to 45, "٦٠ د" to 60, "٩٠ د" to 90), suh) {
+                        suh = it; prefs.suhoorBeforeMin = it; reschedule()
+                    }
+                }
+                Text("يعتمد على التقويم الهجري داخل التطبيق؛ يمكن ضبطه بتعديل التاريخ الهجري.", fontSize = 11.sp, color = Muted)
+            }
+        }
+
         // ───── تذكير أذكار الصباح والمساء ─────
         item {
             var on by remember { mutableStateOf(prefs.adhkarReminders) }

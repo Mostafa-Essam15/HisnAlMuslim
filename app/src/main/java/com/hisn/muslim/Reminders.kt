@@ -42,6 +42,8 @@ object Notif {
     const val ID_WIRD = 404
     const val ID_ADHKAR_AM = 405
     const val ID_ADHKAR_PM = 406
+    const val ID_SUHOOR = 407
+    const val ID_IFTAR = 408
     fun idCheck(p: Prayer) = 300 + p.ordinal
     fun idPeriod(p: Prayer) = 320 + p.ordinal
 
@@ -91,6 +93,8 @@ object Reminders {
     private const val RC_PERIOD = 210
     private const val RC_ADHKAR_AM = 240
     private const val RC_ADHKAR_PM = 241
+    private const val RC_SUHOOR = 242
+    private const val RC_IFTAR = 243
     private const val RC_FOCUS_ON = 230
     private const val RC_FOCUS_OFF = 231
     private const val RC_PERIOD_LATER = 220 // + ordinal
@@ -124,6 +128,7 @@ object Reminders {
         schedulePeriodEnd(ctx)
         scheduleFocus(ctx)
         scheduleAdhkar(ctx)
+        scheduleRamadan(ctx)
     }
 
     private fun nm(ctx: Context) = ctx.getSystemService(android.app.NotificationManager::class.java)
@@ -254,6 +259,31 @@ object Reminders {
         val p = Prefs(ctx)
         if (!p.popupOn) { cancelAlarm(ctx, RC_POPUP, "POPUP"); return }
         setAt(ctx, RC_POPUP, nextPopupTime(p, System.currentTimeMillis()), "POPUP")
+    }
+
+    private fun isRamadanDay(p: Prefs, d: LocalDate): Boolean =
+        HijrahDate.from(d.plusDays(p.hijriAdj.toLong())).get(ChronoField.MONTH_OF_YEAR) == 9
+
+    /** تذكير السحور والإفطار (في أيام رمضان فقط حسب التقويم؛ والرؤية الشرعية هي المرجع) */
+    fun scheduleRamadan(ctx: Context) {
+        val p = Prefs(ctx)
+        cancelAlarm(ctx, RC_SUHOOR, "SUHOOR"); cancelAlarm(ctx, RC_IFTAR, "IFTAR")
+        if (!p.ramadanReminders) return
+        val now = System.currentTimeMillis()
+        var suhoorAt = 0L
+        var iftarAt = 0L
+        for (off in 0..2) {
+            val d = LocalDate.now().plusDays(off.toLong())
+            if (!isRamadanDay(p, d)) continue
+            val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, off) }
+            val t = Engine.times(p, cal.time)
+            val s = t.fajr.time - p.suhoorBeforeMin * 60_000L
+            if (suhoorAt == 0L && s > now + 30_000) suhoorAt = s
+            if (iftarAt == 0L && t.maghrib.time > now + 30_000) iftarAt = t.maghrib.time
+        }
+        if (suhoorAt > 0) setAt(ctx, RC_SUHOOR, suhoorAt, "SUHOOR")
+        if (iftarAt > 0) setAt(ctx, RC_IFTAR, iftarAt, "IFTAR")
+        // لو مفيش رمضان في الأيام الجاية، التحقق التالي بيحصل مع scheduleAll (فتح التطبيق/إعادة التشغيل/تعديل الإعدادات)
     }
 
     fun scheduleAdhkar(ctx: Context) {
@@ -497,6 +527,23 @@ class ReminderReceiver : BroadcastReceiver() {
                     Notif.notify(ctx, if (morning) Notif.ID_ADHKAR_AM else Notif.ID_ADHKAR_PM, n)
                 }
                 Reminders.scheduleAdhkar(ctx)
+            }
+            "SUHOOR" -> {
+                val n = Notif.builder(
+                    ctx, Notif.CH_REMIND, "🌙 وقت السحور",
+                    "قرب الفجر. تسحّروا فإن في السحور بركة — متفق عليه"
+                ).build()
+                Notif.notify(ctx, Notif.ID_SUHOOR, n)
+                Reminders.scheduleRamadan(ctx)
+            }
+            "IFTAR" -> {
+                val n = Notif.builder(
+                    ctx, Notif.CH_REMIND, "🌇 حان وقت الإفطار",
+                    "ذهب الظمأ وابتلّت العروق وثبت الأجر إن شاء الله",
+                    "ذهب الظمأ وابتلّت العروق وثبت الأجر إن شاء الله — رواه أبو داود"
+                ).build()
+                Notif.notify(ctx, Notif.ID_IFTAR, n)
+                Reminders.scheduleRamadan(ctx)
             }
             "WIRD" -> {
                 val st = Khatma.stats(p)

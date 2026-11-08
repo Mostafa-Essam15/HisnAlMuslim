@@ -387,6 +387,34 @@ private fun KhatmaPane(prefs: Prefs, onOpenPage: (Int) -> Unit) {
                 }
             }
             item {
+                val hist = remember(tick, st.read) { prefs.lastDays(14) }
+                val target = Khatma.pagesPerDay(st.daysTotal)
+                var goal by remember(tick) { mutableIntStateOf(prefs.khatmaGoalOverride) }
+                Glass {
+                    SectionTitle("سجل القراءة (آخر ١٤ يومًا)")
+                    var missed = 0
+                    hist.reversed().forEach { d ->
+                        val n = prefs.khatmaReadOn(d)
+                        val started = d >= prefs.khatmaStart
+                        if (started && d != prefs.dayKey() && n < target) missed++
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(d, fontSize = 13.sp, color = Muted)
+                            Text(
+                                if (!started) "—" else "$n صفحة" + if (n >= target) " ✅" else "",
+                                fontSize = 13.sp, color = if (started && n >= target) Gold else Color.White
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text("أيام لم يُبلغ فيها الورد الأصلي ($target صفحة): $missed", fontSize = 12.sp, color = Muted)
+                    Spacer(Modifier.height(8.dp))
+                    Text("تعديل الورد اليومي يدويًا:", fontSize = 12.sp, color = Muted)
+                    ChipRow(
+                        listOf("تلقائي" to 0, "٥" to 5, "١٠" to 10, "٢٠" to 20, "٤٠" to 40), goal
+                    ) { goal = it; prefs.khatmaGoalOverride = it; tick++ }
+                }
+            }
+            item {
                 Glass {
                     SectionTitle("ورد اليوم")
                     Text(
