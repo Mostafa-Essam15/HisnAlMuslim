@@ -262,13 +262,19 @@ fun AppBackground(bg: Int, version: Int, auto: Int = 0, autoPhoto: Int = PHOTO_B
                     Box(Modifier.fillMaxSize().background(Color(0x22000000)))
                 } else {
                     val isPhoto = e >= PHOTO_BASE && e < PHOTO_BASE + 100
-                    val bmp = remember(e, version) {
-                        if (isPhoto) Photos.load(ctx, e - PHOTO_BASE, 1) else loadCustomBg(ctx)
+                    // فك الصورة في thread خلفي عشان ما يحصلش تقطيع أثناء التبديل
+                    val loaded by androidx.compose.runtime.produceState<Pair<Boolean, androidx.compose.ui.graphics.ImageBitmap?>>(false to null, e, version) {
+                        value = true to kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            if (isPhoto) Photos.load(ctx, e - PHOTO_BASE, 1) else loadCustomBg(ctx)
+                        }
                     }
+                    val bmp = loaded.second
                     if (bmp != null) {
                         Image(bmp, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                    } else {
+                    } else if (loaded.first) {
                         MosqueScene(0, Modifier.fillMaxSize())
+                    } else {
+                        Box(Modifier.fillMaxSize().background(Color(0xFF051510)))
                     }
                     Box(
                         Modifier.fillMaxSize().background(
