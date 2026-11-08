@@ -249,10 +249,21 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
         }
     }
 
+    var sec by androidx.compose.runtime.saveable.rememberSaveable { mutableIntStateOf(0) }
     fun reschedule() = Reminders.scheduleAll(ctx)
 
-    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize()) {
+    Row(
+        Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        listOf("الأذان", "التذكيرات", "المواقيت", "المظهر والأذونات").forEachIndexed { i, t ->
+            GoldChip(t, sec == i) { sec = i }
+        }
+    }
+    LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
+        if (sec == 0) {
         // ───── الأذان ─────
         item {
             Glass {
@@ -375,6 +386,8 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
             }
         }
 
+        }
+        if (sec == 1) {
         // ───── تأكيد الصلاة ─────
         item {
             Glass {
@@ -536,6 +549,8 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
             }
         }
 
+        }
+        if (sec == 3) {
         // ───── أذونات ─────
         item {
             Glass {
@@ -572,6 +587,8 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
             }
         }
 
+        }
+        if (sec == 2) {
         // ───── الموقع ─────
         item {
             Glass {
@@ -627,6 +644,8 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
             }
         }
 
+        }
+        if (sec == 3) {
         // ───── الخلفية ─────
         item {
             Glass {
@@ -675,6 +694,8 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                 )
             }
         }
+        }
+    }
     }
 }
 
