@@ -646,6 +646,31 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
 
         }
         if (sec == 3) {
+        // ───── تخصيص الشاشة الرئيسية ─────
+        item {
+            var layout by remember { mutableStateOf(prefs.homeLayout()) }
+            fun save(l: List<Pair<String, Boolean>>) { layout = l; prefs.setHomeLayout(l); refreshTick.intValue++ }
+            Glass {
+                SectionTitle("تخصيص الشاشة الرئيسية", Icons.Rounded.AutoAwesome)
+                Text("أظهر أو أخفِ البطاقات ورتّبها كما تحب.", fontSize = 12.sp, color = Muted)
+                layout.forEachIndexed { i, (id, on) ->
+                    val label = HOME_CARDS.firstOrNull { it.first == id }?.second ?: id
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f)) {
+                            SwitchRow(label, on) { v -> save(layout.toMutableList().also { it[i] = id to v }) }
+                        }
+                        TextButton(enabled = i > 0, onClick = {
+                            save(layout.toMutableList().also { val t = it[i]; it[i] = it[i - 1]; it[i - 1] = t })
+                        }) { Text("▲", color = Gold) }
+                        TextButton(enabled = i < layout.size - 1, onClick = {
+                            save(layout.toMutableList().also { val t = it[i]; it[i] = it[i + 1]; it[i + 1] = t })
+                        }) { Text("▼", color = Gold) }
+                    }
+                }
+                TextButton(onClick = { save(HOME_CARDS.map { it.first to true }) }) { Text("استعادة الترتيب الافتراضي", color = Gold) }
+            }
+        }
+
         // ───── الخلفية ─────
         item {
             Glass {

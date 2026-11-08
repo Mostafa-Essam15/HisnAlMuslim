@@ -204,7 +204,7 @@ fun App() {
         ) { pad ->
             Box(Modifier.padding(pad).fillMaxSize()) {
                 when (tab) {
-                    0 -> HomeScreen(prefs)
+                    0 -> HomeScreen(prefs) { t -> tab = t }
                     1 -> QuranScreen(prefs, quranJump) { quranJump = 0 }
                     2 -> AzkarTasbihScreen(prefs)
                     3 -> ChallengesScreen(prefs)

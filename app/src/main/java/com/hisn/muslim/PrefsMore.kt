@@ -244,3 +244,29 @@ var Prefs.eveningMin: Int
 var Prefs.fajrCustomOn: Boolean
     get() = sp.getBoolean("fajrCustomOn", true)
     set(v) { sp.edit().putBoolean("fajrCustomOn", v).apply() }
+
+// ───────────── تخصيص الشاشة الرئيسية ─────────────
+
+val HOME_CARDS = listOf(
+    "next" to "الصلاة القادمة والعدّاد",
+    "summary" to "ملخص عبادة اليوم",
+    "shortcuts" to "اختصارات (مصحف/أذكار/سبحة/قبلة)",
+    "ayah" to "آية اليوم",
+    "fasting" to "صيام السنن",
+    "tip" to "فائدة الصلاة",
+    "prayers" to "قائمة الصلوات وتسجيلها"
+)
+
+/** ترتيب وظهور بطاقات الرئيسية: (المعرّف، ظاهرة؟). البطاقات الجديدة بتتضاف تلقائيًا في آخر القائمة. */
+fun Prefs.homeLayout(): List<Pair<String, Boolean>> {
+    val saved = (sp.getString("homeLayout", "") ?: "").split(",").mapNotNull {
+        val p = it.split(":")
+        if (p.size == 2 && HOME_CARDS.any { c -> c.first == p[0] }) p[0] to (p[1] == "1") else null
+    }
+    val known = saved.map { it.first }.toSet()
+    return saved + HOME_CARDS.filter { it.first !in known }.map { it.first to true }
+}
+
+fun Prefs.setHomeLayout(l: List<Pair<String, Boolean>>) {
+    sp.edit().putString("homeLayout", l.joinToString(",") { "${it.first}:${if (it.second) 1 else 0}" }).apply()
+}

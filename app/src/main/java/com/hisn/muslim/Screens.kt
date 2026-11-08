@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.util.Locale
@@ -87,9 +88,13 @@ fun GoldChip(label: String, selected: Boolean, onClick: () -> Unit) {
 
 // ───────────────────────── الرئيسية ─────────────────────────
 
+/** نقطة بداية شاشة الأذكار/السبحة/القبلة عند الفتح من اختصار: 0 أذكار، 1 سبحة، 2 قبلة */
+val azkarStartMode = mutableIntStateOf(0)
+
 @Composable
-fun HomeScreen(prefs: Prefs) {
+fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
     val tick = refreshTick.intValue
+    val order = remember(tick) { prefs.homeLayout().filter { it.second }.map { it.first } }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -110,6 +115,9 @@ fun HomeScreen(prefs: Prefs) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        order.forEach { id ->
+            when (id) {
+                "next" -> {
         item {
             Glass {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -158,6 +166,8 @@ fun HomeScreen(prefs: Prefs) {
                 }
             }
         }
+                }
+                "summary" -> {
         item {
             val fard = done.count { it.endsWith("_FARD") }
             val qada = prefs.qadaCount(day)
@@ -176,6 +186,58 @@ fun HomeScreen(prefs: Prefs) {
                 )
             }
         }
+                }
+                "shortcuts" -> {
+        item {
+            Glass {
+                SectionTitle("اختصارات", Icons.Rounded.AutoAwesome)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("المصحف" to 1, "الأذكار" to 2, "السبحة" to 12, "القبلة" to 22).forEach { (label, code) ->
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = {
+                                azkarStartMode.intValue = code / 10 // 12 → السبحة، 22 → القبلة
+                                onNavigate(code % 10)
+                            },
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 4.dp)
+                        ) { Text(label, fontSize = 13.sp, color = Gold) }
+                    }
+                }
+            }
+        }
+                }
+                "ayah" -> {
+        item {
+            val ctxH = androidx.compose.ui.platform.LocalContext.current
+            val ay by androidx.compose.runtime.produceState<Ayah?>(null, day) {
+                value = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    if (!Quran.loaded) Quran.load(ctxH)
+                    if (!Quran.loaded) null else {
+                        val cal = java.util.Calendar.getInstance()
+                        var i = Math.floorMod(cal.get(java.util.Calendar.YEAR) * 366 + cal.get(java.util.Calendar.DAY_OF_YEAR) * 53, Quran.ayahs.size)
+                        var guard = 0
+                        while (Quran.ayahs[i].text.length < 25 && guard++ < 50) i = (i + 1) % Quran.ayahs.size
+                        Quran.ayahs[i]
+                    }
+                }
+            }
+            Glass {
+                SectionTitle("آية اليوم", Icons.Rounded.AutoAwesome)
+                val a = ay
+                if (a == null) {
+                    Text("حمّل المصحف من تبويب المصحف لتظهر آية اليوم.", color = Muted, fontSize = 13.sp)
+                } else {
+                    Text(a.text, fontSize = 20.sp, lineHeight = 34.sp, fontFamily = Serif)
+                    Text("${Quran.surahName(a.surah)} — آية ${Quran.arabicDigits(a.num)} — صفحة ${Quran.arabicDigits(a.page)}", fontSize = 12.sp, color = Muted)
+                    Row {
+                        TextButton(onClick = { shareText(ctxH, "${a.text}\n— ${Quran.surahName(a.surah)}: ${a.num}") }) { Text("مشاركة", color = Gold) }
+                        TextButton(onClick = { onNavigate(1) }) { Text("فتح المصحف", color = Gold) }
+                    }
+                }
+            }
+        }
+                }
+                "fasting" -> {
         if (todayFast != null || tomorrowFast != null) {
             item {
                 Glass {
@@ -188,6 +250,8 @@ fun HomeScreen(prefs: Prefs) {
                 }
             }
         }
+                }
+                "tip" -> {
         item {
             val pr = next?.first ?: Prayer.FAJR
             val tip = remember(pr, day) { Content.tip(pr) }
@@ -198,6 +262,8 @@ fun HomeScreen(prefs: Prefs) {
                 Text(tip.source, fontSize = 12.sp, color = Muted)
             }
         }
+                }
+                "prayers" -> {
         items(Prayer.values().toList()) { pr ->
             val isNext = next?.first == pr
             val isCurrent = prev?.first == pr && !isNext
@@ -230,6 +296,9 @@ fun HomeScreen(prefs: Prefs) {
                 "الشروق: ${fmt.format(times.sunrise)}",
                 Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = Muted
             )
+        }
+                }
+            }
         }
     }
 }
@@ -301,7 +370,7 @@ fun ChallengesScreen(prefs: Prefs) {
 
 @Composable
 fun AzkarTasbihScreen(prefs: Prefs) {
-    var mode by remember { mutableIntStateOf(0) }
+    var mode by remember { mutableIntStateOf(azkarStartMode.intValue).also { azkarStartMode.intValue = 0 } }
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             GoldChip("الأذكار", mode == 0) { mode = 0 }
