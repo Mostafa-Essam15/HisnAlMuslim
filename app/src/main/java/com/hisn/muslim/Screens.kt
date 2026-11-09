@@ -231,6 +231,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                     Text("${Quran.surahName(a.surah)} — آية ${Quran.arabicDigits(a.num)} — صفحة ${Quran.arabicDigits(a.page)}", fontSize = 12.sp, color = Muted)
                     Row {
                         TextButton(onClick = { shareText(ctxH, "${a.text}\n— ${Quran.surahName(a.surah)}: ${a.num}") }) { Text("مشاركة", color = Gold) }
+                        TextButton(onClick = { ShareCard.share(ctxH, a.text, "سورة ${Quran.surahName(a.surah)} — آية ${a.num}") }) { Text("كصورة", color = Gold) }
                         TextButton(onClick = { onNavigate(1) }) { Text("فتح المصحف", color = Gold) }
                     }
                 }

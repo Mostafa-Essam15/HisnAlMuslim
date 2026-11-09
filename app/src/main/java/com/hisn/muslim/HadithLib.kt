@@ -368,6 +368,9 @@ private fun HadithCard(prefs: Prefs, b: HBook, r: HRow, favs: Set<String>, chang
                 Text(if (k in favs) "★ في المفضلة" else "☆ مفضلة", color = Gold)
             }
             TextButton(onClick = { shareText(ctx, HadithLib.shareString(b, r)) }) { Text("مشاركة", color = Gold) }
+            if (r.text.length < 1500) TextButton(onClick = {
+                ShareCard.share(ctx, r.text, "${b.name} — حديث رقم ${r.num}" + (r.grades.firstOrNull()?.let { "\n" + HadithLib.gradeText(it) } ?: ""))
+            }) { Text("كصورة", color = Gold) }
         }
     }
 }

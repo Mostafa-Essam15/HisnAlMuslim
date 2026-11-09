@@ -206,6 +206,7 @@ fun DuasPane(prefs: Prefs) {
                         if (body != null) {
                             TextButton(onClick = { copyText(ctx, "$body\n— ${Duas.sourceOf(d)}") }) { Text("نسخ", color = Gold) }
                             TextButton(onClick = { shareText(ctx, "$body\n— ${Duas.sourceOf(d)}") }) { Text("مشاركة", color = Gold) }
+                            TextButton(onClick = { ShareCard.share(ctx, body, Duas.sourceOf(d)) }) { Text("كصورة", color = Gold) }
                         }
                     }
                 }
