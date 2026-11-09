@@ -306,6 +306,16 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 }
             }
         }
+        if (QuranAudio.current != null || QuranAudio.sleepAt > 0L) {
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                listOf(0.75f, 1f, 1.25f, 1.5f).forEach { v -> GoldChip("${v}x", QuranAudio.speed == v) { QuranAudio.setSpeed(v) } }
+                Text("نوم:", color = Muted, fontSize = 12.sp)
+                listOf(0 to "لا", 15 to "15 د", 30 to "30 د", 60 to "60 د").forEach { (m, l) ->
+                    GoldChip(l, (m == 0 && QuranAudio.sleepAt == 0L)) { QuranAudio.setSleep(m) }
+                }
+                if (QuranAudio.sleepAt > 0L) Text("مفعّل", color = Gold, fontSize = 12.sp)
+            }
+        }
         QuranAudio.error?.let { Text(it, color = Color(0xFFFF8A80), fontSize = 12.sp) }
         Row(
             Modifier.fillMaxWidth().padding(bottom = 8.dp),

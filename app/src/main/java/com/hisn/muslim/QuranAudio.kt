@@ -6,6 +6,8 @@ import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import java.io.File
@@ -36,6 +38,28 @@ object QuranAudio {
         private set
     var error by mutableStateOf<String?>(null)
         private set
+
+    /** سرعة التشغيل (٠٫٧٥–٢) */
+    var speed by mutableFloatStateOf(1f)
+        private set
+    /** وقت إيقاف مؤقت النوم بالميلي ثانية (٠ = متوقف) */
+    var sleepAt by mutableLongStateOf(0L)
+        private set
+    private val sleepRun = Runnable { sleepAt = 0L; stop() }
+
+    fun setSpeed(v: Float) {
+        speed = v.coerceIn(0.5f, 2f)
+        val p = mp ?: return
+        try { if (p.isPlaying) p.playbackParams = p.playbackParams.setSpeed(speed) } catch (_: Exception) {}
+    }
+
+    /** مؤقت النوم: بعد [min] دقيقة يتوقف التشغيل. 0 يلغيه. */
+    fun setSleep(min: Int) {
+        main.removeCallbacks(sleepRun)
+        if (min <= 0) { sleepAt = 0L; return }
+        sleepAt = System.currentTimeMillis() + min * 60_000L
+        main.postDelayed(sleepRun, min * 60_000L)
+    }
 
     private var mp: MediaPlayer? = null
     private var gen = 0
@@ -116,6 +140,7 @@ object QuranAudio {
                     p.setOnErrorListener { _, _, _ -> error = "تعذّر تشغيل الملف الصوتي"; stopInternal(); true }
                     p.prepare()
                     p.start()
+                    if (speed != 1f) try { p.playbackParams = p.playbackParams.setSpeed(speed) } catch (_: Exception) {}
                     mp = p
                     playing = true
                 } catch (e: Exception) {
