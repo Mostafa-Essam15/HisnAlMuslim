@@ -47,7 +47,7 @@ object QuranAudio {
         private set
     private val sleepRun = Runnable { sleepAt = 0L; stop() }
 
-    fun setSpeed(v: Float) {
+    fun changeSpeed(v: Float) {
         speed = v.coerceIn(0.5f, 2f)
         val p = mp ?: return
         try { if (p.isPlaying) p.playbackParams = p.playbackParams.setSpeed(speed) } catch (_: Exception) {}
