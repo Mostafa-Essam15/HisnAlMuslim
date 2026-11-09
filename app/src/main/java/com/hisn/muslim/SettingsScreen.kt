@@ -481,6 +481,21 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
             }
         }
 
+        // ───── تذكير قبل الصلاة والإقامة ─────
+        item {
+            var pre by remember { mutableIntStateOf(prefs.preMin) }
+            var iq by remember { mutableIntStateOf(prefs.iqamaMin) }
+            Glass {
+                SectionTitle("تذكير قبل الصلاة والإقامة", Icons.Rounded.AutoAwesome)
+                Text("تنبيه قبل الأذان بـ:", fontSize = 13.sp, color = Muted)
+                ChipRow(listOf("متوقف" to 0, "5 د" to 5, "10 د" to 10, "15 د" to 15, "30 د" to 30), pre) { pre = it; prefs.preMin = it; reschedule() }
+                Spacer(Modifier.height(6.dp))
+                Text("تذكير الإقامة بعد الأذان بـ:", fontSize = 13.sp, color = Muted)
+                ChipRow(listOf("متوقف" to 0, "10 د" to 10, "15 د" to 15, "20 د" to 20, "25 د" to 25), iq) { iq = it; prefs.iqamaMin = it; reschedule() }
+                Text("إشعارات عادية بدون صوت أذان، وللصلوات المفعّلة فقط. وقت الإقامة الفعلي يختلف من مسجد لآخر.", fontSize = 11.sp, color = Muted)
+            }
+        }
+
         // ───── تذكير أذكار الصباح والمساء ─────
         item {
             var on by remember { mutableStateOf(prefs.adhkarReminders) }
@@ -646,6 +661,26 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
 
         }
         if (sec == 3) {
+        // ───── عن التطبيق والمطوّر ─────
+        item {
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            Glass {
+                SectionTitle("عن التطبيق والمطوّر", Icons.Rounded.AutoAwesome)
+                Text("حصن المسلم — النسخة 2.0", fontWeight = FontWeight.Bold)
+                Text("تطوير: Mostafa Essam", fontSize = 15.sp)
+                Text("Mostafaesam15@gmail.com", fontSize = 14.sp, color = Gold)
+                Row {
+                    TextButton(onClick = {
+                        runCatching {
+                            ctx.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:Mostafaesam15@gmail.com"))
+                                .putExtra(Intent.EXTRA_SUBJECT, "حصن المسلم — ملاحظات").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        }
+                    }) { Text("✉ تواصل مع المطوّر", color = Gold) }
+                    TextButton(onClick = { shareText(ctx, "تطبيق حصن المسلم — تطوير Mostafa Essam (Mostafaesam15@gmail.com)") }) { Text("مشاركة", color = Gold) }
+                }
+                Text("أرسل أي ملاحظة أو خطأ في نص أو مصدر وسيتم تصحيحه.", fontSize = 11.sp, color = Muted)
+            }
+        }
         // ───── تخصيص الشاشة الرئيسية ─────
         item {
             var layout by remember { mutableStateOf(prefs.homeLayout()) }

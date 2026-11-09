@@ -44,6 +44,8 @@ object Notif {
     const val ID_ADHKAR_PM = 406
     const val ID_SUHOOR = 407
     const val ID_IFTAR = 408
+    const val ID_PRE = 409
+    const val ID_IQAMA = 410
     fun idCheck(p: Prayer) = 300 + p.ordinal
     fun idPeriod(p: Prayer) = 320 + p.ordinal
 
@@ -95,6 +97,8 @@ object Reminders {
     private const val RC_ADHKAR_PM = 241
     private const val RC_SUHOOR = 242
     private const val RC_IFTAR = 243
+    private const val RC_PRE = 250
+    private const val RC_IQAMA = 251
     private const val RC_FOCUS_ON = 230
     private const val RC_FOCUS_OFF = 231
     private const val RC_PERIOD_LATER = 220 // + ordinal
@@ -129,6 +133,7 @@ object Reminders {
         scheduleFocus(ctx)
         scheduleAdhkar(ctx)
         scheduleRamadan(ctx)
+        schedulePreIqama(ctx)
         PrayerWidget.updateAll(ctx)
     }
 
@@ -295,6 +300,29 @@ object Reminders {
         }
         setAt(ctx, RC_ADHKAR_AM, nextDailyAt(p.morningMin, now), "ADHKAR_AM")
         setAt(ctx, RC_ADHKAR_PM, nextDailyAt(p.eveningMin, now), "ADHKAR_PM")
+    }
+
+    /** أقرب (صلاة مفعّلة، وقتها + إزاحة) بعد الآن، إزاحة بالدقائق (سالبة = قبل) */
+    private fun nextShifted(p: Prefs, shiftMin: Int, now: Long): Pair<Prayer, Long>? {
+        var best: Pair<Prayer, Long>? = null
+        for (off in 0..1) {
+            val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, off) }
+            val t = Engine.times(p, cal.time)
+            for (pr in Prayer.values()) {
+                if (!p.prayerEnabled(pr)) continue
+                val at = Engine.timeOf(t, pr).time + shiftMin * 60_000L
+                if (at > now + 15_000 && (best == null || at < best.second)) best = pr to at
+            }
+        }
+        return best
+    }
+
+    /** تذكير قبل الصلاة وتذكير الإقامة (إشعارات عادية، لا تشغّل صوت الأذان) */
+    fun schedulePreIqama(ctx: Context) {
+        val p = Prefs(ctx)
+        val now = System.currentTimeMillis()
+        if (p.preMin > 0) nextShifted(p, -p.preMin, now)?.let { setAt(ctx, RC_PRE, it.second, "PRE", it.first) } else cancelAlarm(ctx, RC_PRE, "PRE")
+        if (p.iqamaMin > 0) nextShifted(p, p.iqamaMin, now)?.let { setAt(ctx, RC_IQAMA, it.second, "IQAMA", it.first) } else cancelAlarm(ctx, RC_IQAMA, "IQAMA")
     }
 
     fun scheduleWird(ctx: Context) {
@@ -545,6 +573,24 @@ class ReminderReceiver : BroadcastReceiver() {
                 ).build()
                 Notif.notify(ctx, Notif.ID_IFTAR, n)
                 Reminders.scheduleRamadan(ctx)
+            }
+            "PRE" -> {
+                val pr = intent.getStringExtra("prayer")?.let { runCatching { Prayer.valueOf(it) }.getOrNull() }
+                if (pr != null && p.preMin > 0) {
+                    Notif.notify(ctx, Notif.ID_PRE, Notif.builder(
+                        ctx, Notif.CH_REMIND, "⏳ اقترب وقت ${pr.ar}", "بقي نحو ${p.preMin} دقيقة على أذان ${pr.ar}. استعد للصلاة."
+                    ).build())
+                }
+                Reminders.schedulePreIqama(ctx)
+            }
+            "IQAMA" -> {
+                val pr = intent.getStringExtra("prayer")?.let { runCatching { Prayer.valueOf(it) }.getOrNull() }
+                if (pr != null && p.iqamaMin > 0) {
+                    Notif.notify(ctx, Notif.ID_IQAMA, Notif.builder(
+                        ctx, Notif.CH_REMIND, "🕌 موعد إقامة ${pr.ar}", "مرّت ${p.iqamaMin} دقيقة على الأذان. قم إلى الصلاة."
+                    ).build())
+                }
+                Reminders.schedulePreIqama(ctx)
             }
             "WIRD" -> {
                 val st = Khatma.stats(p)

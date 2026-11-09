@@ -277,3 +277,13 @@ fun Prefs.setHomeLayout(l: List<Pair<String, Boolean>>) {
 var Prefs.mushafMode: Int
     get() = sp.getInt("mushafMode", 0)
     set(v) { sp.edit().putInt("mushafMode", v).apply() }
+
+/** تذكير قبل الصلاة بعدد دقائق (٠ = متوقف) */
+var Prefs.preMin: Int
+    get() = sp.getInt("preMin", 0)
+    set(v) { sp.edit().putInt("preMin", v.coerceIn(0, 60)).apply() }
+
+/** تذكير الإقامة بعد الأذان بعدد دقائق (٠ = متوقف) */
+var Prefs.iqamaMin: Int
+    get() = sp.getInt("iqamaMin", 0)
+    set(v) { sp.edit().putInt("iqamaMin", v.coerceIn(0, 60)).apply() }
