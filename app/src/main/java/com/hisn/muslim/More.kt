@@ -89,7 +89,7 @@ fun MoreScreen(prefs: Prefs, onOpenQuran: (Int) -> Unit = {}) {
             GoldChip("إحصاءات العبادة", sec == 2) { sec = 2 }
             GoldChip("نسخ احتياطي", sec == 3) { sec = 3 }
             GoldChip("بحث", sec == 4) { sec = 4 }
-            GoldChip("الأحاديث (تجريبي)", sec == 5) { sec = 5 }
+            GoldChip("الأحاديث", sec == 5) { sec = 5 }
             GoldChip("الأدعية", sec == 6) { sec = 6 }
         }
         when (sec) {
@@ -97,101 +97,9 @@ fun MoreScreen(prefs: Prefs, onOpenQuran: (Int) -> Unit = {}) {
             1 -> RamadanPane(prefs)
             2 -> StatsPane(prefs)
             4 -> SearchPane(prefs, onOpenQuran)
-            5 -> HadithPane(prefs)
+            5 -> HadithLibPane(prefs)
             6 -> DuasPane(prefs)
             else -> BackupPane(prefs)
-        }
-    }
-}
-
-// ───────────── الأحاديث ─────────────
-
-@Composable
-private fun HadithPane(prefs: Prefs) {
-    val ctx = LocalContext.current
-    var cats by remember { mutableStateOf<List<HCategory>?>(null) }
-    var cat by remember { mutableStateOf<HCategory?>(null) }
-    var items by remember { mutableStateOf<List<HItem>>(emptyList()) }
-    var page by remember { mutableIntStateOf(1) }
-    var open by remember { mutableStateOf<HDetail?>(null) }
-    var err by remember { mutableStateOf("") }
-    var busy by remember { mutableStateOf(false) }
-    var favTick by remember { mutableIntStateOf(0) }
-    var showFav by remember { mutableStateOf(false) }
-    val favs = remember(favTick) { prefs.favoriteHadith() }
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
-
-    fun <T> load(block: () -> T, ok: (T) -> Unit) {
-        busy = true; err = ""
-        scope.launch {
-            try { ok(kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { block() }) }
-            catch (e: Exception) { err = "تعذّر التحميل: تأكد من الاتصال بالإنترنت (${e.message ?: ""})" }
-            busy = false
-        }
-    }
-    androidx.compose.runtime.LaunchedEffect(Unit) { load({ HadithApi.categories(ctx) }) { cats = it } }
-
-    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item {
-            Text(
-                "الأحاديث تُعرض كما وردت من موسوعة الأحاديث النبوية (hadeethenc.com) بدرجتها وتخريجها، ولا يعدّل التطبيق أي نص. الميزة تجريبية وتحتاج إنترنت أول مرة.",
-                fontSize = 11.sp, color = Muted
-            )
-            if (busy) Text("جارٍ التحميل…", color = Gold)
-            if (err.isNotBlank()) Text(err, color = Color(0xFFFFB4A8), fontSize = 12.sp)
-        }
-        val d = open
-        if (d != null) {
-            item {
-                Glass {
-                    TextButton(onClick = { open = null }) { Text("‹ رجوع", color = Gold) }
-                    if (d.title.isNotBlank()) Text(d.title, color = Gold, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(6.dp))
-                    Text(d.text, fontFamily = Serif, fontSize = 19.sp, lineHeight = 32.sp)
-                    if (d.attribution.isNotBlank()) Text(d.attribution, fontSize = 13.sp, color = Muted)
-                    if (d.grade.isNotBlank()) Text("الدرجة: ${d.grade}", fontSize = 13.sp, color = Gold)
-                    if (d.reference.isNotBlank()) Text("التخريج: ${d.reference}", fontSize = 12.sp, color = Muted)
-                    if (d.explanation.isNotBlank()) {
-                        Spacer(Modifier.height(8.dp))
-                        Text("الشرح:", fontWeight = FontWeight.Bold)
-                        Text(d.explanation, fontSize = 14.sp, lineHeight = 24.sp)
-                    }
-                    TextButton(onClick = { prefs.toggleFavoriteHadith(d.id); favTick++ }) {
-                        Text(if (d.id in favs) "★ في المفضلة" else "☆ إضافة للمفضلة", color = Gold)
-                    }
-                }
-            }
-        } else if (showFav) {
-            item { TextButton(onClick = { showFav = false }) { Text("‹ الأقسام", color = Gold) } }
-            if (favs.isEmpty()) item { Text("لا أحاديث مفضلة بعد.", color = Muted) }
-            items(favs.toList()) { id ->
-                Glass(Modifier.clickable { load({ HadithApi.detail(ctx, id) }) { open = it } }) { Text("حديث رقم $id (اضغط للفتح)") }
-            }
-        } else if (cat == null) {
-            item { TextButton(onClick = { showFav = true }) { Text("★ المفضلة (${favs.size})", color = Gold) } }
-            items(cats ?: emptyList()) { c ->
-                Glass(Modifier.clickable {
-                    cat = c; page = 1
-                    load({ HadithApi.list(ctx, c.id, 1) }) { items = it }
-                }) {
-                    Text(c.title, fontWeight = FontWeight.Bold)
-                    if (c.count > 0) Text("${c.count} حديث", fontSize = 12.sp, color = Muted)
-                }
-            }
-        } else {
-            item { TextButton(onClick = { cat = null; items = emptyList() }) { Text("‹ الأقسام", color = Gold) } }
-            items(items) { h ->
-                Glass(Modifier.clickable { load({ HadithApi.detail(ctx, h.id) }) { open = it } }) {
-                    Text(h.title, fontFamily = Serif, fontSize = 17.sp, lineHeight = 28.sp)
-                }
-            }
-            if (items.size >= 20) item {
-                TextButton(onClick = {
-                    val c = cat ?: return@TextButton
-                    page++
-                    load({ HadithApi.list(ctx, c.id, page) }) { items = items + it }
-                }) { Text("تحميل المزيد", color = Gold) }
-            }
         }
     }
 }
@@ -212,7 +120,6 @@ private fun SearchPane(prefs: Prefs, onOpenQuran: (Int) -> Unit) {
         else Prayer.values().flatMap { pr -> (0 until 8).map { Content.tip(pr, it) } }
             .distinctBy { it.text }.filter { it.text.contains(query) || it.source.contains(query) }.take(20)
     }
-    val hadiths = remember(query) { if (query.length < 2) emptyList() else HadithApi.searchCached(ctx, query) }
     var ayat by remember { mutableStateOf<List<Ayah>>(emptyList()) }
     var quranReady by remember { mutableStateOf(Quran.loaded) }
     androidx.compose.runtime.LaunchedEffect(Unit) {
@@ -225,11 +132,11 @@ private fun SearchPane(prefs: Prefs, onOpenQuran: (Int) -> Unit) {
         item {
             androidx.compose.material3.OutlinedTextField(
                 value = q, onValueChange = { q = it }, singleLine = true,
-                modifier = Modifier.fillMaxWidth(), label = { Text("ابحث في المصحف والأذكار والأحاديث المحفوظة") }
+                modifier = Modifier.fillMaxWidth(), label = { Text("ابحث في المصحف والأذكار") }
             )
             if (!quranReady) Text("المصحف غير محمّل بعد؛ حمّله من تبويب المصحف ليظهر في البحث.", fontSize = 11.sp, color = Muted)
         }
-        if (query.length >= 2 && azkar.isEmpty() && tips.isEmpty() && ayat.isEmpty() && hadiths.isEmpty()) {
+        if (query.length >= 2 && azkar.isEmpty() && tips.isEmpty() && ayat.isEmpty()) {
             item { Text("لا نتائج", color = Muted) }
         }
         if (ayat.isNotEmpty()) {
@@ -247,17 +154,6 @@ private fun SearchPane(prefs: Prefs, onOpenQuran: (Int) -> Unit) {
                 Glass {
                     Text(z.text, fontFamily = Serif, fontSize = 17.sp, lineHeight = 28.sp)
                     Text("${z.cats.joinToString("، ")} • ${z.source}", fontSize = 12.sp, color = Muted)
-                }
-            }
-        }
-        if (hadiths.isNotEmpty()) {
-            item { Text("الأحاديث المحفوظة (${hadiths.size})", color = Gold, fontWeight = FontWeight.Bold) }
-            items(hadiths) { d ->
-                Glass {
-                    Text(d.text, fontFamily = Serif, fontSize = 17.sp, lineHeight = 28.sp)
-                    if (d.attribution.isNotBlank()) Text(d.attribution, fontSize = 12.sp, color = Muted)
-                    if (d.grade.isNotBlank()) Text("الدرجة: ${d.grade}", fontSize = 12.sp, color = Gold)
-                    if (d.reference.isNotBlank()) Text("التخريج: ${d.reference}", fontSize = 11.sp, color = Muted)
                 }
             }
         }
