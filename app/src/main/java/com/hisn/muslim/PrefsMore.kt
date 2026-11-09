@@ -287,3 +287,25 @@ var Prefs.preMin: Int
 var Prefs.iqamaMin: Int
     get() = sp.getInt("iqamaMin", 0)
     set(v) { sp.edit().putInt("iqamaMin", v.coerceIn(0, 60)).apply() }
+
+/** العد بأزرار الصوت داخل شاشة السبحة */
+var Prefs.tasbihVolume: Boolean
+    get() = sp.getBoolean("tsVol", false)
+    set(v) { sp.edit().putBoolean("tsVol", v).apply() }
+
+/** إجمالي التسبيح لآخر [days] يوم، الأقدم أولًا: (تاريخ، إجمالي) */
+fun Prefs.tasbihHistory(days: Int): List<Pair<java.time.LocalDate, Int>> {
+    val today = java.time.LocalDate.now()
+    return (days - 1 downTo 0).map { off -> val d = today.minusDays(off.toLong()); d to tasbihTotal(d.toString()) }
+}
+
+/** أكثر الأذكار تسبيحًا في آخر [days] يوم */
+fun Prefs.tasbihTop(days: Int): List<Pair<String, Int>> {
+    val acc = HashMap<String, Int>()
+    val today = java.time.LocalDate.now()
+    for (off in 0 until days) tasbihDay(today.minusDays(off.toLong()).toString()).forEach { (k, v) -> acc[k] = (acc[k] ?: 0) + v }
+    return acc.entries.sortedByDescending { it.value }.map { it.key to it.value }
+}
+
+/** قناة بسيطة بين MainActivity وشاشة السبحة لأزرار الصوت */
+object TasbihBus { @Volatile var onVolume: (() -> Unit)? = null }
