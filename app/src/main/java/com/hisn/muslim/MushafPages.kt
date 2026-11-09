@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
@@ -179,7 +181,7 @@ object MushafStore {
 
 /** عرض صفحة مصحف المدينة. لو الصفحة مش محمّلة بيحاول يحمّلها، ولو فشل بيعرض زر التحميل. */
 @Composable
-fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pair<Int, Int>?, modifier: Modifier = Modifier) {
+fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pair<Int, Int>?, modifier: Modifier = Modifier, scale: Float = 1f) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var attempt by remember(page) { mutableIntStateOf(0) }
@@ -224,8 +226,10 @@ fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pai
     val measurer = rememberTextMeasurer()
     BoxWithConstraints(modifier.fillMaxSize()) {
         val density = LocalDensity.current
-        val availW = with(density) { maxWidth.toPx() }
-        val availHdp = maxHeight.value
+        val boxW = maxWidth
+        val boxH = maxHeight
+        val availW = with(density) { (maxWidth * scale).toPx() }
+        val availHdp = maxHeight.value * scale
         val textLines = lines.filter { it.type == "text" }
         val ref = 24.sp
         val gap0 = 24f * 0.22f
@@ -239,7 +243,8 @@ fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pai
         val rowH = availHdp / 15f
         val fs = minOf(fsByWidth, rowH * 0.78f).coerceAtLeast(10f)
         val gapPx = with(density) { (fs * 0.22f).sp.toPx() }
-        Column(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().then(if (scale > 1f) Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()).verticalScroll(androidx.compose.foundation.rememberScrollState()) else Modifier), contentAlignment = Alignment.TopCenter) {
+        Column(Modifier.width(boxW * scale).height(boxH * scale)) {
             var ti = 0
             lines.forEach { l ->
                 Box(Modifier.fillMaxWidth().height(rowH.dp), contentAlignment = Alignment.Center) {
@@ -274,6 +279,7 @@ fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pai
                     }
                 }
             }
+        }
         }
     }
 }

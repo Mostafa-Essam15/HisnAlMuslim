@@ -309,3 +309,8 @@ fun Prefs.tasbihTop(days: Int): List<Pair<String, Int>> {
 
 /** قناة بسيطة بين MainActivity وشاشة السبحة لأزرار الصوت */
 object TasbihBus { @Volatile var onVolume: (() -> Unit)? = null }
+
+/** تكبير/تصغير صفحة المصحف (١ = ملء العرض) */
+var Prefs.mushafScale: Float
+    get() = sp.getFloat("mushafScale", 1f)
+    set(v) { sp.edit().putFloat("mushafScale", v).apply() }

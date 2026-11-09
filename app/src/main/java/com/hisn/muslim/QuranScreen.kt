@@ -155,12 +155,12 @@ fun QuranScreen(prefs: Prefs, jumpTo: Int, onJumpConsumed: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             GoldChip("القراءة", section == 0) { section = 0 }
+            GoldChip("التفسير", section == 6) { section = 6 }
             GoldChip("السور والأجزاء", section == 1) { section = 1 }
             GoldChip("ختمة / ورد", section == 2) { section = 2 }
             GoldChip("بحث", section == 3) { section = 3 }
             GoldChip("العلامات", section == 4) { section = 4 }
             GoldChip("الحفظ والمراجعة", section == 5) { section = 5 }
-            GoldChip("التفسير", section == 6) { section = 6 }
         }
         when (section) {
             0 -> ReaderPane(prefs, page) { page = it; prefs.quranPage = it }
@@ -182,6 +182,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
     var theme by remember { mutableIntStateOf(prefs.quranTheme) }
     var bmTick by remember { mutableIntStateOf(0) }
     var mode by remember { mutableIntStateOf(prefs.mushafMode) }
+    var mscale by remember { mutableStateOf(prefs.mushafScale) }
     var repeat by remember { mutableIntStateOf(prefs.repeatMode) }
     var reciter by remember { mutableStateOf(prefs.reciter) }
     var showReciters by remember { mutableStateOf(false) }
@@ -211,14 +212,18 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 TextButton(onClick = { prefs.toggleBookmark(page); bmTick++ }) {
                     Text(if (bookmarked) "★" else "☆", color = Gold, fontSize = 22.sp)
                 }
-                TextButton(onClick = { mode = 1 - mode; prefs.mushafMode = mode }) {
-                    Text(if (mode == 1) "النص" else "المصحف", color = Gold, fontSize = 13.sp)
-                }
-                TextButton(onClick = { theme = (theme + 1) % 3; prefs.quranTheme = theme }) {
-                    Text(when (theme) { 0 -> "ورق"; 1 -> "أبيض"; else -> "داكن" }, color = Gold, fontSize = 13.sp)
-                }
-                TextButton(onClick = { font = (font - 2).coerceAtLeast(18); prefs.quranFont = font }) { Text("أ-", color = Gold, fontSize = 18.sp) }
-                TextButton(onClick = { font = (font + 2).coerceAtMost(44); prefs.quranFont = font }) { Text("أ+", color = Gold, fontSize = 20.sp) }
+            }
+        }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            GoldChip(if (mode == 1) "عرض: المصحف" else "عرض: النص", false) { mode = 1 - mode; prefs.mushafMode = mode }
+            GoldChip(when (theme) { 0 -> "ورق"; 1 -> "أبيض"; else -> "داكن" }, false) { theme = (theme + 1) % 3; prefs.quranTheme = theme }
+            GoldChip("تصغير الخط  أ-", false) {
+                if (mode == 1) { mscale = (mscale - 0.25f).coerceAtLeast(0.75f); prefs.mushafScale = mscale }
+                else { font = (font - 2).coerceAtLeast(18); prefs.quranFont = font }
+            }
+            GoldChip("تكبير الخط  أ+", false) {
+                if (mode == 1) { mscale = (mscale + 0.25f).coerceAtMost(2.5f); prefs.mushafScale = mscale }
+                else { font = (font + 2).coerceAtMost(44); prefs.quranFont = font }
             }
         }
         Spacer(Modifier.height(6.dp))
@@ -243,7 +248,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                             )
                         }
                 ) {
-                    MushafPageView(page, ink, accent, hiBg, cur, Modifier.fillMaxSize())
+                    MushafPageView(page, ink, accent, hiBg, cur, Modifier.fillMaxSize(), mscale)
                 }
             }
         } else {
@@ -287,6 +292,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 onClick = {
                     if (QuranAudio.loading) QuranAudio.stop()
                     else if (QuranAudio.current != null) QuranAudio.pauseResume()
+                    else if (pageAyahs.isEmpty()) android.widget.Toast.makeText(ctx, "لا توجد آيات محمّلة لهذه الصفحة؛ حمّل نص المصحف أولًا", android.widget.Toast.LENGTH_LONG).show()
                     else QuranAudio.play(ctx, reciter, pageAyahs, 0, { prefs.repeatMode }) { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
