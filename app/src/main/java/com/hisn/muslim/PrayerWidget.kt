@@ -35,6 +35,7 @@ class PrayerWidget : AppWidgetProvider() {
         }
 
         fun updateAll(ctx: Context) {
+            PrayerWidgetAll.updateAll(ctx)
             try {
                 val mgr = AppWidgetManager.getInstance(ctx)
                 val ids = mgr.getAppWidgetIds(ComponentName(ctx, PrayerWidget::class.java))

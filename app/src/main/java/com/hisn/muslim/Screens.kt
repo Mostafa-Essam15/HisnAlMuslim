@@ -90,6 +90,8 @@ fun GoldChip(label: String, selected: Boolean, onClick: () -> Unit) {
 
 /** نقطة بداية شاشة الأذكار/السبحة/القبلة عند الفتح من اختصار: 0 أذكار، 1 سبحة، 2 قبلة */
 val azkarStartMode = mutableIntStateOf(0)
+/** صفحة المصحف المطلوب فتحها عند الضغط على آية اليوم من الرئيسية */
+val homeQuranJump = mutableIntStateOf(0)
 
 @Composable
 fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
@@ -119,7 +121,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
             when (id) {
                 "next" -> {
         item {
-            Glass {
+            Glass(Modifier.clickable { onNavigate(5) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.LocationOn, null, tint = Gold, modifier = Modifier.size(18.dp))
                     Text(
@@ -171,7 +173,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
         item {
             val fard = done.count { it.endsWith("_FARD") }
             val qada = prefs.qadaCount(day)
-            Glass {
+            Glass(Modifier.clickable { onNavigate(3) }) {
                 SectionTitle("ملخص عبادة اليوم", Icons.Rounded.EmojiEvents)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("الفروض: $fard/5", fontWeight = FontWeight.Bold)
@@ -221,7 +223,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                     }
                 }
             }
-            Glass {
+            Glass(Modifier.clickable { ay?.let { homeQuranJump.intValue = it.page }; onNavigate(1) }) {
                 SectionTitle("آية اليوم", Icons.Rounded.AutoAwesome)
                 val a = ay
                 if (a == null) {
@@ -232,7 +234,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                     Row {
                         TextButton(onClick = { shareText(ctxH, "${a.text}\n— ${Quran.surahName(a.surah)}: ${a.num}") }) { Text("مشاركة", color = Gold) }
                         TextButton(onClick = { ShareCard.share(ctxH, a.text, "سورة ${Quran.surahName(a.surah)} — آية ${a.num}") }) { Text("كصورة", color = Gold) }
-                        TextButton(onClick = { onNavigate(1) }) { Text("فتح المصحف", color = Gold) }
+                        TextButton(onClick = { homeQuranJump.intValue = a.page; onNavigate(1) }) { Text("فتح الصفحة", color = Gold) }
                     }
                 }
             }
@@ -241,7 +243,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                 "fasting" -> {
         if (todayFast != null || tomorrowFast != null) {
             item {
-                Glass {
+                Glass(Modifier.clickable { onNavigate(4) }) {
                     SectionTitle("صيام السنن", Icons.Rounded.Spa)
                     todayFast?.let { Text("اليوم: ${it.first}", fontWeight = FontWeight.Bold) }
                     tomorrowFast?.let {
@@ -256,7 +258,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
         item {
             val pr = next?.first ?: Prayer.FAJR
             val tip = remember(pr, day) { Content.tip(pr) }
-            Glass {
+            Glass(Modifier.clickable { azkarStartMode.intValue = 0; onNavigate(2) }) {
                 SectionTitle("${tip.kind} • ${pr.ar}", Icons.Rounded.AutoAwesome)
                 Text(tip.text, fontSize = 18.sp, lineHeight = 30.sp, fontFamily = Serif)
                 Spacer(Modifier.height(4.dp))
@@ -270,7 +272,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
             val isCurrent = prev?.first == pr && !isNext
             Glass(modifier = if (isNext) Modifier.border(1.5.dp, Gold, RoundedCornerShape(24.dp)) else Modifier) {
                 Row(
-                    Modifier.fillMaxWidth(),
+                    Modifier.fillMaxWidth().clickable { onNavigate(3) },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {

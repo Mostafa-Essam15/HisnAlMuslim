@@ -92,6 +92,23 @@ object HadithLib {
     fun has(ctx: Context, b: HBook) = file(ctx, b).let { it.exists() && it.length() > 1000 }
 
     @Volatile private var cached: HData? = null
+    @Volatile private var arNames: Map<String, Map<Int, String>>? = null
+
+    /** أسماء الكتب (الأبواب الكبرى) بالعربي كما وردت في sunnah.com، مطابقة بالاسم الإنجليزي للكتاب. */
+    fun arabicName(ctx: Context, b: HBook, num: Int): String? {
+        val m = arNames ?: try {
+            val o = org.json.JSONObject(ctx.assets.open("hadith_chapters_ar.json").bufferedReader(Charsets.UTF_8).use { it.readText() })
+            val r = HashMap<String, Map<Int, String>>()
+            o.keys().forEach { ed ->
+                val inner = o.getJSONObject(ed); val mm = HashMap<Int, String>()
+                inner.keys().forEach { k -> k.toIntOrNull()?.let { mm[it] = inner.getString(k) } }
+                r[ed] = mm
+            }
+            r
+        } catch (e: Exception) { emptyMap() }
+        arNames = m
+        return m[b.id]?.get(num)
+    }
 
     /** بيرجع null لو نجح أو رسالة الخطأ. من thread خلفي. */
     fun download(ctx: Context, b: HBook): String? {
@@ -279,7 +296,7 @@ fun HadithLibPane(prefs: Prefs) {
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Text(
-                "النصوص من مستودع hadith-api (ترخيص عام) وتُعرض كما وردت دون أي تعديل. الدرجات تظهر فقط حيث وُجدت في المصدر وبأسماء المحققين، وقد تختلف أحكامهم؛ ارجع لأهل العلم عند الحاجة. أسماء الأبواب كما وردت في المصدر.",
+                "النصوص من مستودع hadith-api (ترخيص عام) وتُعرض كما وردت دون أي تعديل. الدرجات تظهر فقط حيث وُجدت في المصدر وبأسماء المحققين، وقد تختلف أحكامهم؛ ارجع لأهل العلم عند الحاجة. أسماء الكتب بالعربي من sunnah.com وتحتها الاسم الإنجليزي كما في المصدر.",
                 fontSize = 11.sp, color = Muted
             )
             busy?.let { Text(it, color = Gold) }
@@ -339,14 +356,16 @@ fun HadithLibPane(prefs: Prefs) {
                     items(d.sections) { s ->
                         val n = d.bySec[s.num]?.size ?: 0
                         Glass(Modifier.clickable { sec = s }) {
-                            Text("${s.num}. ${s.name}", fontWeight = FontWeight.Bold)
+                            val ar = HadithLib.arabicName(ctx, cur, s.num)
+                            Text("${s.num}. ${ar ?: s.name}", fontWeight = FontWeight.Bold, fontFamily = Serif, fontSize = 17.sp)
+                            if (ar != null) Text(s.name, fontSize = 11.sp, color = Muted)
                             Text("$n حديث", fontSize = 12.sp, color = Muted)
                         }
                     }
                     if (d.sections.isEmpty()) items(d.rows) { r -> HadithCard(prefs, cur, r, favs) { tick++ } }
                 } else {
                     val s = sec!!
-                    item { Text("${s.num}. ${s.name}", color = Gold, fontWeight = FontWeight.Bold) }
+                    item { Text("${s.num}. ${HadithLib.arabicName(ctx, cur, s.num) ?: s.name}", color = Gold, fontWeight = FontWeight.Bold, fontFamily = Serif) }
                     items(d.bySec[s.num] ?: emptyList()) { r -> HadithCard(prefs, cur, r, favs) { tick++ } }
                 }
             }

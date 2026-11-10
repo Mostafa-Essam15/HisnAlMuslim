@@ -78,6 +78,18 @@
         </receiver>
 
         <receiver
+            android:name=".PrayerWidgetAll"
+            android:exported="false"
+            android:label="مواقيت الصلوات">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_prayers_all_info" />
+        </receiver>
+
+        <receiver
             android:name=".BootReceiver"
             android:exported="true">
             <intent-filter>
