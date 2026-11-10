@@ -66,6 +66,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= 33) req.add(Manifest.permission.POST_NOTIFICATIONS)
         permLauncher.launch(req.toTypedArray())
         Notif.ensureChannels(this)
+        Updater.check(this)
         Reminders.scheduleAll(this)
         // إذن «العرض فوق التطبيقات» ضروري لظهور الأذان وسؤال «هل صليت؟» إجباريًا على الشاشة؛ بنطلبه مرة واحدة
         val pf = Prefs(this)

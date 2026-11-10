@@ -117,6 +117,24 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        Updater.available?.let { up ->
+            item {
+                val ctxU = androidx.compose.ui.platform.LocalContext.current
+                Glass(Modifier.border(1.5.dp, Gold, RoundedCornerShape(24.dp))) {
+                    SectionTitle("تحديث جديد متاح", Icons.Rounded.AutoAwesome)
+                    if (up.notes.isNotBlank()) Text(up.notes, fontSize = 14.sp)
+                    if (up.size > 0) Text("الحجم: ${"%.1f".format(Locale.US, up.size / 1048576.0)} ميجا", fontSize = 12.sp, color = Muted)
+                    if (Updater.progress >= 0) {
+                        Spacer(Modifier.height(6.dp))
+                        LinearProgressIndicator(progress = { Updater.progress / 100f }, modifier = Modifier.fillMaxWidth(), color = Gold, trackColor = Track)
+                        Text("جارٍ التنزيل ${Updater.progress}%", fontSize = 12.sp, color = Gold)
+                    } else {
+                        TextButton(onClick = { Updater.downloadAndInstall(ctxU, up) }) { Text("⬇ تحميل وتثبيت الآن", color = Gold) }
+                    }
+                    if (Updater.message.isNotBlank()) Text(Updater.message, fontSize = 12.sp, color = Muted)
+                }
+            }
+        }
         order.forEach { id ->
             when (id) {
                 "next" -> {

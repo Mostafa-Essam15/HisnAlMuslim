@@ -30,6 +30,18 @@ jobs:
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk HisnAlMuslim.apk
 
+      # ملف معلومات التحديث: التطبيق بيقراه ليعرف لو فيه نسخة أحدث وبيعرض ملاحظاتها
+      - name: Create update.json
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+          NOTES: ${{ github.event.head_commit.message }}
+        run: |
+          jq -n --argjson code "$((RUN_NUMBER + 100))" --arg name "2.0" \
+            --arg notes "$(printf '%s' "$NOTES" | head -n 1)" \
+            --argjson size "$(stat -c%s HisnAlMuslim.apk)" \
+            '{versionCode:$code, versionName:$name, notes:$notes, apk:"HisnAlMuslim.apk", size:$size}' > update.json
+          cat update.json
+
       - uses: actions/upload-artifact@v4
         with:
           name: HisnAlMuslim-apk
@@ -42,5 +54,7 @@ jobs:
           tag_name: latest
           name: حصن المسلم - أحدث نسخة
           body: "نسخة APK مبنية تلقائيًا من آخر تعديل (debug). فعّل «التثبيت من مصادر غير معروفة» لتثبيتها."
-          files: HisnAlMuslim.apk
+          files: |
+            HisnAlMuslim.apk
+            update.json
           prerelease: false

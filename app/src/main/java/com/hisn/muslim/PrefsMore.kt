@@ -330,3 +330,13 @@ fun Prefs.muezzinFor(p: Prayer): String = sp.getString("muez_${p.name}", "") ?: 
 fun Prefs.setMuezzinFor(p: Prayer, key: String) { sp.edit().putString("muez_${p.name}", key).apply() }
 /** مفتاح المؤذن الفعلي للصلاة: الخاص بها لو محدد، وإلا العام */
 fun Prefs.effectiveMuezzin(p: Prayer): String = muezzinFor(p).ifBlank { muezzin }
+
+/** إشعار عند توفر تحديث جديد للتطبيق */
+var Prefs.updateNotify: Boolean
+    get() = sp.getBoolean("updNotify", true)
+    set(v) { sp.edit().putBoolean("updNotify", v).apply() }
+
+/** آخر versionCode أُرسل عنه إشعار (عشان ما يتكررش) */
+var Prefs.lastNotifiedUpdate: Int
+    get() = sp.getInt("updNotified", 0)
+    set(v) { sp.edit().putInt("updNotified", v).apply() }

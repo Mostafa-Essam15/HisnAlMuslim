@@ -699,6 +699,24 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
             }
         }
         item {
+            var un by remember { mutableStateOf(prefs.updateNotify) }
+            val ctxS = androidx.compose.ui.platform.LocalContext.current
+            Glass {
+                SectionTitle("التحديثات", Icons.Rounded.AutoAwesome)
+                SwitchRow("أخبرني بإشعار عند صدور تحديث", un) { un = it; prefs.updateNotify = it; reschedule() }
+                Row {
+                    TextButton(onClick = { Updater.message = "جارٍ التحقق…"; Updater.check(ctxS, manual = true) }) { Text("التحقق الآن", color = Gold) }
+                    Updater.available?.let { up ->
+                        TextButton(onClick = { Updater.downloadAndInstall(ctxS, up) }, enabled = Updater.progress < 0) {
+                            Text(if (Updater.progress >= 0) "تنزيل ${Updater.progress}%" else "تحميل وتثبيت", color = Gold)
+                        }
+                    }
+                }
+                if (Updater.message.isNotBlank()) Text(Updater.message, fontSize = 12.sp, color = Muted)
+                Text("يُنزَّل التحديث من صفحة الإصدارات على GitHub، ولا يُثبَّت إلا لو كان بنفس توقيع نسختك الحالية.", fontSize = 11.sp, color = Muted)
+            }
+        }
+        item {
             var light by remember { mutableStateOf(prefs.lightTheme) }
             Glass {
                 SectionTitle("المظهر", Icons.Rounded.AutoAwesome)

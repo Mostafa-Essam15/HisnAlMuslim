@@ -46,6 +46,7 @@ object Notif {
     const val ID_IFTAR = 408
     const val ID_PRE = 409
     const val ID_IQAMA = 410
+    const val ID_UPDATE = 411
     fun idCheck(p: Prayer) = 300 + p.ordinal
     fun idPeriod(p: Prayer) = 320 + p.ordinal
 
@@ -99,6 +100,7 @@ object Reminders {
     private const val RC_IFTAR = 243
     private const val RC_PRE = 250
     private const val RC_IQAMA = 251
+    private const val RC_UPDATE = 260
     private const val RC_FOCUS_ON = 230
     private const val RC_FOCUS_OFF = 231
     private const val RC_PERIOD_LATER = 220 // + ordinal
@@ -134,6 +136,7 @@ object Reminders {
         scheduleAdhkar(ctx)
         scheduleRamadan(ctx)
         schedulePreIqama(ctx)
+        scheduleUpdateCheck(ctx)
         PrayerWidget.updateAll(ctx)
     }
 
@@ -323,6 +326,17 @@ object Reminders {
         val now = System.currentTimeMillis()
         if (p.preMin > 0) nextShifted(p, -p.preMin, now)?.let { setAt(ctx, RC_PRE, it.second, "PRE", it.first) } else cancelAlarm(ctx, RC_PRE, "PRE")
         if (p.iqamaMin > 0) nextShifted(p, p.iqamaMin, now)?.let { setAt(ctx, RC_IQAMA, it.second, "IQAMA", it.first) } else cancelAlarm(ctx, RC_IQAMA, "IQAMA")
+    }
+
+    /** فحص التحديثات كل ٦ ساعات تقريبًا (إشعار محلي بدون خادم) */
+    fun scheduleUpdateCheck(ctx: Context) {
+        val p = Prefs(ctx)
+        val am = ctx.getSystemService(AlarmManager::class.java)
+        if (!p.updateNotify) { cancelAlarm(ctx, RC_UPDATE, "UPDATE"); return }
+        am.setInexactRepeating(
+            AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 30 * 60_000L, 6 * 60 * 60_000L,
+            pi(ctx, RC_UPDATE, "UPDATE")
+        )
     }
 
     fun scheduleWird(ctx: Context) {
@@ -591,6 +605,24 @@ class ReminderReceiver : BroadcastReceiver() {
                     ).build())
                 }
                 Reminders.schedulePreIqama(ctx)
+            }
+            "UPDATE" -> {
+                if (p.updateNotify) {
+                    val pending = goAsync()
+                    Thread {
+                        try {
+                            val info = Updater.fetch(ctx)
+                            if (info != null && info.code > p.lastNotifiedUpdate) {
+                                val body = info.notes.ifBlank { "نسخة جديدة من حصن المسلم متاحة. افتح التطبيق لتحميلها وتثبيتها." }
+                                Notif.notify(ctx, Notif.ID_UPDATE, Notif.builder(
+                                    ctx, Notif.CH_REMIND, "🔔 تحديث جديد لحصن المسلم", body, body
+                                ).build())
+                                p.lastNotifiedUpdate = info.code
+                            }
+                        } catch (e: Exception) {
+                        } finally { pending.finish() }
+                    }.start()
+                }
             }
             "WIRD" -> {
                 val st = Khatma.stats(p)
