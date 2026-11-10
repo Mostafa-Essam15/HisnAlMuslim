@@ -102,7 +102,7 @@ object QuranAudio {
     /** عدد مرات تكرار القائمة كلها المتبقية (٠ = حسب وضع التكرار العادي) */
     private var loopsLeft = 0
 
-    fun play(ctx: Context, reciter: String, list: List<Ayah>, start: Int, repeat: () -> Int, onFinished: () -> Unit, loops: Int = 0) {
+    fun play(ctx: Context, reciter: String, list: List<Ayah>, start: Int, repeat: () -> Int, loops: Int = 0, onFinished: () -> Unit) {
         stop()
         loopsLeft = loops
         if (list.isEmpty()) return

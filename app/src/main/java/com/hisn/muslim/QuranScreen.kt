@@ -334,7 +334,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                     Button(
                         onClick = {
                             val to = rTo.coerceIn(rFrom, pageAyahs.size - 1)
-                            QuranAudio.play(ctx, reciter, pageAyahs.subList(rFrom, to + 1), 0, { if (rTimes == 0) 2 else 0 }, {}, rTimes)
+                            QuranAudio.play(ctx, reciter, pageAyahs.subList(rFrom, to + 1), 0, { if (rTimes == 0) 2 else 0 }, rTimes) {}
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
                     ) { Text("▶ شغّل النطاق") }
