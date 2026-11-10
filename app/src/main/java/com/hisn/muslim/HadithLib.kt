@@ -240,6 +240,18 @@ object HadithLib {
 
     private fun numOf(r: JsonReader): Double = if (r.peek() == JsonToken.NUMBER) r.nextDouble() else (r.nextString().toDoubleOrNull() ?: 0.0)
 
+    /** حديث اليوم من أصغر كتاب محمّل (الأربعين النووية أولًا) ويثبت طوال اليوم. null لو لا كتب محمّلة. */
+    fun daily(ctx: Context): Pair<HBook, HRow>? {
+        val order = listOf("ara-nawawi", "ara-qudsi", "ara-malik", "ara-ibnmajah", "ara-tirmidhi", "ara-abudawud", "ara-nasai", "ara-muslim", "ara-bukhari")
+        val b = order.mapNotNull { id -> books.firstOrNull { it.id == id } }.firstOrNull { has(ctx, it) } ?: return null
+        val d = load(ctx, b) ?: return null
+        val pool = d.rows.filter { it.text.length in 40..700 }.ifEmpty { d.rows }
+        if (pool.isEmpty()) return null
+        val c = java.util.Calendar.getInstance()
+        val i = Math.floorMod(c.get(java.util.Calendar.YEAR) * 366 + c.get(java.util.Calendar.DAY_OF_YEAR) * 31, pool.size)
+        return b to pool[i]
+    }
+
     fun key(b: HBook, r: HRow) = "${b.id}:${r.num}"
 
     fun shareString(b: HBook, r: HRow): String {

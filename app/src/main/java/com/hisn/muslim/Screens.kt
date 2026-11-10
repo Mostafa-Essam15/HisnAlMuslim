@@ -231,10 +231,42 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                 } else {
                     Text(a.text, fontSize = 20.sp, lineHeight = 34.sp, fontFamily = Serif)
                     Text("${Quran.surahName(a.surah)} — آية ${Quran.arabicDigits(a.num)} — صفحة ${Quran.arabicDigits(a.page)}", fontSize = 12.sp, color = Muted)
+                    val slug = remember(tick) { prefs.tafsirSlug }
+                    val tf by androidx.compose.runtime.produceState<String?>(null, a.surah, a.num, slug) {
+                        value = withContext(kotlinx.coroutines.Dispatchers.IO) { TafsirStore.load(ctxH, slug, a.surah)?.get(a.num) }
+                    }
+                    tf?.takeIf { it.isNotBlank() }?.let {
+                        Spacer(Modifier.height(6.dp))
+                        Text("التفسير (${TafsirStore.editions.firstOrNull { e -> e.slug == slug }?.name ?: ""}):", fontSize = 12.sp, color = Gold)
+                        Text(it, fontSize = 14.sp, lineHeight = 24.sp, maxLines = 5, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    }
                     Row {
                         TextButton(onClick = { shareText(ctxH, "${a.text}\n— ${Quran.surahName(a.surah)}: ${a.num}") }) { Text("مشاركة", color = Gold) }
                         TextButton(onClick = { ShareCard.share(ctxH, a.text, "سورة ${Quran.surahName(a.surah)} — آية ${a.num}") }) { Text("كصورة", color = Gold) }
                         TextButton(onClick = { homeQuranJump.intValue = a.page; onNavigate(1) }) { Text("فتح الصفحة", color = Gold) }
+                    }
+                }
+            }
+        }
+                }
+                "hadith" -> {
+        item {
+            val ctxD = androidx.compose.ui.platform.LocalContext.current
+            val hd by androidx.compose.runtime.produceState<Pair<HBook, HRow>?>(null, day, tick) {
+                value = withContext(kotlinx.coroutines.Dispatchers.IO) { HadithLib.daily(ctxD) }
+            }
+            Glass(Modifier.clickable { moreStartSec.intValue = 5; onNavigate(4) }) {
+                SectionTitle("حديث اليوم", Icons.Rounded.AutoAwesome)
+                val h = hd
+                if (h == null) {
+                    Text("حمّل كتابًا من المزيد ← الأحاديث (الأربعون النووية مثلًا) ليظهر حديث اليوم.", color = Muted, fontSize = 13.sp)
+                } else {
+                    Text(h.second.text, fontSize = 18.sp, lineHeight = 31.sp, fontFamily = Serif, maxLines = 8, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    Text("${h.first.name} — حديث رقم ${h.second.num}", fontSize = 12.sp, color = Muted)
+                    h.second.grades.firstOrNull()?.let { Text(HadithLib.gradeText(it), fontSize = 12.sp, color = Gold) }
+                    Row {
+                        TextButton(onClick = { shareText(ctxD, HadithLib.shareString(h.first, h.second)) }) { Text("مشاركة", color = Gold) }
+                        if (h.second.text.length < 1500) TextButton(onClick = { ShareCard.share(ctxD, h.second.text, "${h.first.name} — حديث رقم ${h.second.num}") }) { Text("كصورة", color = Gold) }
                     }
                 }
             }
