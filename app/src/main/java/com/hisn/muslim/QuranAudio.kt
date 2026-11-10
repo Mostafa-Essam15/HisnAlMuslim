@@ -99,8 +99,12 @@ object QuranAudio {
      * يشغّل آيات الصفحة من [start]. [repeat]: 0 بدون، 1 تكرار الآية، 2 تكرار الصفحة.
      * [onFinished] بيتنادى لما تخلص الصفحة (بدون تكرار).
      */
-    fun play(ctx: Context, reciter: String, list: List<Ayah>, start: Int, repeat: () -> Int, onFinished: () -> Unit) {
+    /** عدد مرات تكرار القائمة كلها المتبقية (٠ = حسب وضع التكرار العادي) */
+    private var loopsLeft = 0
+
+    fun play(ctx: Context, reciter: String, list: List<Ayah>, start: Int, repeat: () -> Int, onFinished: () -> Unit, loops: Int = 0) {
         stop()
+        loopsLeft = loops
         if (list.isEmpty()) return
         val g = ++gen
         error = null
@@ -131,7 +135,8 @@ object QuranAudio {
                         val next = when {
                             repeat() == 1 -> idx
                             idx + 1 < list.size -> idx + 1
-                            repeat() == 2 -> 0
+                            loopsLeft > 1 -> { loopsLeft--; 0 }
+                            loopsLeft == 0 && repeat() == 2 -> 0
                             else -> -1
                         }
                         if (next >= 0) playAt(ctx, reciter, list, next, repeat, onFinished, g)

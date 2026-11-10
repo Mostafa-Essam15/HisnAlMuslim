@@ -186,6 +186,10 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
     var repeat by remember { mutableIntStateOf(prefs.repeatMode) }
     var reciter by remember { mutableStateOf(prefs.reciter) }
     var showReciters by remember { mutableStateOf(false) }
+    var showRange by remember { mutableStateOf(false) }
+    var rFrom by remember(page) { mutableIntStateOf(0) }
+    var rTo by remember(page) { mutableIntStateOf(0) }
+    var rTimes by remember { mutableIntStateOf(3) }
     val pageBg = when (theme) { 0 -> Color(0xFFF5ECD6); 1 -> Color(0xFFFFFFFF); else -> Color(0xCC0B1A14) }
     val ink = if (theme == 2) Color.White else Color(0xFF2B2118)
     val accent = if (theme == 2) Gold else Color(0xFF8A6A1F)
@@ -287,7 +291,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
 
         Spacer(Modifier.height(6.dp))
         // التلاوة
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Button(
                 onClick = {
                     if (QuranAudio.loading) QuranAudio.stop()
@@ -301,6 +305,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
             OutlinedButton(onClick = { repeat = (repeat + 1) % 3; prefs.repeatMode = repeat }) {
                 Text(when (repeat) { 1 -> "🔂 آية"; 2 -> "🔁 صفحة"; else -> "تكرار: لا" }, color = Gold, fontSize = 12.sp)
             }
+            OutlinedButton(onClick = { showRange = !showRange }) { Text("نطاق", color = Gold, fontSize = 12.sp) }
             OutlinedButton(onClick = { showReciters = !showReciters }) {
                 Text(QuranAudio.reciters.firstOrNull { it.id == reciter }?.name ?: "القارئ", color = Gold, fontSize = 12.sp, maxLines = 1)
             }
@@ -309,6 +314,30 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 QuranAudio.reciters.forEach { r ->
                     GoldChip(r.name, reciter == r.id) { reciter = r.id; prefs.reciter = r.id; QuranAudio.stop() }
+                }
+            }
+        }
+        if (showRange && pageAyahs.isNotEmpty()) {
+            Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                Text("تكرار نطاق من آيات الصفحة", color = Gold, fontSize = 12.sp)
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("من:", color = Muted, fontSize = 12.sp)
+                    pageAyahs.forEachIndexed { i, a -> GoldChip(Quran.arabicDigits(a.num), rFrom == i) { rFrom = i; if (rTo < i) rTo = i } }
+                }
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("إلى:", color = Muted, fontSize = 12.sp)
+                    pageAyahs.forEachIndexed { i, a -> if (i >= rFrom) GoldChip(Quran.arabicDigits(a.num), rTo == i) { rTo = i } }
+                }
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("مرات:", color = Muted, fontSize = 12.sp)
+                    listOf(1 to "١", 3 to "٣", 5 to "٥", 10 to "١٠", 0 to "∞").forEach { (n, l) -> GoldChip(l, rTimes == n) { rTimes = n } }
+                    Button(
+                        onClick = {
+                            val to = rTo.coerceIn(rFrom, pageAyahs.size - 1)
+                            QuranAudio.play(ctx, reciter, pageAyahs.subList(rFrom, to + 1), 0, { if (rTimes == 0) 2 else 0 }, {}, rTimes)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                    ) { Text("▶ شغّل النطاق") }
                 }
             }
         }
