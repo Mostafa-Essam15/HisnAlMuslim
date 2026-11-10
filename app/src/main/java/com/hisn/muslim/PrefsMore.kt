@@ -324,3 +324,9 @@ var Prefs.mushafScale: Float
 var Prefs.lightTheme: Boolean
     get() = sp.getBoolean("lightTheme", false)
     set(v) { sp.edit().putBoolean("lightTheme", v).apply() }
+
+/** مؤذن مخصص لصلاة معيّنة ("" = المؤذن العام) */
+fun Prefs.muezzinFor(p: Prayer): String = sp.getString("muez_${p.name}", "") ?: ""
+fun Prefs.setMuezzinFor(p: Prayer, key: String) { sp.edit().putString("muez_${p.name}", key).apply() }
+/** مفتاح المؤذن الفعلي للصلاة: الخاص بها لو محدد، وإلا العام */
+fun Prefs.effectiveMuezzin(p: Prayer): String = muezzinFor(p).ifBlank { muezzin }

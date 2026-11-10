@@ -372,6 +372,23 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                 if (has) SwitchRow("استخدام ملف الفجر الخاص", fajrOn) { fajrOn = it; prefs.fajrCustomOn = it }
             }
         }
+        item {
+            var tick by remember { mutableIntStateOf(0) }
+            val ready = remember(tick, mVersion) { Muezzins.all.filter { Muezzins.isDownloaded(ctx, it) } }
+            Glass {
+                SectionTitle("مؤذن لكل صلاة", Icons.Rounded.AutoAwesome)
+                Text("اختر مؤذنًا مختلفًا لصلاة معيّنة من المؤذنين المحمّلين على جهازك. «العام» يعني المؤذن المختار أدناه.", fontSize = 12.sp, color = Muted)
+                if (ready.isEmpty()) Text("حمّل مؤذنًا واحدًا على الأقل من القوائم أدناه لتظهر الخيارات.", fontSize = 12.sp, color = Gold)
+                else Prayer.values().forEach { pr ->
+                    val cur = remember(tick, pr) { prefs.muezzinFor(pr) }
+                    Text(pr.ar, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        GoldChip("العام", cur.isBlank()) { prefs.setMuezzinFor(pr, ""); tick++ }
+                        ready.forEach { m -> GoldChip(m.name.removePrefix("الشيخ "), cur == m.key) { prefs.setMuezzinFor(pr, m.key); tick++ } }
+                    }
+                }
+            }
+        }
         items(Muezzins.groups) { group ->
             Glass {
                 Text(group, color = Gold, fontWeight = FontWeight.Bold, fontSize = 16.sp)

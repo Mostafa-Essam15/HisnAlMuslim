@@ -151,7 +151,7 @@ class AdhanService : Service() {
             // وضع عدم الإزعاج ممكن يمنع تغيير مستوى الصوت؛ بنكمّل بالمستوى الحالي
         }
 
-        val muezzin = Muezzins.byKey(prefs.muezzin)
+        val muezzin = Muezzins.byKey(prefs.effectiveMuezzin(prayer))
         try {
             val mp = MediaPlayer()
             mp.setAudioAttributes(attrs)
