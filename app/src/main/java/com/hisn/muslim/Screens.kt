@@ -243,7 +243,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                 "fasting" -> {
         if (todayFast != null || tomorrowFast != null) {
             item {
-                Glass(Modifier.clickable { onNavigate(4) }) {
+                Glass(Modifier.clickable { moreStartSec.intValue = 0; onNavigate(4) }) {
                     SectionTitle("صيام السنن", Icons.Rounded.Spa)
                     todayFast?.let { Text("اليوم: ${it.first}", fontWeight = FontWeight.Bold) }
                     tomorrowFast?.let {
@@ -310,11 +310,23 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
 
 @Composable
 fun ChallengesScreen(prefs: Prefs) {
+    var mode by remember { mutableIntStateOf(0) }
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GoldChip("متابعة الصلوات", mode == 0) { mode = 0 }
+            GoldChip("التحديات والقضاء", mode == 1) { mode = 1 }
+        }
+        if (mode == 0) PrayerTrackPane(prefs) else ChallengesPane(prefs)
+    }
+}
+
+@Composable
+private fun ChallengesPane(prefs: Prefs) {
     val day = prefs.dayKey()
     val streak = prefs.streak()
     var qTick by remember { mutableIntStateOf(0) }
     val pendingQada = remember(qTick, refreshTick.intValue) {
-        prefs.lastDays(30).flatMap { d -> Prayer.values().filter { prefs.prayerStatus(d, it) == 1 }.map { d to it } }
+        prefs.lastDays(30).flatMap { d -> Prayer.values().filter { prefs.prayerStatus(d, it) == 3 }.map { d to it } }
     }
 
     class Ch(val title: String, val desc: String, val cur: Int, val goal: Int)
@@ -345,7 +357,7 @@ fun ChallengesScreen(prefs: Prefs) {
                     pendingQada.forEach { (d, p) ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text("${p.ar} — $d", fontSize = 15.sp)
-                            TextButton(onClick = { prefs.setPrayerStatus(d, p, 2); qTick++ }) { Text("تم القضاء", color = Gold) }
+                            TextButton(onClick = { prefs.setPrayerStatus(d, p, 1); qTick++ }) { Text("تم القضاء", color = Gold) }
                         }
                     }
                 }

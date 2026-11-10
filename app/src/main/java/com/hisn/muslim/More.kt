@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
@@ -76,30 +77,82 @@ object Occasions {
 
 private fun hijriOf(p: Prefs, d: LocalDate): HijrahDate = HijrahDate.from(d.plusDays(p.hijriAdj.toLong()))
 
+private class MoreItem(val id: Int, val icon: String, val title: String, val sub: String)
+private class MoreGroup(val title: String, val items: List<MoreItem>)
+
+private val MORE_GROUPS = listOf(
+    MoreGroup("القرآن والحديث", listOf(
+        MoreItem(5, "📚", "الأحاديث", "البخاري ومسلم والسنن الأربعة والموطأ"),
+        MoreItem(6, "🤲", "الأدعية", "أدعية القرآن والسنة بمصادرها"),
+        MoreItem(4, "🔎", "بحث شامل", "في المصحف والأذكار")
+    )),
+    MoreGroup("عبادات ومواقيت", listOf(
+        MoreItem(0, "📅", "التقويم الهجري", "الأيام والمناسبات"),
+        MoreItem(1, "🌙", "رمضان والسحور", "السحور والإفطار والصيام"),
+        MoreItem(2, "📊", "إحصاءات العبادة", "الفروض والقرآن والتسبيح")
+    )),
+    MoreGroup("التطبيق", listOf(
+        MoreItem(3, "💾", "نسخ احتياطي", "تصدير واستعادة بياناتك")
+    ))
+)
+
+/** قسم يُفتح مباشرة عند الدخول لتبويب المزيد من الرئيسية (-1 = القائمة) */
+val moreStartSec = mutableIntStateOf(-1)
+
 @Composable
 fun MoreScreen(prefs: Prefs, onOpenQuran: (Int) -> Unit = {}) {
-    var sec by remember { mutableIntStateOf(0) }
-    Column(Modifier.fillMaxSize()) {
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            GoldChip("التقويم الهجري", sec == 0) { sec = 0 }
-            GoldChip("رمضان", sec == 1) { sec = 1 }
-            GoldChip("إحصاءات العبادة", sec == 2) { sec = 2 }
-            GoldChip("نسخ احتياطي", sec == 3) { sec = 3 }
-            GoldChip("بحث", sec == 4) { sec = 4 }
-            GoldChip("الأحاديث", sec == 5) { sec = 5 }
-            GoldChip("الأدعية", sec == 6) { sec = 6 }
+    var sec by remember { mutableIntStateOf(moreStartSec.intValue.also { moreStartSec.intValue = -1 }) }
+    androidx.activity.compose.BackHandler(enabled = sec >= 0) { sec = -1 }
+    if (sec < 0) {
+        val open = remember { mutableStateOf(setOf(0, 1, 2)) }
+        LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item { Text("المزيد", fontSize = 26.sp, fontWeight = FontWeight.Bold, fontFamily = Serif) }
+            MORE_GROUPS.forEachIndexed { gi, g ->
+                item {
+                    val isOpen = gi in open.value
+                    Glass {
+                        Row(
+                            Modifier.fillMaxWidth().clickable { open.value = if (isOpen) open.value - gi else open.value + gi },
+                            horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(g.title, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Gold)
+                            Text((if (isOpen) "⌄ " else "‹ ") + Quran.arabicDigits(g.items.size), color = Muted, fontSize = 13.sp)
+                        }
+                        if (isOpen) g.items.forEach { it ->
+                            Row(
+                                Modifier.fillMaxWidth().padding(top = 10.dp).clickable { sec = it.id },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    Modifier.size(44.dp).background(
+                                        androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0xFF2E9E75), Color(0xFF1B6B50))),
+                                        RoundedCornerShape(14.dp)
+                                    ),
+                                    contentAlignment = Alignment.Center
+                                ) { Text(it.icon, fontSize = 20.sp) }
+                                Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                                    Text(it.title, fontWeight = FontWeight.Bold)
+                                    Text(it.sub, fontSize = 11.sp, color = Muted)
+                                }
+                                Text("‹", color = Muted, fontSize = 20.sp)
+                            }
+                        }
+                    }
+                }
+            }
         }
-        when (sec) {
-            0 -> CalendarPane(prefs)
-            1 -> RamadanPane(prefs)
-            2 -> StatsPane(prefs)
-            4 -> SearchPane(prefs, onOpenQuran)
-            5 -> HadithLibPane(prefs)
-            6 -> DuasPane(prefs)
-            else -> BackupPane(prefs)
+    } else {
+        Column(Modifier.fillMaxSize()) {
+            TextButton(onClick = { sec = -1 }, modifier = Modifier.padding(horizontal = 8.dp)) { Text("‹ المزيد", color = Gold) }
+            when (sec) {
+                0 -> CalendarPane(prefs)
+                1 -> RamadanPane(prefs)
+                2 -> StatsPane(prefs)
+                4 -> SearchPane(prefs, onOpenQuran)
+                5 -> HadithLibPane(prefs)
+                6 -> DuasPane(prefs)
+                else -> BackupPane(prefs)
+            }
         }
     }
 }

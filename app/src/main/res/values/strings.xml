@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="widget_all_desc">مواقيت الصلوات الخمس لليوم</string>
+    <string name="widget_tasbih_desc">عدّاد التسبيح: المس الرقم للعدّ</string>
     <string name="widget_desc">الصلاة القادمة ووقتها</string>
 </resources>

@@ -506,7 +506,7 @@ class ReminderReceiver : BroadcastReceiver() {
                 val day = p.dayKey(Engine.dayOfPeriod(p, prayer))
                 when (type) {
                     "P_YES" -> p.setPrayerStatus(day, prayer, 2)
-                    "P_QADA" -> p.setPrayerStatus(day, prayer, 1)
+                    "P_QADA" -> p.setPrayerStatus(day, prayer, 3)
                     else -> Reminders.schedulePeriodLater(ctx, prayer, p.laterMin.coerceAtLeast(5))
                 }
                 Reminders.cancelCheck(ctx, prayer)

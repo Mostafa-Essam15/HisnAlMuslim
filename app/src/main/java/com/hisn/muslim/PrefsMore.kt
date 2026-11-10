@@ -30,18 +30,20 @@ var Prefs.periodPopupOn: Boolean
     set(v) { sp.edit().putBoolean("periodPopup", v).apply() }
 
 val Prayer.qadaKey: String get() = "${name}_QADA"
+val Prayer.missKey: String get() = "${name}_MISS"
 
 fun Prefs.wasPrompted(day: String, p: Prayer): Boolean = sp.getBoolean("pq_${day}_${p.name}", false)
 fun Prefs.markPrompted(day: String, p: Prayer) { sp.edit().putBoolean("pq_${day}_${p.name}", true).apply() }
 
-fun Prefs.qadaCount(day: String): Int = Prayer.values().count { it.qadaKey in done(day) }
+fun Prefs.qadaCount(day: String): Int = Prayer.values().count { it.missKey in done(day) } // صلوات فاتت وتنتظر القضاء
 
-/** حالة الصلاة في يوم: 2 = أُديت، 1 = قضاء، 0 = بلا تسجيل */
+/** حالة الصلاة في يوم: 2 = أُديت في وقتها، 1 = متأخرة/قضاء، 3 = لم أصلِّ، 0 = بلا تسجيل */
 fun Prefs.prayerStatus(day: String, p: Prayer): Int {
     val d = done(day)
     return when {
         p.fardKey in d -> 2
         p.qadaKey in d -> 1
+        p.missKey in d -> 3
         else -> 0
     }
 }
@@ -51,6 +53,8 @@ fun Prefs.setPrayerStatus(day: String, p: Prayer, status: Int) {
     val s = done(day).toMutableSet()
     s.remove(p.fardKey)
     s.remove(p.qadaKey)
+    s.remove(p.missKey)
+    if (status == 3) s.add(p.missKey)
     if (status == 2) s.add(p.fardKey)
     if (status == 1) s.add(p.qadaKey)
     sp.edit().putStringSet("d_$day", s).apply()
