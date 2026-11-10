@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "520400566030",
+    "project_id": "hisn-al-muslim-2289b",
+    "storage_bucket": "hisn-al-muslim-2289b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:520400566030:android:b7f765279e72d5fb30095f",
+        "android_client_info": {
+          "package_name": "com.hisn.muslim"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAb5DODYCI980zW-OEvgYdY_27baploKDk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

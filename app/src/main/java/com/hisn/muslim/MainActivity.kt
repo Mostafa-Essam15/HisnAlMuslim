@@ -67,6 +67,7 @@ class MainActivity : ComponentActivity() {
         permLauncher.launch(req.toTypedArray())
         Notif.ensureChannels(this)
         Updater.check(this)
+        HisnMessagingService.subscribe()
         Reminders.scheduleAll(this)
         // إذن «العرض فوق التطبيقات» ضروري لظهور الأذان وسؤال «هل صليت؟» إجباريًا على الشاشة؛ بنطلبه مرة واحدة
         val pf = Prefs(this)

@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -51,6 +52,9 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     // حساب مواقيت الصلاة
     implementation("com.batoulapps.adhan:adhan:1.2.1")
+    // إشعارات فورية بالتحديثات (Firebase Cloud Messaging)
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
+    implementation("com.google.firebase:firebase-messaging")
 
     testImplementation("junit:junit:4.13.2")
 }
