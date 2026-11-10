@@ -38,4 +38,30 @@ class LogicTest {
     @Test fun arabicDigitsConvert() {
         assertEquals("٦٠٤", Quran.arabicDigits(604))
     }
+
+    @Test fun hadithGradeIsTranslatedAndUnknownKept() {
+        assertEquals("الألباني: صحيح", HadithLib.gradeText("Al-Albani" to "Sahih"))
+        assertEquals("Someone New: حسن", HadithLib.gradeText("Someone New" to "Hasan"))
+        assertEquals("الألباني: Unlisted", HadithLib.gradeText("Al-Albani" to "Unlisted"))
+    }
+
+    @Test fun hadithKeyAndShareString() {
+        val b = HBook("ara-abudawud", "سنن أبي داود", "أبو داود", true)
+        val r = HRow("12", "نص", listOf("Al-Albani" to "Daif"))
+        assertEquals("ara-abudawud:12", HadithLib.key(b, r))
+        val s = HadithLib.shareString(b, r)
+        assertTrue(s.startsWith("نص"))
+        assertTrue(s.contains("سنن أبي داود، حديث رقم 12"))
+        assertTrue(s.contains("الألباني: ضعيف"))
+        assertEquals("نص\n\n— سنن أبي داود، حديث رقم 5", HadithLib.shareString(b, HRow("5", "نص", emptyList())))
+    }
+
+    @Test fun hadithRowsGroupedBySectionRange() {
+        val b = HBook("x", "x", "x", false)
+        val d = HData(b, listOf(HSec(1, "a", 1.0, 3.0), HSec(2, "b", 4.0, 6.0)),
+            listOf(HRow("2", "t", emptyList()), HRow("5", "t", emptyList()), HRow("99", "t", emptyList())))
+        assertEquals(1, d.bySec[1]?.size)
+        assertEquals(1, d.bySec[2]?.size)
+        assertNull(d.bySec[3])
+    }
 }
