@@ -47,7 +47,7 @@ import java.util.Locale
 private val CGreen = Color(0xFF6DB35A)
 private val CGold = Color(0xFFD4AF5A)
 private val CRed = Color(0xFFE0675A)
-private val CGray = Color(0x33FFFFFF)
+private val CGray: Color get() = Track
 
 private fun statusColor(s: Int) = when (s) { 2 -> CGreen; 1 -> CGold; 3 -> CRed; else -> CGray }
 
@@ -131,7 +131,7 @@ private fun TrackCalendar(prefs: Prefs) {
                                 contentAlignment = Alignment.Center
                             ) {
                                 DayRing(if (future) List(5) { 0 } else st, Modifier.size(38.dp))
-                                Text(Quran.arabicDigits(dayNum), fontSize = 13.sp, color = if (future) Color(0x55FFFFFF) else Color.White, fontWeight = if (d == today) FontWeight.Bold else FontWeight.Normal)
+                                Text(Quran.arabicDigits(dayNum), fontSize = 13.sp, color = if (future) Muted.copy(alpha = 0.4f) else OnCard, fontWeight = if (d == today) FontWeight.Bold else FontWeight.Normal)
                             }
                         } else Spacer(Modifier.size(44.dp))
                     }
@@ -172,14 +172,14 @@ private fun TrackCalendar(prefs: Prefs) {
                             val on = cur == s
                             Box(
                                 Modifier.weight(1f).height(38.dp)
-                                    .background(if (on) statusColor(s).copy(alpha = 0.28f) else Color(0x14FFFFFF), RoundedCornerShape(12.dp))
-                                    .border(1.5.dp, if (on) statusColor(s) else Color(0x33FFFFFF), RoundedCornerShape(12.dp))
+                                    .background(if (on) statusColor(s).copy(alpha = 0.28f) else Track.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                                    .border(1.5.dp, if (on) statusColor(s) else Track, RoundedCornerShape(12.dp))
                                     .clickable {
                                         prefs.setPrayerStatus(sel.key(), pr, if (on) 0 else s)
                                         tick++; refreshTick.intValue++
                                     },
                                 contentAlignment = Alignment.Center
-                            ) { Text(l, fontSize = 12.sp, color = if (on) Color.White else Muted, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal) }
+                            ) { Text(l, fontSize = 12.sp, color = if (on) OnCard else Muted, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal) }
                         }
                     }
                 }

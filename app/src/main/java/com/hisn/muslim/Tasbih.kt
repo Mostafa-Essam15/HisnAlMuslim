@@ -123,7 +123,7 @@ fun TasbihScreen(prefs: Prefs) {
             LinearProgressIndicator(
                 progress = { inRound / target.toFloat() },
                 modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                color = Gold, trackColor = Color(0x33FFFFFF)
+                color = Gold, trackColor = Track
             )
             Text("الهدف: $target • دورات مكتملة: $rounds • إجمالي اليوم لهذا الذكر: $count", color = Muted, fontSize = 12.sp, textAlign = TextAlign.Center)
             Text("إجمالي التسبيح اليوم (كل الأذكار): $total", color = Gold, fontSize = 13.sp)
@@ -148,7 +148,7 @@ fun TasbihScreen(prefs: Prefs) {
                     week.forEach { (d, v) ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
                             Text("$v", fontSize = 10.sp, color = Muted)
-                            Box(Modifier.size(width = 22.dp, height = (6 + 70f * v / maxV).dp).clip(CircleShape).background(if (v > 0) Gold else Color(0x33FFFFFF)))
+                            Box(Modifier.size(width = 22.dp, height = (6 + 70f * v / maxV).dp).clip(CircleShape).background(if (v > 0) Gold else Track))
                             Text(dn[d.dayOfWeek.value - 1], fontSize = 10.sp, color = Muted)
                         }
                     }

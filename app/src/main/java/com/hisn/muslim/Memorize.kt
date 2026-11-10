@@ -83,7 +83,7 @@ fun MemorizePane(prefs: Prefs) {
                 LinearProgressIndicator(
                     progress = { (mem.size / Quran.ayahs.size.toFloat()).coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                    color = Gold, trackColor = Color(0x33FFFFFF)
+                    color = Gold, trackColor = Track
                 )
                 Spacer(Modifier.height(6.dp))
                 Text("اليوم: $doneToday / $goal آية • هذا الأسبوع: $week آية", color = Muted, fontSize = 13.sp)

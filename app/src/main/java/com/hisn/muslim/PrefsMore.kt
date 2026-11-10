@@ -319,3 +319,8 @@ object TasbihBus { @Volatile var onVolume: (() -> Unit)? = null }
 var Prefs.mushafScale: Float
     get() = sp.getFloat("mushafScale", 1f)
     set(v) { sp.edit().putFloat("mushafScale", v).apply() }
+
+/** الثيم الفاتح (الافتراضي: الداكن) */
+var Prefs.lightTheme: Boolean
+    get() = sp.getBoolean("lightTheme", false)
+    set(v) { sp.edit().putBoolean("lightTheme", v).apply() }

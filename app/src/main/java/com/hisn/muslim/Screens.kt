@@ -71,7 +71,7 @@ fun CheckRow(label: String, checked: Boolean, onToggle: () -> Unit) {
             checked = checked, onCheckedChange = { onToggle() },
             colors = CheckboxDefaults.colors(checkedColor = Gold, checkmarkColor = Color.Black, uncheckedColor = Muted)
         )
-        Text(label, color = if (checked) Gold else Color.White)
+        Text(label, color = if (checked) Gold else OnCard)
     }
 }
 
@@ -80,8 +80,8 @@ fun GoldChip(label: String, selected: Boolean, onClick: () -> Unit) {
     FilterChip(
         selected = selected, onClick = onClick, label = { Text(label) },
         colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = Gold, selectedLabelColor = Color.Black,
-            containerColor = Color(0x33000000), labelColor = Color.White
+            selectedContainerColor = Gold, selectedLabelColor = if (Look.light) Color.White else Color.Black,
+            containerColor = if (Look.light) Color(0x14000000) else Color(0x33000000), labelColor = OnCard
         )
     )
 }
@@ -150,7 +150,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                         LinearProgressIndicator(
                             progress = { frac },
                             modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
-                            color = Gold, trackColor = Color(0x33FFFFFF)
+                            color = Gold, trackColor = Track
                         )
                         Spacer(Modifier.height(4.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -184,7 +184,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                 LinearProgressIndicator(
                     progress = { (fard / 5f).coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
-                    color = Gold, trackColor = Color(0x33FFFFFF)
+                    color = Gold, trackColor = Track
                 )
             }
         }
@@ -406,7 +406,7 @@ private fun ChallengesPane(prefs: Prefs) {
                 LinearProgressIndicator(
                     progress = { (c.cur.toFloat() / c.goal).coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                    color = Gold, trackColor = Color(0x33FFFFFF)
+                    color = Gold, trackColor = Track
                 )
             }
         }

@@ -681,6 +681,14 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                 Text("أرسل أي ملاحظة أو خطأ في نص أو مصدر وسيتم تصحيحه.", fontSize = 11.sp, color = Muted)
             }
         }
+        item {
+            var light by remember { mutableStateOf(prefs.lightTheme) }
+            Glass {
+                SectionTitle("المظهر", Icons.Rounded.AutoAwesome)
+                SwitchRow("الثيم الفاتح", light) { light = it; prefs.lightTheme = it; Look.light = it }
+                Text("الثيم الفاتح بخلفية موحّدة؛ الداكن يستخدم صور المساجد والمشاهد.", fontSize = 11.sp, color = Muted)
+            }
+        }
         // ───── تخصيص الشاشة الرئيسية ─────
         item {
             var layout by remember { mutableStateOf(prefs.homeLayout()) }

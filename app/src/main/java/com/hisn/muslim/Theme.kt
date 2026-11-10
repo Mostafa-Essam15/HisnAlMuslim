@@ -36,11 +36,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-val Gold = Color(0xFFE8C766)
-val GoldDeep = Color(0xFFD4AF37)
-val Ink = Color(0xFF07130F)
-val CardBg = Color(0xB3071611)
-val Muted = Color(0xFFC9D4CF)
+/** الثيم الفاتح: حالة عامة بتتقرأ داخل الـ composition فكل الشاشات بتتحدث لما تتغير. */
+object Look {
+    var light by androidx.compose.runtime.mutableStateOf(false)
+}
+
+val Gold: Color get() = if (Look.light) Color(0xFF9C7A1C) else Color(0xFFE8C766)
+val GoldDeep: Color get() = if (Look.light) Color(0xFF7E6114) else Color(0xFFD4AF37)
+val Ink: Color get() = if (Look.light) Color(0xFFF7F2E4) else Color(0xFF07130F)
+val CardBg: Color get() = if (Look.light) Color(0xF2FFFFFF) else Color(0xB3071611)
+val Muted: Color get() = if (Look.light) Color(0xFF5B6A63) else Color(0xFFC9D4CF)
+/** لون النص فوق البطاقات والخلفية */
+val OnCard: Color get() = if (Look.light) Color(0xFF16231D) else Color.White
+/** لون مسار أشرطة التقدم */
+val Track: Color get() = if (Look.light) Color(0x22000000) else Color(0x33FFFFFF)
 /** خط المحتوى الشرعي (آيات، أذكار، أحاديث، أسماء الصلوات): Amiri — ترخيص OFL */
 val Serif = FontFamily(
     Font(R.font.amiri_regular, FontWeight.Normal),
@@ -81,7 +90,10 @@ val appTabs = listOf(
 @Composable
 fun HisnTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = darkColorScheme(
+        colorScheme = if (Look.light) androidx.compose.material3.lightColorScheme(
+            primary = Gold, onPrimary = Color.White, secondary = GoldDeep,
+            surface = Ink, onSurface = OnCard, background = Ink, onBackground = OnCard
+        ) else darkColorScheme(
             primary = Gold,
             onPrimary = Color.Black,
             secondary = GoldDeep,
@@ -100,7 +112,7 @@ fun Glass(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> 
     Card(
         modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg, contentColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = CardBg, contentColor = OnCard),
         border = BorderStroke(1.dp, Gold.copy(alpha = 0.28f))
     ) {
         Column(Modifier.padding(18.dp), content = content)

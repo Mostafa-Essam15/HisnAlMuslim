@@ -430,7 +430,7 @@ private fun KhatmaPane(prefs: Prefs, onOpenPage: (Int) -> Unit) {
                     LinearProgressIndicator(
                         progress = { st.read / Khatma.TOTAL.toFloat() },
                         modifier = Modifier.fillMaxWidth().height(10.dp).clip(CircleShape),
-                        color = Gold, trackColor = Color(0x33FFFFFF)
+                        color = Gold, trackColor = Track
                     )
                     Spacer(Modifier.height(10.dp))
                     Text("المدة: ${st.daysTotal} يوم • المتبقي: ${st.daysLeft} يوم", color = Muted, fontSize = 13.sp)
@@ -452,7 +452,7 @@ private fun KhatmaPane(prefs: Prefs, onOpenPage: (Int) -> Unit) {
                             Text(d, fontSize = 13.sp, color = Muted)
                             Text(
                                 if (!started) "—" else "$n صفحة" + if (n >= target) " ✅" else "",
-                                fontSize = 13.sp, color = if (started && n >= target) Gold else Color.White
+                                fontSize = 13.sp, color = if (started && n >= target) Gold else OnCard
                             )
                         }
                     }
@@ -476,7 +476,7 @@ private fun KhatmaPane(prefs: Prefs, onOpenPage: (Int) -> Unit) {
                     LinearProgressIndicator(
                         progress = { if (st.goalToday == 0) 1f else (st.readToday / st.goalToday.toFloat()).coerceIn(0f, 1f) },
                         modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                        color = Gold, trackColor = Color(0x33FFFFFF)
+                        color = Gold, trackColor = Track
                     )
                     Spacer(Modifier.height(12.dp))
                     if (st.remaining == 0) {

@@ -12,6 +12,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -74,6 +75,7 @@ class MainActivity : ComponentActivity() {
                 Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:$packageName"))
             )
         }
+        Look.light = pf.lightTheme
         setContent {
             HisnTheme {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) { App() }
@@ -161,6 +163,7 @@ fun App() {
         }
         Unit
     }
+    androidx.compose.runtime.LaunchedEffect(Unit) { Look.light = prefs.lightTheme }
     var bg by remember { mutableIntStateOf(prefs.bg.let { if (it in 101..199 || it > PHOTO_BASE + Photos.COUNT) customBgIndex else it }) }
     val tickNow = refreshTick.intValue
     val auto by androidx.compose.runtime.produceState(sceneNow(prefs), tickNow) {
@@ -187,12 +190,13 @@ fun App() {
     }
 
     Box(Modifier.fillMaxSize()) {
-        AppBackground(bg, bgVersion, auto, autoPhoto)
+        if (Look.light) Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0xFFFBF7EA), Color(0xFFEDE6D0)))))
+        else AppBackground(bg, bgVersion, auto, autoPhoto)
         Scaffold(
             containerColor = Color.Transparent,
-            contentColor = Color.White,
+            contentColor = OnCard,
             bottomBar = {
-                NavigationBar(containerColor = Color(0xE6051510)) {
+                NavigationBar(containerColor = if (Look.light) Color(0xF2FFFFFF) else Color(0xE6051510)) {
                     appTabs.forEachIndexed { i, t ->
                         NavigationBarItem(
                             selected = tab == i,

@@ -268,7 +268,7 @@ private fun CalendarPane(prefs: Prefs) {
                                     val g = LocalDate.from(first.plus((d - 1).toLong(), java.time.temporal.ChronoUnit.DAYS))
                                         .minusDays(prefs.hijriAdj.toLong())
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(Quran.arabicDigits(d), fontWeight = FontWeight.Bold, color = if (isToday) Color.Black else Color.White, fontSize = 15.sp)
+                                        Text(Quran.arabicDigits(d), fontWeight = FontWeight.Bold, color = if (isToday) Color.Black else OnCard, fontSize = 15.sp)
                                         Text("${g.dayOfMonth}", fontSize = 9.sp, color = if (isToday) Color.Black else Muted)
                                     }
                                 }
