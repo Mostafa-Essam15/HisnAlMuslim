@@ -78,7 +78,7 @@ fun CheckRow(label: String, checked: Boolean, onToggle: () -> Unit) {
 @Composable
 fun GoldChip(label: String, selected: Boolean, onClick: () -> Unit) {
     FilterChip(
-        selected = selected, onClick = onClick, label = { Text(label) },
+        selected = selected, onClick = onClick, label = { Text(label, maxLines = 1, softWrap = false) },
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = Gold, selectedLabelColor = if (Look.light) Color.White else Color.Black,
             containerColor = if (Look.light) Color(0x14000000) else Color(0x33000000), labelColor = OnCard

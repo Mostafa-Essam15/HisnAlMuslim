@@ -81,7 +81,12 @@ class MainActivity : ComponentActivity() {
         Look.light = pf.lightTheme
         setContent {
             HisnTheme {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) { App() }
+                // نحدّ تكبير الخط عند ١٫١٥ في واجهة التطبيق عشان الأزرار والتبويبات ما تتقطعش؛ حجم نص المصحف له أزرار تكبير خاصة
+                val dens = androidx.compose.ui.platform.LocalDensity.current
+                CompositionLocalProvider(
+                    LocalLayoutDirection provides LayoutDirection.Rtl,
+                    androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(dens.density, dens.fontScale.coerceAtMost(1.15f))
+                ) { App() }
             }
         }
     }
@@ -169,7 +174,7 @@ fun App() {
                             selected = tab == i,
                             onClick = { tab = i },
                             icon = { Icon(t.icon, contentDescription = t.title) },
-                            label = { Text(t.title, fontSize = 11.sp) },
+                            label = { Text(t.title, fontSize = 11.sp, maxLines = 1, softWrap = false) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Color.Black,
                                 selectedTextColor = Gold,
