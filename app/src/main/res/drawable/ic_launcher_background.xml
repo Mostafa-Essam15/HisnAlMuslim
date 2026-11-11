@@ -5,21 +5,27 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- خلفية زمردية بتدرّج شعاعي -->
     <path android:pathData="M0,0h108v108h-108z">
         <aapt:attr name="android:fillColor">
-            <gradient
-                android:startX="54"
-                android:startY="0"
-                android:endX="54"
-                android:endY="108"
-                android:type="linear">
-                <item android:color="#FF0F5C45" android:offset="0.0" />
-                <item android:color="#FF06261D" android:offset="1.0" />
+            <gradient android:type="radial" android:centerX="54" android:centerY="46" android:gradientRadius="70">
+                <item android:color="#FF17896A" android:offset="0.0" />
+                <item android:color="#FF0B4A38" android:offset="0.55" />
+                <item android:color="#FF031510" android:offset="1.0" />
             </gradient>
         </aapt:attr>
     </path>
-    <!-- نجوم صغيرة -->
-    <path android:fillColor="#66F2C94C" android:pathData="M24,26m-1.2,0a1.2,1.2 0,1 1,2.4 0a1.2,1.2 0,1 1,-2.4 0" />
-    <path android:fillColor="#66F2C94C" android:pathData="M82,34m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
-    <path android:fillColor="#66F2C94C" android:pathData="M76,22m-0.8,0a0.8,0.8 0,1 1,1.6 0a0.8,0.8 0,1 1,-1.6 0" />
+    <!-- نقش هندسي: نجمة ثمانية (مربعان متداخلان) ودائرة -->
+    <path android:strokeColor="#29E8C766" android:strokeWidth="0.8" android:pathData="M14,14 L94,14 L94,94 L14,94 Z" />
+    <path android:strokeColor="#29E8C766" android:strokeWidth="0.8" android:pathData="M54,-2.57 L110.57,54 L54,110.57 L-2.57,54 Z" />
+    <path android:strokeColor="#29E8C766" android:strokeWidth="0.8" android:pathData="M94,54 A40,40 0 1,1 14,54 A40,40 0 1,1 94,54 Z" />
+    <!-- توهّج خلف المسجد -->
+    <path android:pathData="M88,58 A34,34 0 1,1 20,58 A34,34 0 1,1 88,58 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial" android:centerX="54" android:centerY="58" android:gradientRadius="34">
+                <item android:color="#73FFE08A" android:offset="0.0" />
+                <item android:color="#00FFE08A" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>
