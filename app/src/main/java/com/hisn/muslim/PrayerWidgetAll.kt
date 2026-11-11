@@ -17,6 +17,7 @@ class PrayerWidgetAll : AppWidgetProvider() {
     }
 
     companion object {
+        private val rows = intArrayOf(R.id.r0, R.id.r1, R.id.r2, R.id.r3, R.id.r4)
         private val names = intArrayOf(R.id.n0, R.id.n1, R.id.n2, R.id.n3, R.id.n4)
         private val times = intArrayOf(R.id.t0, R.id.t1, R.id.t2, R.id.t3, R.id.t4)
 
@@ -33,8 +34,10 @@ class PrayerWidgetAll : AppWidgetProvider() {
                     v.setTextViewText(times[i], fmt.format(Engine.timeOf(t, pr)))
                     v.setTextColor(names[i], color)
                     v.setTextColor(times[i], color)
+                    v.setInt(rows[i], "setBackgroundResource", if (pr == next) R.drawable.widget_row_next else 0)
                 }
-                v.setTextViewText(R.id.a_title, "مواقيت الصلاة" + (prefs.city.takeIf { it.isNotBlank() }?.let { " — $it" } ?: ""))
+                v.setTextViewText(R.id.a_title, "🕌 مواقيت الصلاة" + (prefs.city.takeIf { it.isNotBlank() }?.let { " — $it" } ?: ""))
+                v.setTextViewText(R.id.a_date, Fasting.hijriText(prefs))
             } catch (e: Exception) {
             }
             val open = PendingIntent.getActivity(

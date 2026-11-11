@@ -25,7 +25,7 @@ class PrayerWidget : AppWidgetProvider() {
                 v.setTextViewText(R.id.w_name, next.first.ar)
                 v.setTextViewText(R.id.w_time, SimpleDateFormat("hh:mm a", Locale("ar")).format(next.second))
             }
-            v.setTextViewText(R.id.w_city, prefs.city.ifBlank { "" })
+            v.setTextViewText(R.id.w_city, listOf(prefs.city, try { Fasting.hijriText(prefs) } catch (e: Exception) { "" }).filter { it.isNotBlank() }.joinToString(" • "))
             val open = PendingIntent.getActivity(
                 ctx, 7, Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT

@@ -194,6 +194,8 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
     val ink = if (theme == 2) Color.White else Color(0xFF2B2118)
     val accent = if (theme == 2) Gold else Color(0xFF8A6A1F)
     val hiBg = if (theme == 2) Color(0x55E8C766) else Color(0x55C9A227)
+    var showDl by remember { mutableStateOf(false) }
+    if (showDl) AudioDownloadDialog(reciter, page) { showDl = false }
     val cur = QuranAudio.current
     val blocks = remember(page, theme, cur) { buildPageBlocks(page, accent, cur, hiBg) }
     val bookmarked = remember(page, bmTick) { page in prefs.bookmarks() }
@@ -306,6 +308,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 Text(when (repeat) { 1 -> "🔂 آية"; 2 -> "🔁 صفحة"; else -> "تكرار: لا" }, color = Gold, fontSize = 12.sp)
             }
             OutlinedButton(onClick = { showRange = !showRange }) { Text("نطاق", color = Gold, fontSize = 12.sp) }
+            OutlinedButton(onClick = { showDl = true }) { Text("⬇ تنزيل", color = Gold, fontSize = 12.sp) }
             OutlinedButton(onClick = { showReciters = !showReciters }) {
                 Text(QuranAudio.reciters.firstOrNull { it.id == reciter }?.name ?: "القارئ", color = Gold, fontSize = 12.sp, maxLines = 1)
             }

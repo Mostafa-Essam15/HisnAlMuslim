@@ -8,26 +8,51 @@
     android:orientation="vertical"
     android:padding="12dp">
 
-    <TextView
-        android:id="@+id/a_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="مواقيت الصلاة"
-        android:textColor="#B8C9C2"
-        android:textSize="12sp" />
-
     <LinearLayout
         android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:id="@+id/a_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:text="مواقيت الصلاة"
+            android:textColor="#E8C766"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/a_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#B8C9C2"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/r0"
+        android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_marginTop="2dp"
         android:layout_weight="1"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
         <TextView
             android:id="@+id/n0"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -36,22 +61,28 @@
             android:id="@+id/t0"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
             android:textColor="#FFFFFF"
             android:textSize="16sp" />
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/r1"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_marginTop="2dp"
         android:layout_weight="1"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
         <TextView
             android:id="@+id/n1"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -60,22 +91,28 @@
             android:id="@+id/t1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
             android:textColor="#FFFFFF"
             android:textSize="16sp" />
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/r2"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_marginTop="2dp"
         android:layout_weight="1"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
         <TextView
             android:id="@+id/n2"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -84,22 +121,28 @@
             android:id="@+id/t2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
             android:textColor="#FFFFFF"
             android:textSize="16sp" />
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/r3"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_marginTop="2dp"
         android:layout_weight="1"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
         <TextView
             android:id="@+id/n3"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -108,22 +151,28 @@
             android:id="@+id/t3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
             android:textColor="#FFFFFF"
             android:textSize="16sp" />
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/r4"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_marginTop="2dp"
         android:layout_weight="1"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
         <TextView
             android:id="@+id/n4"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -132,6 +181,7 @@
             android:id="@+id/t4"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
             android:textColor="#FFFFFF"
             android:textSize="16sp" />
     </LinearLayout>

@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -15,7 +16,7 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-class Reciter(val id: String, val name: String)
+class Reciter(val id: String, val name: String, val alt: String? = null)
 
 /**
  * تلاوة آية بآية من everyayah.com (ملف لكل آية: /data/<القارئ>/<سورة ٣ أرقام><آية ٣ أرقام>.mp3).
@@ -27,7 +28,9 @@ object QuranAudio {
         Reciter("Husary_128kbps", "محمود خليل الحصري"),
         Reciter("Minshawy_Murattal_128kbps", "محمد صديق المنشاوي"),
         Reciter("Abdul_Basit_Murattal_192kbps", "عبد الباسط عبد الصمد"),
-        Reciter("Abdurrahmaan_As-Sudais_192kbps", "عبد الرحمن السديس")
+        Reciter("Abdurrahmaan_As-Sudais_192kbps", "عبد الرحمن السديس"),
+        // اسم المجلد على everyayah لم أستطع التحقق منه من بيئة العمل؛ لو الأول فشل بيجرّب البديل تلقائيًا
+        Reciter("Mohammad_al_Tablaway_128kbps", "محمد محمود الطبلاوي", "Mohammad_al_Tablaway_64kbps")
     )
 
     var current by mutableStateOf<Pair<Int, Int>?>(null) // سورة، آية
@@ -73,26 +76,83 @@ object QuranAudio {
         return File(dir, name(a))
     }
 
+    fun has(ctx: Context, reciter: String, a: Ayah) = fileFor(ctx, reciter, a).let { it.exists() && it.length() > 1000 }
+
     /** يرجّع null لو تمام أو رسالة الخطأ. من thread خلفي. */
     private fun ensure(ctx: Context, reciter: String, a: Ayah): String? {
         val f = fileFor(ctx, reciter, a)
         if (f.exists() && f.length() > 1000) return null
         val tmp = File(f.parentFile, f.name + ".part")
-        var c: HttpURLConnection? = null
-        return try {
-            c = (URL("https://everyayah.com/data/$reciter/${name(a)}").openConnection() as HttpURLConnection).apply {
-                connectTimeout = 15_000; readTimeout = 30_000
-                setRequestProperty("User-Agent", "HisnAlMuslim/2.0")
+        val folders = listOfNotNull(reciter, reciters.firstOrNull { it.id == reciter }?.alt)
+        var lastErr = "تعذّر تحميل التلاوة"
+        for (folder in folders) {
+            var c: HttpURLConnection? = null
+            try {
+                c = (URL("https://everyayah.com/data/$folder/${name(a)}").openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 15_000; readTimeout = 30_000
+                    setRequestProperty("User-Agent", "HisnAlMuslim/2.0")
+                }
+                if (c.responseCode !in 200..299) { lastErr = "تعذّر تحميل التلاوة (كود ${c.responseCode})"; continue }
+                c.inputStream.use { i -> FileOutputStream(tmp).use { o -> i.copyTo(o) } }
+                if (tmp.length() < 1000 || !tmp.renameTo(f)) { tmp.delete(); lastErr = "ملف التلاوة غير صالح"; continue }
+                return null
+            } catch (e: Exception) {
+                tmp.delete()
+                lastErr = "تعذّر تحميل التلاوة: تأكد من الاتصال بالإنترنت (${e.javaClass.simpleName})"
+            } finally {
+                c?.disconnect()
             }
-            if (c.responseCode !in 200..299) return "تعذّر تحميل التلاوة (كود ${c.responseCode})"
-            c.inputStream.use { i -> FileOutputStream(tmp).use { o -> i.copyTo(o) } }
-            if (tmp.length() < 1000 || !tmp.renameTo(f)) { tmp.delete(); "ملف التلاوة غير صالح" } else null
-        } catch (e: Exception) {
-            tmp.delete()
-            "تعذّر تحميل التلاوة: تأكد من الاتصال بالإنترنت (${e.javaClass.simpleName})"
-        } finally {
-            c?.disconnect()
         }
+        return lastErr
+    }
+
+    // ───────────── التنزيل للاستماع بدون إنترنت ─────────────
+    var dlTotal by mutableIntStateOf(0)
+        private set
+    var dlDone by mutableIntStateOf(0)
+        private set
+    var dlFailed by mutableIntStateOf(0)
+        private set
+    var dlLabel by mutableStateOf("")
+        private set
+    var dlError by mutableStateOf<String?>(null)
+        private set
+    @Volatile private var dlCancel = false
+    val dlActive: Boolean get() = dlTotal > 0 && dlDone + dlFailed < dlTotal
+
+    /** عدد آيات القارئ المحمّلة على الجهاز وحجمها بالميجا */
+    fun stored(ctx: Context, reciter: String): Pair<Int, Double> {
+        val fs = File(ctx.filesDir, "quran_audio/$reciter").listFiles { f -> f.name.endsWith(".mp3") } ?: return 0 to 0.0
+        return fs.size to fs.sumOf { it.length() } / 1048576.0
+    }
+
+    fun deleteStored(ctx: Context, reciter: String) {
+        File(ctx.filesDir, "quran_audio/$reciter").listFiles()?.forEach { it.delete() }
+    }
+
+    fun cancelDownload() { dlCancel = true }
+
+    /** ينزّل الآيات الناقصة (بتكمّل من حيث وقفت). يحتاج التطبيق مفتوحًا. */
+    fun download(ctx: Context, reciter: String, list: List<Ayah>, label: String) {
+        if (dlActive) return
+        val app = ctx.applicationContext
+        val todo = list.filter { !has(app, reciter, it) }
+        dlCancel = false; dlError = null; dlLabel = label; dlDone = 0; dlFailed = 0
+        dlTotal = todo.size
+        if (todo.isEmpty()) { dlError = "كل الآيات دي محمّلة بالفعل"; return }
+        Thread {
+            val pool = java.util.concurrent.Executors.newFixedThreadPool(3)
+            todo.forEach { a ->
+                pool.execute {
+                    if (dlCancel) return@execute
+                    val err = ensure(app, reciter, a)
+                    main.post { if (err == null) dlDone++ else { dlFailed++; dlError = err } }
+                }
+            }
+            pool.shutdown()
+            pool.awaitTermination(6, java.util.concurrent.TimeUnit.HOURS)
+            main.post { if (dlCancel) { dlTotal = 0; dlError = "اتوقف التنزيل. اللي نزل محفوظ وتقدر تكمّل بعدين." } }
+        }.start()
     }
 
     /**

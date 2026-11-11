@@ -7,37 +7,45 @@
     android:gravity="center"
     android:layoutDirection="rtl"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="14dp">
 
     <TextView
         android:id="@+id/w_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="@drawable/widget_pill"
+        android:paddingStart="10dp"
+        android:paddingTop="2dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="2dp"
         android:text="الصلاة القادمة"
-        android:textColor="#B8C9C2"
-        android:textSize="12sp" />
+        android:textColor="#E8C766"
+        android:textSize="11sp" />
 
     <TextView
         android:id="@+id/w_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
         android:text="—"
         android:textColor="#E8C766"
-        android:textSize="26sp"
+        android:textSize="30sp"
         android:textStyle="bold" />
 
     <TextView
         android:id="@+id/w_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-light"
         android:text="—"
         android:textColor="#FFFFFF"
-        android:textSize="18sp" />
+        android:textSize="24sp" />
 
     <TextView
         android:id="@+id/w_city"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
         android:textColor="#B8C9C2"
         android:textSize="11sp" />
 </LinearLayout>
