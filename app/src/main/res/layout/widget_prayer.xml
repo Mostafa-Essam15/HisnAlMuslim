@@ -41,6 +41,15 @@
         android:textColor="#FFFFFF"
         android:textSize="24sp" />
 
+    <Chronometer
+        android:id="@+id/w_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:fontFamily="sans-serif-medium"
+        android:textColor="#B8C9C2"
+        android:textSize="14sp" />
+
     <TextView
         android:id="@+id/w_city"
         android:layout_width="wrap_content"

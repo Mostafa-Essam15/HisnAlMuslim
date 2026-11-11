@@ -25,6 +25,13 @@ class PrayerWidget : AppWidgetProvider() {
                 v.setTextViewText(R.id.w_name, next.first.ar)
                 v.setTextViewText(R.id.w_time, SimpleDateFormat("hh:mm a", Locale("ar")).format(next.second))
             }
+            if (next != null) {
+                // عدّاد تنازلي حي بيشتغل بدون تحديثات (النظام بيعدّه)، والويدجت بيتحدّث مع كل أذان
+                val remain = (next.second.time - System.currentTimeMillis()).coerceAtLeast(0L)
+                v.setBoolean(R.id.w_count, "setCountDown", true)
+                v.setChronometer(R.id.w_count, android.os.SystemClock.elapsedRealtime() + remain, "المتبقي %s", true)
+                v.setViewVisibility(R.id.w_count, android.view.View.VISIBLE)
+            } else v.setViewVisibility(R.id.w_count, android.view.View.GONE)
             v.setTextViewText(R.id.w_city, listOf(prefs.city, try { Fasting.hijriText(prefs) } catch (e: Exception) { "" }).filter { it.isNotBlank() }.joinToString(" • "))
             val open = PendingIntent.getActivity(
                 ctx, 7, Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
