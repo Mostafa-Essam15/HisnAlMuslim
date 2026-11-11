@@ -139,8 +139,10 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
             when (id) {
                 "next" -> {
         item {
-            Glass(Modifier.clickable { onNavigate(5) }) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            var sheet by remember { mutableStateOf(false) }
+            if (sheet) PrayerSheet(prefs, times, next?.first, day, now, Fasting.hijriText(prefs), { onNavigate(5) }) { sheet = false }
+            Glass(Modifier.clickable { sheet = true }) {
+                Row(Modifier.clickable { onNavigate(5) }, verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.LocationOn, null, tint = Gold, modifier = Modifier.size(18.dp))
                     Text(
                         "  " + prefs.city.ifBlank { if (prefs.hasLocation) "موقعك الحالي" else "موقع افتراضي" },
@@ -177,6 +179,9 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                         }
                     }
                 }
+                Spacer(Modifier.height(12.dp))
+                PrayerStrip(prefs, times, next?.first, day, now)
+                Text("اضغط لعرض كل المواقيت", fontSize = 11.sp, color = Muted)
                 if (!prefs.hasLocation) {
                     Spacer(Modifier.height(8.dp))
                     Text(
