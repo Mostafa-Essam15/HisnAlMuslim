@@ -112,6 +112,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
     val fmt = remember { SimpleDateFormat("hh:mm a", Locale("ar")) }
     val tomorrowFast = remember(tick, day) { Fasting.reason(prefs, LocalDate.now().plusDays(1)) }
     val todayFast = remember(tick, day) { Fasting.reason(prefs, LocalDate.now()) }
+    LaunchedEffect(tick, prefs.lat, prefs.lng) { withContext(kotlinx.coroutines.Dispatchers.IO) { Weather.refresh(prefs) } }
 
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
@@ -179,6 +180,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                         }
                     }
                 }
+                WeatherLine()
                 Spacer(Modifier.height(12.dp))
                 PrayerStrip(prefs, times, next?.first, day, now)
                 Text("اضغط لعرض كل المواقيت", fontSize = 11.sp, color = Muted)
@@ -270,6 +272,11 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                     }
                 }
             }
+        }
+                }
+                "weather" -> {
+        item {
+            Glass { WeatherCardContent(prefs.city) }
         }
                 }
                 "hadith" -> {

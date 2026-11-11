@@ -163,7 +163,7 @@ object Quran {
     }
 
     fun arabicDigits(n: Int): String =
-        n.toString().map { '٠' + (it - '0') }.joinToString("")
+        n.toString().map { if (it in '0'..'9') '٠' + (it - '0') else it }.joinToString("")
 }
 
 /** خطة ختمة القرآن (ورد يومي) */
