@@ -1,0 +1,96 @@
+package com.hisn.muslim
+
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Address
+import android.location.Geocoder
+import android.os.Build
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import java.util.Locale
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+
+/** تحديث الموقع (من الشاشة أو من المنبّه الدوري في الخلفية) وتحويله لاسم مدينة. */
+object LocationUpdater {
+    fun hasPermission(ctx: Context) =
+        ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+    fun hasBackgroundPermission(ctx: Context) =
+        Build.VERSION.SDK_INT < 29 ||
+            ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+    /** يحدّث الموقع ويبلّغ بالنتيجة: true لو اتحدّد موقع. [onDone] بيتنادى مرة واحدة دايمًا. */
+    @SuppressLint("MissingPermission")
+    fun fetch(ctx: Context, onDone: (Boolean) -> Unit) {
+        val app = ctx.applicationContext
+        if (!hasPermission(app)) { onDone(false); return }
+        val client = LocationServices.getFusedLocationProviderClient(app)
+        fun finish(loc: android.location.Location?) {
+            if (loc != null) apply(app, loc)
+            onDone(loc != null)
+        }
+        try {
+            client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
+                .addOnSuccessListener { loc ->
+                    if (loc != null) finish(loc)
+                    else client.lastLocation.addOnSuccessListener { finish(it) }.addOnFailureListener { finish(null) }
+                }
+                .addOnFailureListener { finish(null) }
+        } catch (e: Exception) { onDone(false) }
+    }
+
+    fun apply(ctx: Context, loc: android.location.Location) {
+        val p = Prefs(ctx)
+        val moved = !p.hasLocation || FloatArray(1).also { android.location.Location.distanceBetween(p.lat, p.lng, loc.latitude, loc.longitude, it) }[0] > 500f
+        p.lat = loc.latitude
+        p.lng = loc.longitude
+        p.hasLocation = true
+        p.locAt = System.currentTimeMillis()
+        if (moved) {
+            Reminders.scheduleAll(ctx)
+            PrayerWidget.updateAll(ctx)
+        }
+        refreshTick.intValue++
+        if (moved || p.city.isBlank()) resolveCity(ctx, loc.latitude, loc.longitude)
+    }
+
+    /** بيحوّل الإحداثيات لاسم مدينة (محتاج إنترنت) */
+    fun resolveCity(ctx: Context, lat: Double, lng: Double) {
+        if (!Geocoder.isPresent()) return
+        Thread {
+            try {
+                val g = Geocoder(ctx, Locale("ar"))
+                var list: List<Address>? = null
+                if (Build.VERSION.SDK_INT >= 33) {
+                    val latch = CountDownLatch(1)
+                    g.getFromLocation(lat, lng, 1, object : Geocoder.GeocodeListener {
+                        override fun onGeocode(addresses: MutableList<Address>) { list = addresses; latch.countDown() }
+                        override fun onError(errorMessage: String?) { latch.countDown() }
+                    })
+                    latch.await(10, TimeUnit.SECONDS)
+                } else {
+                    @Suppress("DEPRECATION")
+                    list = g.getFromLocation(lat, lng, 1)
+                }
+                val a = list?.firstOrNull()
+                val city = a?.locality ?: a?.subAdminArea ?: a?.adminArea
+                val name = listOfNotNull(city, a?.adminArea).distinct().joinToString("، ")
+                if (name.isNotBlank()) {
+                    Prefs(ctx).city = name
+                    refreshTick.intValue++
+                    PrayerWidget.updateAll(ctx)
+                }
+            } catch (e: Exception) {
+                // مفيش إنترنت أو خدمة الجيوكودر مش متاحة: بنكمّل بالإحداثيات
+            }
+        }.start()
+    }
+}
+
+var Prefs.bgLocation: Boolean
+    get() = sp.getBoolean("bgLocation", true)
+    set(v) { sp.edit().putBoolean("bgLocation", v).apply() }

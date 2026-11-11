@@ -101,6 +101,7 @@ object Reminders {
     private const val RC_PRE = 250
     private const val RC_IQAMA = 251
     private const val RC_UPDATE = 260
+    private const val RC_LOC = 261
     private const val RC_FOCUS_ON = 230
     private const val RC_FOCUS_OFF = 231
     private const val RC_PERIOD_LATER = 220 // + ordinal
@@ -137,6 +138,7 @@ object Reminders {
         scheduleRamadan(ctx)
         schedulePreIqama(ctx)
         scheduleUpdateCheck(ctx)
+        scheduleLocationCheck(ctx)
         PrayerWidget.updateAll(ctx)
     }
 
@@ -336,6 +338,17 @@ object Reminders {
         am.setInexactRepeating(
             AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 30 * 60_000L, 6 * 60 * 60_000L,
             pi(ctx, RC_UPDATE, "UPDATE")
+        )
+    }
+
+    /** تحديث الموقع في الخلفية كل ٣ ساعات تقريبًا (الأندرويد ممكن يأخّره لتوفير البطارية) */
+    fun scheduleLocationCheck(ctx: Context) {
+        val p = Prefs(ctx)
+        val am = ctx.getSystemService(AlarmManager::class.java)
+        if (!p.bgLocation) { cancelAlarm(ctx, RC_LOC, "LOC"); return }
+        am.setInexactRepeating(
+            AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 3 * 60 * 60_000L, 3 * 60 * 60_000L,
+            pi(ctx, RC_LOC, "LOC")
         )
     }
 
@@ -605,6 +618,12 @@ class ReminderReceiver : BroadcastReceiver() {
                     ).build())
                 }
                 Reminders.schedulePreIqama(ctx)
+            }
+            "LOC" -> {
+                if (p.bgLocation && LocationUpdater.hasPermission(ctx)) {
+                    val pending = goAsync()
+                    try { LocationUpdater.fetch(ctx) { pending.finish() } } catch (e: Exception) { pending.finish() }
+                }
             }
             "UPDATE" -> {
                 if (p.updateNotify) {

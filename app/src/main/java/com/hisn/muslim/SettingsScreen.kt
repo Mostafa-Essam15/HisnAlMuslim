@@ -653,6 +653,21 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                     onClick = { (ctx as? MainActivity)?.fetchLocation(true) },
                     colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
                 ) { Text("تحديث الموقع") }
+                Spacer(Modifier.height(8.dp))
+                var bgLoc by remember { mutableStateOf(prefs.bgLocation) }
+                SwitchRow("تحديث الموقع في الخلفية كل ٣ ساعات", bgLoc) { bgLoc = it; prefs.bgLocation = it; Reminders.scheduleLocationCheck(ctx) }
+                if (bgLoc) {
+                    StatusRow(LocationUpdater.hasBackgroundPermission(ctx), "إذن الموقع «طوال الوقت»", "فتح الإعدادات") {
+                        ctx.startActivity(
+                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:${ctx.packageName}"))
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
+                    Text(
+                        "عشان يشتغل والتطبيق مقفول: الأذونات ← الموقع ← «السماح طوال الوقت». الأندرويد ممكن يأخّر التحديث لتوفير البطارية، والتحديث بيتم عند فتح التطبيق برضه.",
+                        fontSize = 11.sp, color = Muted
+                    )
+                }
             }
         }
 

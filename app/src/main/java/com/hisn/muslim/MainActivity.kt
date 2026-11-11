@@ -101,76 +101,18 @@ class MainActivity : ComponentActivity() {
         if (!pf.hasLocation || System.currentTimeMillis() - pf.locAt > 30 * 60_000L) fetchLocation()
     }
 
-    @SuppressLint("MissingPermission")
     fun fetchLocation(manual: Boolean = false) {
-        val ok = ContextCompat.checkSelfPermission(
-            this, Manifest.permission.ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-        if (!ok) {
+        if (!LocationUpdater.hasPermission(this)) {
             if (manual) Toast.makeText(this, "اسمح للتطبيق بالوصول للموقع من إعدادات الأندرويد.", Toast.LENGTH_LONG).show()
             return
         }
-        val client = LocationServices.getFusedLocationProviderClient(this)
-        fun apply(loc: android.location.Location) {
-            val p = Prefs(this)
-            p.lat = loc.latitude
-            p.lng = loc.longitude
-            p.hasLocation = true
-            p.locAt = System.currentTimeMillis()
-            Reminders.scheduleAll(this)
-            refreshTick.intValue++
-            resolveCity(loc.latitude, loc.longitude)
-            if (manual) Toast.makeText(this, "تم تحديث الموقع.", Toast.LENGTH_SHORT).show()
+        LocationUpdater.fetch(this) { ok ->
+            if (manual) Toast.makeText(
+                this,
+                if (ok) "تم تحديث الموقع." else "تعذّر تحديد الموقع. فعّل GPS وجرّب في مكان مفتوح.",
+                if (ok) Toast.LENGTH_SHORT else Toast.LENGTH_LONG
+            ).show()
         }
-        client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
-            .addOnSuccessListener { loc ->
-                if (loc != null) apply(loc)
-                else client.lastLocation.addOnSuccessListener { last ->
-                    if (last != null) apply(last)
-                    else if (manual) Toast.makeText(this, "تعذّر تحديد الموقع. فعّل GPS وجرّب في مكان مفتوح.", Toast.LENGTH_LONG).show()
-                }
-            }
-            .addOnFailureListener {
-                if (manual) Toast.makeText(this, "تعذّر تحديد الموقع.", Toast.LENGTH_LONG).show()
-            }
-    }
-
-    /** بيحوّل الإحداثيات لاسم مدينة (محتاج إنترنت) */
-    private fun resolveCity(lat: Double, lng: Double) {
-        if (!Geocoder.isPresent()) return
-        Thread {
-            try {
-                val g = Geocoder(this, Locale("ar"))
-                var list: List<Address>? = null
-                if (Build.VERSION.SDK_INT >= 33) {
-                    val latch = CountDownLatch(1)
-                    g.getFromLocation(lat, lng, 1, object : Geocoder.GeocodeListener {
-                        override fun onGeocode(addresses: MutableList<Address>) {
-                            list = addresses
-                            latch.countDown()
-                        }
-
-                        override fun onError(errorMessage: String?) {
-                            latch.countDown()
-                        }
-                    })
-                    latch.await(10, TimeUnit.SECONDS)
-                } else {
-                    @Suppress("DEPRECATION")
-                    list = g.getFromLocation(lat, lng, 1)
-                }
-                val a = list?.firstOrNull()
-                val city = a?.locality ?: a?.subAdminArea ?: a?.adminArea
-                val region = a?.adminArea
-                val name = listOfNotNull(city, region).distinct().joinToString("، ")
-                if (name.isNotBlank()) {
-                    Prefs(this).city = name
-                    runOnUiThread { refreshTick.intValue++ }
-                }
-            } catch (e: Exception) {
-                // مفيش إنترنت أو خدمة الجيوكودر مش متاحة: بنكمّل بالإحداثيات
-            }
-        }.start()
     }
 }
 
