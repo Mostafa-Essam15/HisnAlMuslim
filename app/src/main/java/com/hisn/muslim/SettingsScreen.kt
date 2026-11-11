@@ -646,11 +646,11 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                 SectionTitle("الموقع", Icons.Rounded.LocationOn)
                 if (prefs.hasLocation) {
                     if (prefs.city.isNotBlank()) Text(prefs.city, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text("(%.3f, %.3f)".format(Locale.US, prefs.lat, prefs.lng), color = Muted, fontSize = 12.sp)
+                    Text("(%.3f, %.3f)".format(Locale.US, prefs.lat, prefs.lng) + if (prefs.locAt > 0) " • آخر تحديث " + java.text.SimpleDateFormat("d/M HH:mm", Locale("ar")).format(java.util.Date(prefs.locAt)) else "", color = Muted, fontSize = 12.sp)
                 } else Text("لم يتم تحديد الموقع بعد")
                 Spacer(Modifier.height(6.dp))
                 Button(
-                    onClick = { (ctx as? MainActivity)?.fetchLocation() },
+                    onClick = { (ctx as? MainActivity)?.fetchLocation(true) },
                     colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
                 ) { Text("تحديث الموقع") }
             }

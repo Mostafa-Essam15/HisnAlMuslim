@@ -341,3 +341,8 @@ var Prefs.updateNotify: Boolean
 var Prefs.lastNotifiedUpdate: Int
     get() = sp.getInt("updNotified", 0)
     set(v) { sp.edit().putInt("updNotified", v).apply() }
+
+/** آخر مرة اتحدّث فيها الموقع تلقائيًا أو يدويًا */
+var Prefs.locAt: Long
+    get() = sp.getLong("locAt", 0L)
+    set(v) { sp.edit().putLong("locAt", v).apply() }

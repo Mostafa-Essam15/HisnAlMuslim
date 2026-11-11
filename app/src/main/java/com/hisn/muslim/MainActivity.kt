@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -95,26 +96,42 @@ class MainActivity : ComponentActivity() {
         // بنحدّث حالة الأذونات (عدم الإزعاج، المنبهات الدقيقة…) لما نرجع من شاشة إعدادات الأندرويد
         refreshTick.intValue++
         Scheduler.schedule(this)
+        // تحديث الموقع تلقائيًا لو عدّى أكتر من ٣٠ دقيقة (أو مفيش موقع) كل ما التطبيق يفتح
+        val pf = Prefs(this)
+        if (!pf.hasLocation || System.currentTimeMillis() - pf.locAt > 30 * 60_000L) fetchLocation()
     }
 
     @SuppressLint("MissingPermission")
-    fun fetchLocation() {
+    fun fetchLocation(manual: Boolean = false) {
         val ok = ContextCompat.checkSelfPermission(
             this, Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
-        if (!ok) return
-        LocationServices.getFusedLocationProviderClient(this)
-            .getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
+        if (!ok) {
+            if (manual) Toast.makeText(this, "اسمح للتطبيق بالوصول للموقع من إعدادات الأندرويد.", Toast.LENGTH_LONG).show()
+            return
+        }
+        val client = LocationServices.getFusedLocationProviderClient(this)
+        fun apply(loc: android.location.Location) {
+            val p = Prefs(this)
+            p.lat = loc.latitude
+            p.lng = loc.longitude
+            p.hasLocation = true
+            p.locAt = System.currentTimeMillis()
+            Reminders.scheduleAll(this)
+            refreshTick.intValue++
+            resolveCity(loc.latitude, loc.longitude)
+            if (manual) Toast.makeText(this, "تم تحديث الموقع.", Toast.LENGTH_SHORT).show()
+        }
+        client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
             .addOnSuccessListener { loc ->
-                if (loc != null) {
-                    val p = Prefs(this)
-                    p.lat = loc.latitude
-                    p.lng = loc.longitude
-                    p.hasLocation = true
-                    Reminders.scheduleAll(this)
-                    refreshTick.intValue++
-                    resolveCity(loc.latitude, loc.longitude)
+                if (loc != null) apply(loc)
+                else client.lastLocation.addOnSuccessListener { last ->
+                    if (last != null) apply(last)
+                    else if (manual) Toast.makeText(this, "تعذّر تحديد الموقع. فعّل GPS وجرّب في مكان مفتوح.", Toast.LENGTH_LONG).show()
                 }
+            }
+            .addOnFailureListener {
+                if (manual) Toast.makeText(this, "تعذّر تحديد الموقع.", Toast.LENGTH_LONG).show()
             }
     }
 
