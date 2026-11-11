@@ -85,6 +85,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStop() {
+        super.onStop()
+        CloudSync.autoPush(this)
+    }
+
     override fun onResume() {
         super.onResume()
         // بنحدّث حالة الأذونات (عدم الإزعاج، المنبهات الدقيقة…) لما نرجع من شاشة إعدادات الأندرويد

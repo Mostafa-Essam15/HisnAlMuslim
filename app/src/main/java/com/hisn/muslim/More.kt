@@ -404,10 +404,14 @@ private fun StatsPane(prefs: Prefs) {
 // ───────────── النسخ الاحتياطي ─────────────
 
 object Backup {
+    /** مفاتيح خاصة بالجهاز ما تدخلش في النسخة */
+    private val LOCAL_ONLY = setOf("syncUri", "syncAt", "weatherJson", "weatherAt", "weatherKey", "lastNotifiedUpdate")
+
     fun export(ctx: Context): String {
         val all = Prefs(ctx).sp.all
         val o = JSONObject()
         for ((k, v) in all) {
+            if (k in LOCAL_ONLY) continue
             val e = JSONObject()
             when (v) {
                 is String -> e.put("t", "s").put("v", v)
@@ -432,6 +436,7 @@ object Backup {
             val ed = Prefs(ctx).sp.edit()
             var n = 0
             for (k in data.keys()) {
+                if (k in LOCAL_ONLY) continue
                 val e = data.getJSONObject(k)
                 when (e.getString("t")) {
                     "s" -> ed.putString(k, e.getString("v"))
@@ -477,12 +482,64 @@ private fun BackupPane(prefs: Prefs) {
             }
         }
     }
+    var syncTick by remember { mutableStateOf(0) }
+    val linker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
+        if (uri != null) {
+            CloudSync.link(ctx, uri)
+            msg = "تم الربط. جارٍ رفع أول نسخة…"
+            Thread { val e = CloudSync.push(ctx); android.os.Handler(android.os.Looper.getMainLooper()).post { msg = e ?: "تم رفع النسخة."; syncTick++ } }.start()
+        }
+    }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item {
+            Glass {
+                SectionTitle("مزامنة سحابية (Google Drive)")
+                val linked = remember(syncTick) { CloudSync.linked(prefs) }
+                Text(
+                    "اختار ملفًا في Google Drive (أو أي تخزين سحابي يظهر في منتقي الملفات)، والتطبيق هيحدّث النسخة فيه تلقائيًا كل ما تخرج منه. " +
+                        "على جهاز تاني اربط نفس الملف واضغط «سحب». مفيش حساب أو خادم تاني، والملف بيفضل في مساحتك.",
+                    fontSize = 13.sp, color = Muted
+                )
+                Spacer(Modifier.height(8.dp))
+                if (!linked) {
+                    Button(
+                        onClick = { linker.launch("hisn-sync.json") },
+                        colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                    ) { Text("ربط ملف سحابي") }
+                    Text("في نافذة الاختيار افتح القائمة وابحث عن «Drive».", fontSize = 11.sp, color = Muted)
+                } else {
+                    val at = prefs.syncAt
+                    Text("مرتبط ✓" + if (at > 0) " • آخر رفع: " + SimpleDateFormat("d/M HH:mm", Locale("ar")).format(java.util.Date(at)) else "", color = Gold, fontSize = 13.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { Thread { val e = CloudSync.push(ctx); android.os.Handler(android.os.Looper.getMainLooper()).post { msg = e ?: "تم رفع النسخة."; syncTick++ } }.start() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                        ) { Text("رفع الآن") }
+                        OutlinedButton(onClick = {
+                            Thread {
+                                val n = CloudSync.pull(ctx)
+                                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                    msg = if (n < 0) "تعذّر السحب من الملف." else { Reminders.scheduleAll(ctx); refreshTick.intValue++; "تم سحب $n إعدادًا. أعد فتح التطبيق لتحديث كل الشاشات." }
+                                }
+                            }.start()
+                        }) { Text("سحب من الملف", color = Gold) }
+                    }
+                    var auto by remember { mutableStateOf(prefs.syncAuto) }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = auto, onCheckedChange = { auto = it; prefs.syncAuto = it }, colors = CheckboxDefaults.colors(checkedColor = Gold, checkmarkColor = Color.Black))
+                        Text("رفع تلقائي عند الخروج من التطبيق", fontSize = 13.sp)
+                    }
+                    TextButton(onClick = { CloudSync.unlink(ctx); syncTick++; msg = "تم فك الربط (الملف نفسه فضل في Drive)." }) { Text("فك الربط", color = Color(0xFFFF8A80)) }
+                    Text("السحب بيستبدل بياناتك الحالية بمحتوى الملف، فاستخدمه بس لما تكون عايز كده.", fontSize = 11.sp, color = Muted)
+                }
+                if (msg.isNotEmpty()) Text(msg, color = Gold, fontSize = 13.sp)
+            }
+        }
         item {
             Glass {
                 SectionTitle("نسخ احتياطي واستعادة")
                 Text(
-                    "يحفظ كل بياناتك المحلية (تسجيل الصلوات، الختمة، العلامات، التسبيح، الإعدادات والموقع) في ملف تحتفظ به أنت. لا يُرسل شيء لأي خادم. ملفات الأذان والمصحف المحمّلة لا تدخل في النسخة وتُحمَّل من جديد.",
+                    "يحفظ كل بياناتك المحلية (تسجيل الصلوات، الختمة، العلامات، التسبيح، الإعدادات والموقع) في ملف تحتفظ به أنت. لا يُرسل شيء لأي خادم من التطبيق (الرفع السحابي اختياري من الكارت اللي فوق). ملفات الأذان والمصحف المحمّلة لا تدخل في النسخة وتُحمَّل من جديد.",
                     fontSize = 13.sp, color = Muted
                 )
                 Spacer(Modifier.height(10.dp))
