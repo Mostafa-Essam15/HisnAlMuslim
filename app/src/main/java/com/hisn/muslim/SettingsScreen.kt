@@ -551,6 +551,20 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                             Text("المساء ${fmtMin(pm)}")
                         }
                     }
+                    Text("أيام التذكير", fontSize = 12.sp, color = Muted)
+                    var days by remember { mutableIntStateOf(prefs.adhkarDays) }
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(
+                            java.time.DayOfWeek.SATURDAY to "السبت", java.time.DayOfWeek.SUNDAY to "الأحد", java.time.DayOfWeek.MONDAY to "الاثنين",
+                            java.time.DayOfWeek.TUESDAY to "الثلاثاء", java.time.DayOfWeek.WEDNESDAY to "الأربعاء", java.time.DayOfWeek.THURSDAY to "الخميس",
+                            java.time.DayOfWeek.FRIDAY to "الجمعة"
+                        ).forEach { (d, label) ->
+                            GoldChip(label, days and (1 shl (d.value - 1)) != 0) {
+                                val nd = days xor (1 shl (d.value - 1))
+                                days = nd; prefs.adhkarDays = nd
+                            }
+                        }
+                    }
                 }
             }
         }

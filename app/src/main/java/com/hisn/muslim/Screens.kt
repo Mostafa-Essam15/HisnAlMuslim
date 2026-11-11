@@ -430,6 +430,7 @@ private fun ChallengesPane(prefs: Prefs) {
                 }
             }
         }
+        item { CustomChallengesCard(prefs) }
         items(list) { c ->
             Glass {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

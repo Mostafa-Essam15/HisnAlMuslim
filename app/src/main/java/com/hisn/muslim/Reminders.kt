@@ -575,7 +575,7 @@ class ReminderReceiver : BroadcastReceiver() {
                 val morning = type == "ADHKAR_AM"
                 val cat = if (morning) "الصباح" else "المساء"
                 // لو أتممت الأذكار النهارده مفيش داعي للتذكير
-                if (cat !in p.adhkarDone(p.dayKey())) {
+                if (cat !in p.adhkarDone(p.dayKey()) && p.adhkarDayOn(java.time.LocalDate.now().dayOfWeek)) {
                     val n = Notif.builder(
                         ctx, Notif.CH_REMIND, if (morning) "🌅 أذكار الصباح" else "🌇 أذكار المساء",
                         "حان وقت أذكار ${if (morning) "الصباح" else "المساء"}. افتح التطبيق وأتمّها."
