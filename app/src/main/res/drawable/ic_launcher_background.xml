@@ -5,27 +5,37 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- خلفية زمردية بتدرّج شعاعي -->
+    <!-- قاعدة بتدرّج قطري من الزمردي إلى شبه الأسود -->
     <path android:pathData="M0,0h108v108h-108z">
         <aapt:attr name="android:fillColor">
-            <gradient android:type="radial" android:centerX="54" android:centerY="46" android:gradientRadius="70">
-                <item android:color="#FF17896A" android:offset="0.0" />
-                <item android:color="#FF0B4A38" android:offset="0.55" />
-                <item android:color="#FF031510" android:offset="1.0" />
+            <gradient android:type="linear" android:startX="0" android:startY="0" android:endX="108" android:endY="108">
+                <item android:color="#FF0E5A47" android:offset="0.0" />
+                <item android:color="#FF083A2E" android:offset="0.5" />
+                <item android:color="#FF020C09" android:offset="1.0" />
             </gradient>
         </aapt:attr>
     </path>
-    <!-- نقش هندسي: نجمة ثمانية (مربعان متداخلان) ودائرة -->
-    <path android:strokeColor="#29E8C766" android:strokeWidth="0.8" android:pathData="M14,14 L94,14 L94,94 L14,94 Z" />
-    <path android:strokeColor="#29E8C766" android:strokeWidth="0.8" android:pathData="M54,-2.57 L110.57,54 L54,110.57 L-2.57,54 Z" />
-    <path android:strokeColor="#29E8C766" android:strokeWidth="0.8" android:pathData="M94,54 A40,40 0 1,1 14,54 A40,40 0 1,1 94,54 Z" />
-    <!-- توهّج خلف المسجد -->
-    <path android:pathData="M88,58 A34,34 0 1,1 20,58 A34,34 0 1,1 88,58 Z">
+    <!-- ضوء علوي ناعم -->
+    <path android:pathData="M0,0h108v70h-108z">
         <aapt:attr name="android:fillColor">
-            <gradient android:type="radial" android:centerX="54" android:centerY="58" android:gradientRadius="34">
-                <item android:color="#73FFE08A" android:offset="0.0" />
-                <item android:color="#00FFE08A" android:offset="1.0" />
+            <gradient android:type="radial" android:centerX="54" android:centerY="34" android:gradientRadius="52">
+                <item android:color="#4D3FD0A8" android:offset="0.0" />
+                <item android:color="#003FD0A8" android:offset="1.0" />
             </gradient>
         </aapt:attr>
     </path>
+    <!-- توهّج ذهبي خافت من الأسفل -->
+    <path android:pathData="M0,60h108v48h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial" android:centerX="54" android:centerY="100" android:gradientRadius="48">
+                <item android:color="#33E8C766" android:offset="0.0" />
+                <item android:color="#00E8C766" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- نجوم صغيرة -->
+    <path android:fillColor="#99FFF1B8" android:pathData="M24,30 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
+    <path android:fillColor="#66FFF1B8" android:pathData="M90,22 m-0.8,0 a0.8,0.8 0 1,0 1.6,0 a0.8,0.8 0 1,0 -1.6,0" />
+    <path android:fillColor="#66FFF1B8" android:pathData="M20,62 m-0.7,0 a0.7,0.7 0 1,0 1.4,0 a0.7,0.7 0 1,0 -1.4,0" />
+    <path android:fillColor="#80FFF1B8" android:pathData="M92,70 m-0.9,0 a0.9,0.9 0 1,0 1.8,0 a0.9,0.9 0 1,0 -1.8,0" />
 </vector>
