@@ -30,7 +30,9 @@ object QuranAudio {
         Reciter("Abdul_Basit_Murattal_192kbps", "عبد الباسط عبد الصمد"),
         Reciter("Abdurrahmaan_As-Sudais_192kbps", "عبد الرحمن السديس"),
         // اسم المجلد على everyayah لم أستطع التحقق منه من بيئة العمل؛ لو الأول فشل بيجرّب البديل تلقائيًا
-        Reciter("Mohammad_al_Tablaway_128kbps", "محمد محمود الطبلاوي", "Mohammad_al_Tablaway_64kbps")
+        Reciter("Mohammad_al_Tablaway_128kbps", "محمد محمود الطبلاوي", "Mohammad_al_Tablaway_64kbps"),
+        // نفس الملاحظة: الاسم من الذاكرة ولم أتحقق منه؛ بيجرّب بدائل كتابة المجلد تلقائيًا
+        Reciter("mahmoud_ali_al_banna_32kbps", "محمود علي البنا", "Mahmoud_Ali_Al_Banna_32kbps,mahmoud_ali_al_banna_64kbps")
     )
 
     var current by mutableStateOf<Pair<Int, Int>?>(null) // سورة، آية
@@ -83,7 +85,7 @@ object QuranAudio {
         val f = fileFor(ctx, reciter, a)
         if (f.exists() && f.length() > 1000) return null
         val tmp = File(f.parentFile, f.name + ".part")
-        val folders = listOfNotNull(reciter, reciters.firstOrNull { it.id == reciter }?.alt)
+        val folders = listOf(reciter) + (reciters.firstOrNull { it.id == reciter }?.alt?.split(",") ?: emptyList())
         var lastErr = "تعذّر تحميل التلاوة"
         for (folder in folders) {
             var c: HttpURLConnection? = null
