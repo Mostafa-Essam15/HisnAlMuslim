@@ -52,6 +52,9 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     // حساب مواقيت الصلاة
     implementation("com.batoulapps.adhan:adhan:1.2.1")
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
     // إشعارات فورية بالتحديثات (Firebase Cloud Messaging)
     implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
     implementation("com.google.firebase:firebase-messaging")

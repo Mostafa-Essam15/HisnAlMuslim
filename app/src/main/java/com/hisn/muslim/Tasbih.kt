@@ -221,67 +221,13 @@ object Qibla {
         val x = cos(p1) * sin(p2) - sin(p1) * cos(p2) * cos(dl)
         return (Math.toDegrees(atan2(y, x)) + 360.0) % 360.0
     }
-}
 
-@Composable
-fun QiblaScreen(prefs: Prefs) {
-    val ctx = LocalContext.current
-    val bearing = remember(prefs.lat, prefs.lng) { Qibla.bearing(prefs.lat, prefs.lng).toFloat() }
-    var heading by remember { mutableFloatStateOf(0f) }
-    var hasSensor by remember { mutableStateOf(true) }
-
-    DisposableEffect(Unit) {
-        val sm = ctx.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        val sensor = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
-        if (sensor == null) { hasSensor = false; onDispose { } } else {
-            val l = object : SensorEventListener {
-                val r = FloatArray(9)
-                val o = FloatArray(3)
-                override fun onSensorChanged(e: SensorEvent) {
-                    SensorManager.getRotationMatrixFromVector(r, e.values)
-                    SensorManager.getOrientation(r, o)
-                    val az = ((Math.toDegrees(o[0].toDouble()) + 360.0) % 360.0).toFloat()
-                    // تنعيم بسيط للحركة
-                    var d = az - heading
-                    if (d > 180) d -= 360
-                    if (d < -180) d += 360
-                    heading = (heading + d * 0.2f + 360f) % 360f
-                }
-                override fun onAccuracyChanged(s: Sensor?, a: Int) {}
-            }
-            sm.registerListener(l, sensor, SensorManager.SENSOR_DELAY_UI)
-            onDispose { sm.unregisterListener(l) }
-        }
-    }
-
-    Column(Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Glass {
-            SectionTitle("اتجاه القبلة")
-            Text(
-                "من ${if (prefs.city.isNotEmpty()) prefs.city else "موقعك المحفوظ"}: ${"%.1f".format(java.util.Locale.US, bearing)}° من الشمال الحقيقي",
-                fontSize = 15.sp
-            )
-            if (!prefs.hasLocation) Text("لم يُحدَّد موقعك بعد؛ الاتجاه محسوب من القاهرة (الافتراضي).", color = Color(0xFFFFB74D), fontSize = 12.sp)
-        }
-        Spacer(Modifier.height(20.dp))
-        if (hasSensor) {
-            // السهم بيشاور على القبلة: دوران = اتجاه القبلة − اتجاه الجهاز
-            val rot = bearing - heading
-            val aligned = kotlin.math.abs(((rot + 540f) % 360f) - 180f) < 4f
-            Box(
-                Modifier.size(260.dp).clip(CircleShape).background(Color(0x22FFFFFF)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("↑", fontSize = 150.sp, color = if (aligned) Color(0xFF66BB6A) else Gold, modifier = Modifier.rotate(rot))
-            }
-            Spacer(Modifier.height(12.dp))
-            Text(if (aligned) "أنت تواجه القبلة ✓" else "لفّ الجهاز حتى يشير السهم لأعلى", color = if (aligned) Color(0xFF66BB6A) else Muted)
-            Text(
-                "ضع الهاتف أفقيًا بعيدًا عن المعادن والمغانط. إن بدا الاتجاه غير دقيق فحرّك الهاتف على شكل ٨ لمعايرة البوصلة.",
-                fontSize = 12.sp, color = Muted, textAlign = TextAlign.Center
-            )
-        } else {
-            Text("جهازك لا يدعم حساس البوصلة. اتجاه القبلة: ${"%.0f".format(java.util.Locale.US, bearing)}° من الشمال؛ استعن ببوصلة خارجية.", color = Muted)
-        }
+    /** المسافة التقريبية إلى الكعبة بالكيلومتر (haversine) */
+    fun distanceKm(lat: Double, lng: Double): Double {
+        val r = 6371.0
+        val dLat = Math.toRadians(KAABA_LAT - lat)
+        val dLng = Math.toRadians(KAABA_LNG - lng)
+        val a = sin(dLat / 2) * sin(dLat / 2) + cos(Math.toRadians(lat)) * cos(Math.toRadians(KAABA_LAT)) * sin(dLng / 2) * sin(dLng / 2)
+        return 2 * r * atan2(Math.sqrt(a), Math.sqrt(1 - a))
     }
 }
