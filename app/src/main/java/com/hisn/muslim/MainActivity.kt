@@ -81,11 +81,11 @@ class MainActivity : ComponentActivity() {
         Look.light = pf.lightTheme
         setContent {
             HisnTheme {
-                // نحدّ تكبير الخط عند ١٫١٥ في واجهة التطبيق عشان الأزرار والتبويبات ما تتقطعش؛ حجم نص المصحف له أزرار تكبير خاصة
+                // بنحترم تكبير خط النظام لحد ٢×، والشاشات بتتكيّف معاه (تخطيط يتّسع بدل التقطيع)
                 val dens = androidx.compose.ui.platform.LocalDensity.current
                 CompositionLocalProvider(
                     LocalLayoutDirection provides LayoutDirection.Rtl,
-                    androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(dens.density, dens.fontScale.coerceAtMost(1.15f))
+                    androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(dens.density, dens.fontScale.coerceAtMost(2.0f))
                 ) { App() }
             }
         }
@@ -168,6 +168,9 @@ fun App() {
             containerColor = Color.Transparent,
             contentColor = OnCard,
             bottomBar = {
+                // الشريط السفلي مساحته ثابتة: نحدّ خط عناوينه عند ١٫١٥ (الأيقونات تكمّل المعنى)
+                val navDens = androidx.compose.ui.platform.LocalDensity.current
+                CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(navDens.density, navDens.fontScale.coerceAtMost(1.15f))) {
                 NavigationBar(containerColor = if (Look.light) Color(0xF2FFFFFF) else Color(0xE6051510)) {
                     appTabs.forEachIndexed { i, t ->
                         NavigationBarItem(
@@ -184,6 +187,7 @@ fun App() {
                             )
                         )
                     }
+                }
                 }
             }
         ) { pad ->

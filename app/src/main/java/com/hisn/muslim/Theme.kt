@@ -131,3 +131,7 @@ fun SectionTitle(text: String, icon: ImageVector? = null) {
         Text(text, color = Gold, fontWeight = FontWeight.Bold, fontSize = 18.sp, fontFamily = Serif)
     }
 }
+
+/** خط النظام كبير (للناس ضعيفة النظر): الشاشات بتبدّل لتخطيط يتّسع بدل ما الأزرار تتقطع */
+@androidx.compose.runtime.Composable
+fun bigFont(): Boolean = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.25f
