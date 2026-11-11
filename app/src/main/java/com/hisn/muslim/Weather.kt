@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.hisn.muslim
 
 import androidx.compose.foundation.layout.Arrangement
@@ -136,10 +138,13 @@ fun WeatherCardContent(city: String) {
         fontSize = 12.sp, color = Muted
     )
     Spacer(Modifier.height(8.dp))
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    androidx.compose.foundation.layout.FlowRow(
+        Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp),
+        maxItemsInEachRow = if (bigFont()) 3 else 5
+    ) {
         s.days.forEachIndexed { i, d ->
             Column(Modifier.weight(1f).padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(if (i == 0) "اليوم" else Weather.dayName(d.date), fontSize = 11.sp, color = Muted, maxLines = 1, textAlign = TextAlign.Center)
+                Text(if (i == 0) "اليوم" else Weather.dayName(d.date), fontSize = 11.sp, color = Muted, textAlign = TextAlign.Center)
                 Text(Weather.icon(d.code), fontSize = 22.sp)
                 Text("${Quran.arabicDigits(d.max)}°", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 Text("${Quran.arabicDigits(d.min)}°", fontSize = 12.sp, color = Muted)

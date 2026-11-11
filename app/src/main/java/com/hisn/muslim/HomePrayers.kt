@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.hisn.muslim
 
 import androidx.compose.foundation.background
@@ -43,7 +45,10 @@ private fun items(t: PrayerTimes): List<PItem> = listOf(
 @Composable
 fun PrayerStrip(prefs: Prefs, times: PrayerTimes, next: Prayer?, day: String, now: Long) {
     val f = SimpleDateFormat("h:mm", Locale.US)
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    androidx.compose.foundation.layout.FlowRow(
+        Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp),
+        maxItemsInEachRow = if (bigFont()) 3 else 6
+    ) {
         items(times).forEach { it ->
             val isNext = it.prayer != null && it.prayer == next
             val past = it.time.time < now
@@ -54,10 +59,10 @@ fun PrayerStrip(prefs: Prefs, times: PrayerTimes, next: Prayer?, day: String, no
                     .padding(vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(it.name, fontSize = 11.sp, color = if (isNext) Gold else Muted, maxLines = 1,
+                Text(it.name, fontSize = 11.sp, color = if (isNext) Gold else Muted,
                     fontWeight = if (isNext) FontWeight.Bold else FontWeight.Normal)
                 Text(f.format(it.time), fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-                    color = if (past && !isNext) Muted else OnCard, maxLines = 1)
+                    color = if (past && !isNext) Muted else OnCard)
                 Text(if (st == 2 || st == 1) "✓" else if (st == 3) "✗" else " ", fontSize = 11.sp,
                     color = if (st == 3) Color(0xFFFF8A80) else Gold)
             }

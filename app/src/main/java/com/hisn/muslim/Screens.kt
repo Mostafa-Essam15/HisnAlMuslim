@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.hisn.muslim
 
 import androidx.compose.foundation.background
@@ -218,7 +220,10 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
         item {
             Glass {
                 SectionTitle("اختصارات", Icons.Rounded.AutoAwesome)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                androidx.compose.foundation.layout.FlowRow(
+                    Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    maxItemsInEachRow = if (bigFont()) 2 else 4
+                ) {
                     listOf("المصحف" to 1, "الأذكار" to 2, "السبحة" to 12, "القبلة" to 22).forEach { (label, code) ->
                         androidx.compose.material3.OutlinedButton(
                             onClick = {
@@ -227,7 +232,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                             },
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(horizontal = 4.dp)
-                        ) { Text(label, fontSize = 13.sp, color = Gold) }
+                        ) { Text(label, fontSize = 13.sp, color = Gold, textAlign = androidx.compose.ui.text.style.TextAlign.Center) }
                     }
                 }
             }

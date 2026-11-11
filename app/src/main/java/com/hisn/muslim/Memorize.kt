@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.hisn.muslim
 
 import androidx.compose.foundation.layout.Arrangement
@@ -94,7 +96,10 @@ fun MemorizePane(prefs: Prefs) {
         item {
             Glass {
                 SectionTitle("اختر ما تحفظه")
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                androidx.compose.foundation.layout.FlowRow(
+                    Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    maxItemsInEachRow = if (bigFont()) 1 else 3
+                ) {
                     OutlinedTextField(
                         value = surah.toString(), onValueChange = { v ->
                             v.toIntOrNull()?.let { n ->

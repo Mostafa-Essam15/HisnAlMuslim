@@ -356,13 +356,11 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
             }
         }
         QuranAudio.error?.let { Text(it, color = Color(0xFFFF8A80), fontSize = 12.sp) }
-        Row(
-            Modifier.fillMaxWidth().padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedButton(onClick = { if (page > 1) onPage(page - 1) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 6.dp)) { Text("السابقة", color = Gold, maxLines = 1, fontSize = 12.sp, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
-            Spacer(Modifier.width(6.dp))
+        val big = bigFont()
+        val prevB: @Composable (Modifier) -> Unit = { m ->
+            OutlinedButton(onClick = { if (page > 1) onPage(page - 1) }, modifier = m, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("السابقة", color = Gold, fontSize = 13.sp, textAlign = TextAlign.Center) }
+        }
+        val doneB: @Composable (Modifier) -> Unit = { m ->
             Button(
                 onClick = {
                     prefs.recordPageRead(page)
@@ -370,11 +368,29 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                     if (page < Quran.TOTAL_PAGES) onPage(page + 1)
                 },
                 enabled = !isRead,
-                modifier = Modifier.weight(1.6f), contentPadding = PaddingValues(horizontal = 6.dp),
+                modifier = m, contentPadding = PaddingValues(horizontal = 6.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-            ) { Text(if (isRead) "✓ مقروءة" else "أتممت الصفحة ✓", maxLines = 1, fontSize = 12.sp, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
-            Spacer(Modifier.width(6.dp))
-            OutlinedButton(onClick = { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 6.dp)) { Text("التالية", color = Gold, maxLines = 1, fontSize = 12.sp, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
+            ) { Text(if (isRead) "✓ مقروءة" else "أتممت الصفحة ✓", fontSize = 13.sp, textAlign = TextAlign.Center) }
+        }
+        val nextB: @Composable (Modifier) -> Unit = { m ->
+            OutlinedButton(onClick = { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }, modifier = m, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("التالية", color = Gold, fontSize = 13.sp, textAlign = TextAlign.Center) }
+        }
+        if (big) {
+            // خط كبير: الأزرار تتكدّس عموديًا بعرض كامل بدل ما تضيق وتتقطع
+            Column(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                doneB(Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    prevB(Modifier.weight(1f)); nextB(Modifier.weight(1f))
+                }
+            }
+        } else {
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                prevB(Modifier.weight(1f)); doneB(Modifier.weight(1.6f)); nextB(Modifier.weight(1f))
+            }
         }
     }
 }
