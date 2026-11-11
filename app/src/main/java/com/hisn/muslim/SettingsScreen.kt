@@ -307,9 +307,28 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         )
                     }
+                    val pm = ctx.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+                    StatusRow(pm.isIgnoringBatteryOptimizations(ctx.packageName), "استثناء التطبيق من توفير البطارية", "طلب الاستثناء") {
+                        try {
+                            ctx.startActivity(
+                                Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, android.net.Uri.parse("package:${ctx.packageName}"))
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        } catch (_: Exception) {
+                            ctx.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        }
+                    }
+                    val oem = android.os.Build.MANUFACTURER.lowercase()
+                    val oemTip = when {
+                        "samsung" in oem -> "سامسونج: الإعدادات ← البطارية ← حدود استخدام الخلفية ← «التطبيقات التي لا تنام أبدًا» وأضف حصن المسلم."
+                        "xiaomi" in oem || "redmi" in oem || "poco" in oem -> "شاومي: الإعدادات ← التطبيقات ← إدارة التطبيقات ← حصن المسلم ← فعّل «التشغيل التلقائي» ثم «توفير البطارية» ← «بدون قيود»."
+                        "oppo" in oem || "realme" in oem || "oneplus" in oem -> "أوبو/ريلمي/وان بلس: إعدادات التطبيق ← استخدام البطارية ← اسمح بالنشاط في الخلفية، وفعّل «التشغيل التلقائي»."
+                        "vivo" in oem || "iqoo" in oem -> "فيفو: الإعدادات ← البطارية ← استهلاك الطاقة في الخلفية ← حصن المسلم ← «السماح»، وفعّل التشغيل التلقائي."
+                        "huawei" in oem || "honor" in oem -> "هواوي/هونر: الإعدادات ← التطبيقات ← إطلاق التطبيقات ← حصن المسلم ← «إدارة يدوية» وفعّل الخيارات الثلاثة."
+                        else -> "لو الأذان ما اشتغلش على جهازك فعّل «التشغيل التلقائي» (إن وُجد) واستثنِ التطبيق من توفير البطارية."
+                    }
                     Text(
-                        "بعض الأجهزة (شاومي، أوبو، فيفو، هواوي، سامسونج) فيها قيود إضافية على التطبيقات في الخلفية؛ " +
-                            "لو الأذان ما اشتغلش على جهازك فعّل «التشغيل التلقائي» واستثنِ التطبيق من توفير البطارية.",
+                        "$oemTip\nالمسارات تختلف حسب إصدار النظام. الميزة لم تُختبر على كل الأجهزة.",
                         fontSize = 11.sp, color = Muted
                     )
                 }
