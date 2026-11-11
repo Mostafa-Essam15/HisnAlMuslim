@@ -16,7 +16,7 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-class Reciter(val id: String, val name: String, val alt: String? = null)
+class Reciter(val id: String, val name: String, val alt: String? = null, val key: String? = null)
 
 /**
  * تلاوة آية بآية من everyayah.com (ملف لكل آية: /data/<القارئ>/<سورة ٣ أرقام><آية ٣ أرقام>.mp3).
@@ -30,9 +30,9 @@ object QuranAudio {
         Reciter("Abdul_Basit_Murattal_192kbps", "عبد الباسط عبد الصمد"),
         Reciter("Abdurrahmaan_As-Sudais_192kbps", "عبد الرحمن السديس"),
         // اسم المجلد على everyayah لم أستطع التحقق منه من بيئة العمل؛ لو الأول فشل بيجرّب البديل تلقائيًا
-        Reciter("Mohammad_al_Tablaway_128kbps", "محمد محمود الطبلاوي", "Mohammad_al_Tablaway_64kbps"),
+        Reciter("Mohammad_al_Tablaway_128kbps", "محمد محمود الطبلاوي", "Mohammad_al_Tablaway_64kbps", "tablaw"),
         // نفس الملاحظة: الاسم من الذاكرة ولم أتحقق منه؛ بيجرّب بدائل كتابة المجلد تلقائيًا
-        Reciter("mahmoud_ali_al_banna_32kbps", "محمود علي البنا", "Mahmoud_Ali_Al_Banna_32kbps,mahmoud_ali_al_banna_64kbps")
+        Reciter("mahmoud_ali_al_banna_32kbps", "محمود علي البنا", "Mahmoud_Ali_Al_Banna_32kbps,mahmoud_ali_al_banna_64kbps", "banna")
     )
 
     var current by mutableStateOf<Pair<Int, Int>?>(null) // سورة، آية
@@ -85,9 +85,21 @@ object QuranAudio {
         val f = fileFor(ctx, reciter, a)
         if (f.exists() && f.length() > 1000) return null
         val tmp = File(f.parentFile, f.name + ".part")
-        val folders = listOf(reciter) + (reciters.firstOrNull { it.id == reciter }?.alt?.split(",") ?: emptyList())
+        val rec = reciters.firstOrNull { it.id == reciter }
+        val saved = if (rec?.key != null) ctx.getSharedPreferences("hisn", Context.MODE_PRIVATE).getString("folder_$reciter", null) else null
+        val folders = (listOfNotNull(saved) + listOf(reciter) + (rec?.alt?.split(",") ?: emptyList())).distinct().toMutableList()
         var lastErr = "تعذّر تحميل التلاوة"
-        for (folder in folders) {
+        var triedResolve = false
+        var idx = 0
+        while (true) {
+            if (idx >= folders.size) {
+                // كل الأسماء المعروفة فشلت: نسأل everyayah عن اسم المجلد الصحيح مرة واحدة
+                if (triedResolve || rec?.key == null) break
+                triedResolve = true
+                resolveFolders(rec.key).filter { it !in folders }.forEach { folders.add(it) }
+                if (idx >= folders.size) break
+            }
+            val folder = folders[idx++]
             var c: HttpURLConnection? = null
             try {
                 c = (URL("https://everyayah.com/data/$folder/${name(a)}").openConnection() as HttpURLConnection).apply {
@@ -97,6 +109,7 @@ object QuranAudio {
                 if (c.responseCode !in 200..299) { lastErr = "تعذّر تحميل التلاوة (كود ${c.responseCode})"; continue }
                 c.inputStream.use { i -> FileOutputStream(tmp).use { o -> i.copyTo(o) } }
                 if (tmp.length() < 1000 || !tmp.renameTo(f)) { tmp.delete(); lastErr = "ملف التلاوة غير صالح"; continue }
+                if (rec?.key != null) ctx.getSharedPreferences("hisn", Context.MODE_PRIVATE).edit().putString("folder_$reciter", folder).apply()
                 return null
             } catch (e: Exception) {
                 tmp.delete()
@@ -106,6 +119,22 @@ object QuranAudio {
             }
         }
         return lastErr
+    }
+
+    /** يجيب أسماء مجلدات القارئ من قائمة everyayah نفسها (بحث بكلمة من الاسم)؛ الأعلى جودة الأول. */
+    private fun resolveFolders(key: String): List<String> {
+        var c: HttpURLConnection? = null
+        return try {
+            c = (URL("https://everyayah.com/data/recitations.js").openConnection() as HttpURLConnection).apply {
+                connectTimeout = 10_000; readTimeout = 15_000
+            }
+            if (c.responseCode !in 200..299) return emptyList()
+            val text = c.inputStream.bufferedReader().use { it.readText() }
+            Regex("[A-Za-z0-9_\\-]+kbps").findAll(text).map { it.value }.distinct()
+                .filter { it.lowercase().contains(key) }
+                .sortedByDescending { Regex("(\\d+)kbps").find(it)?.groupValues?.get(1)?.toIntOrNull() ?: 0 }
+                .toList()
+        } catch (e: Exception) { emptyList() } finally { c?.disconnect() }
     }
 
     // ───────────── التنزيل للاستماع بدون إنترنت ─────────────
