@@ -89,7 +89,7 @@ object QuranAudio {
             if (tmp.length() < 1000 || !tmp.renameTo(f)) { tmp.delete(); "ملف التلاوة غير صالح" } else null
         } catch (e: Exception) {
             tmp.delete()
-            "تعذّر تحميل التلاوة: تأكد من الاتصال بالإنترنت"
+            "تعذّر تحميل التلاوة: تأكد من الاتصال بالإنترنت (${e.javaClass.simpleName})"
         } finally {
             c?.disconnect()
         }
@@ -142,14 +142,15 @@ object QuranAudio {
                         if (next >= 0) playAt(ctx, reciter, list, next, repeat, onFinished, g)
                         else { stopInternal(); onFinished() }
                     }
-                    p.setOnErrorListener { _, _, _ -> error = "تعذّر تشغيل الملف الصوتي"; stopInternal(); true }
+                    p.setOnErrorListener { _, what, extra -> error = "تعذّر تشغيل الملف الصوتي (خطأ $what/$extra)"; stopInternal(); true }
                     p.prepare()
                     p.start()
                     if (speed != 1f) try { p.playbackParams = p.playbackParams.setSpeed(speed) } catch (_: Exception) {}
                     mp = p
                     playing = true
                 } catch (e: Exception) {
-                    error = "تعذّر تشغيل الملف الصوتي"
+                    error = "تعذّر تشغيل الملف الصوتي (${e.javaClass.simpleName})"
+                    try { fileFor(ctx, reciter, a).delete() } catch (_: Exception) {}
                     stopInternal()
                 }
             }
