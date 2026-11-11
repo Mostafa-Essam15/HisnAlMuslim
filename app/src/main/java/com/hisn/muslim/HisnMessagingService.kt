@@ -22,8 +22,14 @@ class HisnMessagingService : FirebaseMessagingService() {
         const val TOPIC = "updates"
 
         /** اشتراك الجهاز في موضوع التحديثات (آمن لو اتكرر) */
-        fun subscribe() {
-            try { FirebaseMessaging.getInstance().subscribeToTopic(TOPIC) } catch (_: Exception) {}
+        fun subscribe(ctx: android.content.Context) {
+            // على أجهزة بدون خدمات Google (هواوي الجديدة) ما بنلمسش Firebase خالص، والتحديث بيوصل بالفحص الدوري
+            if (!LocationUpdater.hasGms(ctx)) return
+            try {
+                val fm = FirebaseMessaging.getInstance()
+                fm.isAutoInitEnabled = true
+                fm.subscribeToTopic(TOPIC)
+            } catch (_: Throwable) {}
         }
     }
 }

@@ -8,6 +8,8 @@ import android.location.Address
 import android.location.Geocoder
 import android.os.Build
 import androidx.core.content.ContextCompat
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import java.util.Locale
@@ -23,11 +25,50 @@ object LocationUpdater {
         Build.VERSION.SDK_INT < 29 ||
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
 
+    /** هل خدمات Google Play موجودة (أجهزة هواوي الجديدة مثلًا مفيهاش) */
+    fun hasGms(ctx: Context) = try {
+        GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(ctx.applicationContext) == ConnectionResult.SUCCESS
+    } catch (e: Throwable) { false }
+
+    /** بديل بدون Google: LocationManager بتاع الأندرويد (شبكة ثم GPS) */
+    @SuppressLint("MissingPermission")
+    private fun fetchPlatform(app: Context, onDone: (Boolean) -> Unit) {
+        val lm = app.getSystemService(Context.LOCATION_SERVICE) as? android.location.LocationManager
+        if (lm == null) { onDone(false); return }
+        val fine = ContextCompat.checkSelfPermission(app, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val providers = (listOf(android.location.LocationManager.NETWORK_PROVIDER) + if (fine) listOf(android.location.LocationManager.GPS_PROVIDER) else emptyList())
+            .filter { try { lm.isProviderEnabled(it) } catch (e: Exception) { false } }
+        fun lastKnown(): android.location.Location? = providers.mapNotNull { try { lm.getLastKnownLocation(it) } catch (e: Exception) { null } }.maxByOrNull { it.time }
+        val done = java.util.concurrent.atomic.AtomicBoolean(false)
+        fun finish(loc: android.location.Location?) {
+            if (!done.compareAndSet(false, true)) return
+            val l = loc ?: lastKnown()
+            if (l != null) apply(app, l)
+            onDone(l != null)
+        }
+        if (providers.isEmpty()) { finish(null); return }
+        try {
+            if (Build.VERSION.SDK_INT >= 30) {
+                lm.getCurrentLocation(providers.first(), null, ContextCompat.getMainExecutor(app)) { finish(it) }
+            } else {
+                @Suppress("DEPRECATION")
+                lm.requestSingleUpdate(providers.first(), object : android.location.LocationListener {
+                    override fun onLocationChanged(l: android.location.Location) { finish(l) }
+                    @Deprecated("Deprecated in Java") override fun onStatusChanged(p: String?, st: Int, e: android.os.Bundle?) {}
+                    override fun onProviderEnabled(p: String) {}
+                    override fun onProviderDisabled(p: String) {}
+                }, android.os.Looper.getMainLooper())
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ finish(null) }, 20_000L)
+            }
+        } catch (e: Exception) { finish(null) }
+    }
+
     /** يحدّث الموقع ويبلّغ بالنتيجة: true لو اتحدّد موقع. [onDone] بيتنادى مرة واحدة دايمًا. */
     @SuppressLint("MissingPermission")
     fun fetch(ctx: Context, onDone: (Boolean) -> Unit) {
         val app = ctx.applicationContext
         if (!hasPermission(app)) { onDone(false); return }
+        if (!hasGms(app)) { fetchPlatform(app, onDone); return }
         val client = LocationServices.getFusedLocationProviderClient(app)
         fun finish(loc: android.location.Location?) {
             if (loc != null) apply(app, loc)
