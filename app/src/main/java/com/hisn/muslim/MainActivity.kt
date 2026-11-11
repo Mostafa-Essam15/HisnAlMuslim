@@ -192,8 +192,9 @@ fun App() {
     }
 
     Box(Modifier.fillMaxSize()) {
-        if (Look.light) Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0xFFFBF7EA), Color(0xFFEDE6D0)))))
-        else AppBackground(bg, bgVersion, auto, autoPhoto)
+        AppBackground(bg, bgVersion, auto, autoPhoto)
+        // في الثيم الفاتح: طبقة كريمية شفافة فوق الخلفية عشان الصورة تظهر والنص الغامق يفضل مقروء
+        if (Look.light) Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0xA6FBF7EA), Color(0x8CEDE6D0)))))
         Scaffold(
             containerColor = Color.Transparent,
             contentColor = OnCard,
