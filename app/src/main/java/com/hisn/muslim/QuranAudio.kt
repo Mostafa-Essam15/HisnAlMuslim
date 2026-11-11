@@ -106,7 +106,7 @@ object QuranAudio {
                     connectTimeout = 15_000; readTimeout = 30_000
                     setRequestProperty("User-Agent", "HisnAlMuslim/2.0")
                 }
-                if (c.responseCode !in 200..299) { lastErr = "تعذّر تحميل التلاوة (كود ${c.responseCode})"; continue }
+                if (c.responseCode !in 200..299) { lastErr = "تعذّر تحميل التلاوة (كود ${c.responseCode}) — ${reciters.firstOrNull { it.id == reciter }?.name ?: reciter}، ${name(a)}"; continue }
                 c.inputStream.use { i -> FileOutputStream(tmp).use { o -> i.copyTo(o) } }
                 if (tmp.length() < 1000 || !tmp.renameTo(f)) { tmp.delete(); lastErr = "ملف التلاوة غير صالح"; continue }
                 if (rec?.key != null) ctx.getSharedPreferences("hisn", Context.MODE_PRIVATE).edit().putString("folder_$reciter", folder).apply()

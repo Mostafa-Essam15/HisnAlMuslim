@@ -360,7 +360,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedButton(onClick = { if (page > 1) onPage(page - 1) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 6.dp)) { Text("السابقة", color = Gold, maxLines = 1, fontSize = 13.sp) }
+            OutlinedButton(onClick = { if (page > 1) onPage(page - 1) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 6.dp)) { Text("السابقة", color = Gold, maxLines = 1, fontSize = 12.sp, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
             Spacer(Modifier.width(6.dp))
             Button(
                 onClick = {
@@ -371,9 +371,9 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 enabled = !isRead,
                 modifier = Modifier.weight(1.6f), contentPadding = PaddingValues(horizontal = 6.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-            ) { Text(if (isRead) "✓ مقروءة" else "أتممت الصفحة ✓", maxLines = 1, fontSize = 13.sp) }
+            ) { Text(if (isRead) "✓ مقروءة" else "أتممت الصفحة ✓", maxLines = 1, fontSize = 12.sp, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
             Spacer(Modifier.width(6.dp))
-            OutlinedButton(onClick = { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 6.dp)) { Text("التالية", color = Gold, maxLines = 1, fontSize = 13.sp) }
+            OutlinedButton(onClick = { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 6.dp)) { Text("التالية", color = Gold, maxLines = 1, fontSize = 12.sp, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
         }
     }
 }
