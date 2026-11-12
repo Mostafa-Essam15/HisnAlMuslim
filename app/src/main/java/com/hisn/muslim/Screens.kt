@@ -120,6 +120,50 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        // بعد التحديث الأندرويد/الشركة ممكن يسحب إذن «شاشة الأذان الكاملة»: ننبّه بكارت ثابت لحد ما يتفعّل تاني
+        if (android.os.Build.VERSION.SDK_INT >= 34) item {
+            val ctxF = androidx.compose.ui.platform.LocalContext.current
+            val tickF = refreshTick.intValue
+            val okFs = remember(tickF) { ctxF.getSystemService(android.app.NotificationManager::class.java).canUseFullScreenIntent() }
+            if (!okFs) Glass(Modifier.border(1.5.dp, Color(0xFFFFB74D), RoundedCornerShape(24.dp))) {
+                SectionTitle("فعّل شاشة الأذان الكاملة", Icons.Rounded.AutoAwesome)
+                Text("إذن «الإشعارات بملء الشاشة» اتسحب (غالبًا بعد التحديث). من غيره الأذان مش هيظهر فوق شاشة القفل.", fontSize = 13.sp, color = Muted)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.Button(
+                        onClick = {
+                            try {
+                                ctxF.startActivity(
+                                    android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, android.net.Uri.parse("package:${ctxF.packageName}"))
+                                        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            } catch (_: Exception) {
+                                ctxF.startActivity(
+                                    android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:${ctxF.packageName}"))
+                                        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            }
+                        },
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                    ) { Text("تفعيل الآن") }
+                    if (android.os.Build.MANUFACTURER.lowercase().let { "xiaomi" in it || "redmi" in it || "poco" in it }) {
+                        androidx.compose.material3.OutlinedButton(onClick = {
+                            try {
+                                ctxF.startActivity(
+                                    android.content.Intent("miui.intent.action.APP_PERM_EDITOR")
+                                        .setClassName("com.miui.securitycenter", "com.miui.permcenter.permissions.PermissionsEditorActivity")
+                                        .putExtra("extra_pkgname", ctxF.packageName).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            } catch (_: Exception) {
+                                ctxF.startActivity(
+                                    android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:${ctxF.packageName}"))
+                                        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            }
+                        }) { Text("أذونات شاومي", color = Gold) }
+                    }
+                }
+            }
+        }
         Updater.available?.let { up ->
             item {
                 val ctxU = androidx.compose.ui.platform.LocalContext.current
