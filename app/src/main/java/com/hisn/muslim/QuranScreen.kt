@@ -415,6 +415,22 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 prevB(Modifier.weight(1f)); doneB(Modifier.weight(1.6f)); nextB(Modifier.weight(1f))
             }
         }
+        }
+    }
+    if (readerFull) {
+        // أدوات عائمة صغيرة: خروج + تنقل بين الصفحات + رقم الصفحة
+        Row(Modifier.align(Alignment.TopStart).padding(8.dp)) {
+            androidx.compose.material3.FilledTonalIconButton(onClick = { readerFull = false }) { Text("✕", fontSize = 16.sp) }
+        }
+        Row(
+            Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically
+        ) {
+            androidx.compose.material3.FilledTonalIconButton(onClick = { if (page > 1) onPage(page - 1) }) { Text("›", fontSize = 20.sp) }
+            Text(Quran.arabicDigits(page), color = ink, fontSize = 13.sp, modifier = Modifier.background(pageBg.copy(alpha = 0.85f), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
+            androidx.compose.material3.FilledTonalIconButton(onClick = { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }) { Text("‹", fontSize = 20.sp) }
+        }
+    }
     }
 }
 
@@ -638,24 +654,5 @@ private fun BookmarksPane(prefs: Prefs, onOpen: (Int) -> Unit) {
                 }
             }
         }
-        }
-    }
-    if (readerFull) {
-        // أدوات عائمة صغيرة: خروج + تنقل بين الصفحات + رقم الصفحة
-        Row(
-            Modifier.align(Alignment.TopStart).padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            androidx.compose.material3.FilledTonalIconButton(onClick = { readerFull = false }) { Text("✕", fontSize = 16.sp) }
-        }
-        Row(
-            Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically
-        ) {
-            androidx.compose.material3.FilledTonalIconButton(onClick = { if (page > 1) onPage(page - 1) }) { Text("›", fontSize = 20.sp) }
-            Text("${Quran.arabicDigits(page)}", color = ink, fontSize = 13.sp, modifier = Modifier.background(pageBg.copy(alpha = 0.85f), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
-            androidx.compose.material3.FilledTonalIconButton(onClick = { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }) { Text("‹", fontSize = 20.sp) }
-        }
-    }
     }
 }
