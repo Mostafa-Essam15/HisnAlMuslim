@@ -53,7 +53,7 @@ private const val DEV_NAME = "Mostafa Essam"
 private const val DEV_EMAIL = "Mostafaesam15@gmail.com"
 private const val FB_URL = "https://www.facebook.com/share/1FdCUBXAXh/"
 private const val WA_URL = "https://wa.me/201090033790"
-private const val APP_LINK = "https://github.com/Mostafa-Essam15/HisnAlMuslim/releases/tag/latest"
+private const val APP_LINK = "https://github.com/Mostafa-Essam15/HisnAlMuslim/releases/download/latest/HisnAlMuslim.apk"
 
 private val Emerald = Color(0xFF0E3B2C)
 private val Night = Color(0xFF06130E)
@@ -251,7 +251,7 @@ fun LazyListScope.aboutItems() {
                     }
                     Spacer(Modifier.height(10.dp))
                     ActionPill("شارك التطبيق مع أصدقائك", Modifier.fillMaxWidth(), icon = { Icon(Icons.Rounded.Share, null, tint = Gold, modifier = Modifier.size(20.dp)) }) {
-                        shareText(ctx, "حصن المسلم — أذكار وأدعية ومواقيت الصلاة والمصحف في تطبيق واحد.\nتحميل التطبيق: $APP_LINK")
+                        shareText(ctx, "حصن المسلم — أذكار وأدعية ومواقيت الصلاة والمصحف في تطبيق واحد.\nتحميل مباشر (ملف APK):\n$APP_LINK")
                     }
                     Spacer(Modifier.height(8.dp))
                     Text("أرسل أي ملاحظة أو خطأ في نص أو مصدر وسيتم تصحيحه.", color = Muted, fontSize = 11.sp)
