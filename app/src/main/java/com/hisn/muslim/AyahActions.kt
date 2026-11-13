@@ -20,7 +20,7 @@ import kotlinx.coroutines.withContext
 /** قائمة الآية في المصحف: تحديد نص، نسخ، مشاركة كنص، مشاركة كصورة. النص من نص المصحف المحمّل (حفص). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AyahActionsSheet(surah: Int, ayah: Int, onRange: (Int, Int) -> Unit, onDismiss: () -> Unit) {
+fun AyahActionsSheet(surah: Int, ayah: Int, onPlay: (List<Ayah>, Boolean) -> Unit, onExitFull: (() -> Unit)?, onDismiss: () -> Unit) {
     val ctx = LocalContext.current
     val clip = LocalClipboardManager.current
     var ready by remember { mutableStateOf(Quran.loaded) }
@@ -29,7 +29,6 @@ fun AyahActionsSheet(surah: Int, ayah: Int, onRange: (Int, Int) -> Unit, onDismi
     var to by remember(surah, ayah) { mutableIntStateOf(ayah) }
     var selectMode by remember(surah, ayah) { mutableStateOf(false) }
     val count = Quran.surahs.firstOrNull { it.number == surah }?.ayahCount ?: ayah
-    LaunchedEffect(from, to) { onRange(from, to) }
     val name = Quran.surahName(surah)
     val sel = remember(from, to, ready) { Quran.ayahs.filter { it.surah == surah && it.num in from..to } }
     val body = sel.joinToString(" ") { it.text }
@@ -60,7 +59,17 @@ fun AyahActionsSheet(surah: Int, ayah: Int, onRange: (Int, Int) -> Unit, onDismi
                         "مشاركة كصورة" to { ShareCard.share(ctx, shareBody, src) }
                     )
                 )
+                Text("الاستماع", color = Gold, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
+                FlowRowButtons(
+                    listOf(
+                        (if (from == to) "▶ هذه الآية" else "▶ النص المحدد") to { onPlay(sel, false); onDismiss() },
+                        "▶ الصفحة كاملة" to { onPlay(Quran.byPage[sel.first().page].orEmpty(), false); onDismiss() },
+                        "▶ السورة كاملة" to { onPlay(Quran.ayahs.filter { it.surah == surah }, true); onDismiss() },
+                        "⏹ إيقاف" to { QuranAudio.stop() }
+                    )
+                )
             }
+            if (onExitFull != null) OutlinedButton(onClick = { onDismiss(); onExitFull() }) { Text("الخروج من الشاشة الكاملة", color = Gold) }
         }
     }
 }

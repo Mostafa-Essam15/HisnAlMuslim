@@ -179,6 +179,9 @@ fun QuranScreen(prefs: Prefs, jumpTo: Int, onJumpConsumed: () -> Unit) {
     }
 }
 
+private var followNav = false
+private var skipStop = false
+
 @Composable
 private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
     var font by remember { mutableIntStateOf(prefs.quranFont) }
@@ -206,7 +209,12 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
     val blocks = remember(page, theme, cur) { buildPageBlocks(page, accent, cur, hiBg) }
     val bookmarked = remember(page, bmTick) { page in prefs.bookmarks() }
     val pageAyahs = Quran.byPage[page].orEmpty()
-    androidx.compose.runtime.DisposableEffect(page) { onDispose { QuranAudio.stop() } }
+    androidx.compose.runtime.DisposableEffect(page) { onDispose { if (skipStop) skipStop = false else { QuranAudio.stop(); followNav = false } } }
+    // تشغيل السورة كاملة: الصفحة تتبع الآية الحالية
+    androidx.compose.runtime.LaunchedEffect(cur) {
+        val c = cur ?: return@LaunchedEffect
+        if (followNav) Quran.ayahs.firstOrNull { it.surah == c.first && it.num == c.second }?.let { if (it.page != page) { skipStop = true; onPage(it.page) } }
+    }
     val first = Quran.byPage[page]?.firstOrNull()
     val isRead = remember(page, readTick) { page in prefs.khatmaPagesRead() || page in prefs.pagesReadOn(prefs.dayKey()) }
 
@@ -420,26 +428,13 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
         }
     }
     // أدوات الشاشة الكاملة مخفية افتراضيًا (عشان ما تغطيش كلام المصحف)؛ لمسة على الصفحة بتظهرها ٣ ثواني
-    ayahSheet?.let { (s, a) -> AyahActionsSheet(s, a, onRange = { _, _ -> }, onDismiss = { ayahSheet = null }) }
-    var showCtl by remember { mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(showCtl, readerFull) {
-        if (showCtl) { kotlinx.coroutines.delay(3000); showCtl = false }
-    }
-    if (readerFull && !showCtl) Box(
-        Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures(onTap = { showCtl = true }) }
-    )
-    if (readerFull && showCtl) {
-        Row(Modifier.align(Alignment.TopStart).padding(8.dp)) {
-            androidx.compose.material3.FilledTonalIconButton(onClick = { readerFull = false }, modifier = Modifier.size(40.dp)) { Text("✕", fontSize = 14.sp) }
-        }
-        Row(
-            Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically
-        ) {
-            androidx.compose.material3.FilledTonalIconButton(onClick = { if (page > 1) { onPage(page - 1); showCtl = true } }, modifier = Modifier.size(40.dp)) { Text("›", fontSize = 18.sp) }
-            Text(Quran.arabicDigits(page), color = ink, fontSize = 13.sp, modifier = Modifier.background(pageBg.copy(alpha = 0.9f), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
-            androidx.compose.material3.FilledTonalIconButton(onClick = { if (page < Quran.TOTAL_PAGES) { onPage(page + 1); showCtl = true } }, modifier = Modifier.size(40.dp)) { Text("‹", fontSize = 18.sp) }
-        }
+    ayahSheet?.let { (s, a) ->
+        AyahActionsSheet(
+            s, a,
+            onPlay = { list, follow -> QuranAudio.play(ctx, reciter, list, 0, { prefs.repeatMode }) {}; followNav = follow },
+            onExitFull = if (readerFull) ({ readerFull = false }) else null,
+            onDismiss = { ayahSheet = null }
+        )
     }
     }
 }
