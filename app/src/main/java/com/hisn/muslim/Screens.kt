@@ -377,40 +377,6 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
             }
         }
                 }
-                "prayers" -> {
-        items(Prayer.values().toList()) { pr ->
-            val isNext = next?.first == pr
-            val isCurrent = prev?.first == pr && !isNext
-            Glass(modifier = if (isNext) Modifier.border(1.5.dp, Gold, RoundedCornerShape(24.dp)) else Modifier) {
-                Row(
-                    Modifier.fillMaxWidth().clickable { onNavigate(3) },
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.AccessTime, null, tint = if (isNext) Gold else Muted, modifier = Modifier.size(20.dp))
-                        Text("  " + pr.ar, fontSize = 21.sp, fontWeight = FontWeight.Bold, fontFamily = Serif)
-                        if (isNext) Text("  القادمة", fontSize = 12.sp, color = Gold)
-                        else if (isCurrent) Text("  الوقت الحالي", fontSize = 12.sp, color = Muted)
-                    }
-                    Text(fmt.format(Engine.timeOf(times, pr)), fontSize = 20.sp, color = Gold, fontWeight = FontWeight.SemiBold)
-                }
-                CheckRow("صليت الفرض", pr.fardKey in done) {
-                    prefs.toggle(day, pr.fardKey); done = prefs.done(day)
-                }
-                pr.sunnah.forEach { (key, label) ->
-                    CheckRow(label, key in done) {
-                        prefs.toggle(day, key); done = prefs.done(day)
-                    }
-                }
-            }
-        }
-        item {
-            Text(
-                "الشروق: ${fmt.format(times.sunrise)}",
-                Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = Muted
-            )
-        }
                 }
             }
         }

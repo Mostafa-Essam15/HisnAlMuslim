@@ -3,6 +3,11 @@
 package com.hisn.muslim
 
 import androidx.compose.foundation.background
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -82,29 +87,47 @@ fun PrayerSheet(prefs: Prefs, times: PrayerTimes, next: Prayer?, day: String, no
             Text("مواقيت اليوم", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Gold, fontFamily = Serif)
             Text(hijri + " • " + SimpleDateFormat("EEEE d MMMM yyyy", Locale("ar")).format(Date(now)), fontSize = 12.sp, color = Muted)
             Spacer(Modifier.height(10.dp))
+            var done by remember(day) { mutableStateOf(prefs.done(day)) }
+            var open by remember { mutableStateOf<Prayer?>(null) }
             items(times).forEach { it ->
                 val isNext = it.prayer != null && it.prayer == next
                 val diff = (it.time.time - now) / 1000
-                val st = it.prayer?.let { p -> prefs.prayerStatus(day, p) } ?: 0
-                Row(
+                val st = it.prayer?.let { p -> if (p.fardKey in done) 2 else prefs.prayerStatus(day, p) } ?: 0
+                val expanded = it.prayer != null && open == it.prayer
+                Column(
                     Modifier.fillMaxWidth().padding(vertical = 3.dp)
                         .background(if (isNext) Gold.copy(alpha = 0.14f) else CardBg, RoundedCornerShape(16.dp))
                         .then(if (isNext) Modifier.border(1.5.dp, Gold, RoundedCornerShape(16.dp)) else Modifier)
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
+                        .clickable(enabled = it.prayer != null) { open = if (expanded) null else it.prayer }
+                        .padding(horizontal = 14.dp, vertical = 12.dp)
                 ) {
-                    Column {
-                        Text(it.name, fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = Serif, color = if (isNext) Gold else OnCard)
-                        val sub = when {
-                            isNext -> "القادمة • بعد %d:%02d".format(Locale.US, diff / 3600, (diff % 3600) / 60)
-                            diff > 0 -> "بعد %d:%02d".format(Locale.US, diff / 3600, (diff % 3600) / 60)
-                            st != 0 -> statusLabel(st)
-                            it.prayer == null -> "عدّت"
-                            else -> "عدّت • لم تُسجَّل"
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column {
+                            Text(it.name, fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = Serif, color = if (isNext) Gold else OnCard)
+                            val sub = when {
+                                isNext -> "القادمة • بعد %d:%02d".format(Locale.US, diff / 3600, (diff % 3600) / 60)
+                                diff > 0 -> "بعد %d:%02d".format(Locale.US, diff / 3600, (diff % 3600) / 60)
+                                st != 0 -> statusLabel(st)
+                                it.prayer == null -> "عدّت"
+                                else -> "عدّت • لم تُسجَّل"
+                            }
+                            Text(sub, fontSize = 12.sp, color = Muted)
                         }
-                        Text(sub, fontSize = 12.sp, color = Muted)
+                        Text(f.format(it.time), fontSize = 19.sp, fontWeight = FontWeight.SemiBold, color = Gold, textAlign = TextAlign.End)
                     }
-                    Text(f.format(it.time), fontSize = 19.sp, fontWeight = FontWeight.SemiBold, color = Gold, textAlign = TextAlign.End)
+                    if (expanded) {
+                        val p = it.prayer!!
+                        CheckRow("صليت الفرض", p.fardKey in done) {
+                            prefs.toggle(day, p.fardKey); done = prefs.done(day); refreshTick.intValue++
+                        }
+                        p.sunnah.forEach { (key, label) ->
+                            CheckRow(label, key in done) {
+                                prefs.toggle(day, key); done = prefs.done(day); refreshTick.intValue++
+                            }
+                        }
+                    } else if (it.prayer != null) {
+                        Text("اضغط لتسجيل الفرض والسنن", fontSize = 11.sp, color = Muted)
+                    }
                 }
             }
             Spacer(Modifier.height(6.dp))

@@ -259,7 +259,6 @@ val HOME_CARDS = listOf(
     "hadith" to "حديث اليوم",
     "fasting" to "صيام السنن",
     "tip" to "فائدة الصلاة",
-    "prayers" to "قائمة الصلوات وتسجيلها",
     "weather" to "الطقس (حالي + ٥ أيام)"
 )
 
