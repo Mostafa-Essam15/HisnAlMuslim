@@ -164,7 +164,7 @@ private fun TrackCalendar(prefs: Prefs) {
                 Prayer.values().forEachIndexed { i, pr ->
                     val cur = sts[i]
                     Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text(pr.label, fontWeight = FontWeight.Bold, fontFamily = Serif, fontSize = 18.sp)
+                        Text(pr.labelOn(sel.asDate()), fontWeight = FontWeight.Bold, fontFamily = Serif, fontSize = 18.sp)
                         Text(timeFmt.format(Engine.timeOf(times, pr)), fontSize = 12.sp, color = Muted)
                     }
                     Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -292,7 +292,7 @@ private fun TrackStats(prefs: Prefs) {
                     val o = col.count { it == 2 }; val l = col.count { it == 1 }; val m = col.count { it == 3 }
                     val p = if (rec == 0) 0 else (o + l) * 100 / rec
                     Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(pr.label, Modifier.weight(0.25f), fontFamily = Serif)
+                        Text(pr.ar, Modifier.weight(0.25f), fontFamily = Serif)
                         Row(Modifier.weight(0.6f).height(10.dp).background(CGray, RoundedCornerShape(5.dp))) {
                             if (rec > 0) {
                                 if (o > 0) Box(Modifier.weight(o.toFloat()).height(10.dp).background(CGreen))

@@ -18,7 +18,11 @@ enum class Prayer(val ar: String, val sunnah: List<Pair<String, String>>) {
     val fardKey get() = "${name}_FARD"
 
     /** اسم العرض: يوم الجمعة الظهر يبقى «الجمعة» */
-    val label: String get() = if (this == DHUHR && isFriday()) "الجمعة" else ar
+    val label: String get() = labelOn(java.util.Date())
+
+    /** اسم الصلاة في تاريخ معيّن (الجمعة فقط للظهر يوم الجمعة) */
+    fun labelOn(d: java.util.Date): String =
+        if (this == DHUHR && Calendar.getInstance().apply { time = d }.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY) "الجمعة" else ar
 }
 
 fun isFriday(): Boolean = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY
