@@ -75,7 +75,7 @@ class AdhanService : Service() {
             AdhanState.prayer.value = prayer
             AdhanState.playing.value = true
             Notif.builder(
-                this, Notif.CH_ADHAN, (if (prayer == Prayer.DHUHR && isFriday()) "صلاة الجمعة تناديك" else "أذّن ${prayer.label} الآن"), tip.text,
+                this, Notif.CH_ADHAN, (if (prayer == Prayer.DHUHR && isFriday()) "صلاة الجمعة تناديك" else "صلاة ${prayer.label} حانت"), tip.text,
                 "${tip.kind}: ${tip.text}\n${tip.source}"
             )
                 .setContentIntent(fullPi)
@@ -91,7 +91,7 @@ class AdhanService : Service() {
             val why = if (decision == AdhanPolicy.Decision.SKIP_SILENT)
                 "الموبايل على الصامت أو الاهتزاز، فالأذان ظهر كإشعار بدون صوت. لتشغيله بصوت فعّل «تشغيل الأذان في وضع الصامت» من الإعدادات."
             else "وصل التنبيه متأخرًا عن وقت الأذان، فما اتشغّلش الصوت."
-            Notif.builder(this, Notif.CH_ADHAN, (if (prayer == Prayer.DHUHR && isFriday()) "صلاة الجمعة تناديك" else "أذّن ${prayer.label} الآن"), why)
+            Notif.builder(this, Notif.CH_ADHAN, (if (prayer == Prayer.DHUHR && isFriday()) "صلاة الجمعة تناديك" else "صلاة ${prayer.label} حانت"), why)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setAutoCancel(true)
