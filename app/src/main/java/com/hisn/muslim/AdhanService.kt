@@ -75,7 +75,7 @@ class AdhanService : Service() {
             AdhanState.prayer.value = prayer
             AdhanState.playing.value = true
             Notif.builder(
-                this, Notif.CH_ADHAN, "حان الآن موعد أذان ${prayer.ar}", "${tip.kind}: ${tip.text}",
+                this, Notif.CH_ADHAN, (if (prayer == Prayer.DHUHR && isFriday()) "صلاة الجمعة تناديك" else "أذّن ${prayer.label} الآن"), tip.text,
                 "${tip.kind}: ${tip.text}\n${tip.source}"
             )
                 .setContentIntent(fullPi)
@@ -91,7 +91,7 @@ class AdhanService : Service() {
             val why = if (decision == AdhanPolicy.Decision.SKIP_SILENT)
                 "الموبايل على الصامت أو الاهتزاز، فالأذان ظهر كإشعار بدون صوت. لتشغيله بصوت فعّل «تشغيل الأذان في وضع الصامت» من الإعدادات."
             else "وصل التنبيه متأخرًا عن وقت الأذان، فما اتشغّلش الصوت."
-            Notif.builder(this, Notif.CH_ADHAN, "حان موعد أذان ${prayer.ar}", why)
+            Notif.builder(this, Notif.CH_ADHAN, (if (prayer == Prayer.DHUHR && isFriday()) "صلاة الجمعة تناديك" else "أذّن ${prayer.label} الآن"), why)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setAutoCancel(true)
@@ -180,7 +180,7 @@ class AdhanService : Service() {
     /** إظهار شاشة الأذان إجباريًا: نافذة فوق التطبيقات (لو الإذن مفعّل) + محاولة فتح الشاشة الكاملة مباشرة */
     private fun forceAdhanOnScreen(prayer: Prayer, tip: Tip) {
         ForcedOverlay.show(
-            this, "adhan", "🕌 حان الآن موعد", "أذان ${prayer.ar}", "${tip.kind}: ${tip.text}\n${tip.source}" + (if (prayer == Prayer.FAJR) "\n\nفي أذان الفجر يُقال: «الصلاة خير من النوم» مرتين" else ""),
+            this, "adhan", "🕌 حان الآن موعد", "أذان ${prayer.label}", "${tip.kind}: ${tip.text}\n${tip.source}" + (if (prayer == Prayer.FAJR) "\n\nفي أذان الفجر يُقال: «الصلاة خير من النوم» مرتين" else ""),
             listOf(
                 OverlayButton("⏹ إيقاف الأذان", true) {
                     ForcedOverlay.dismiss(this, "adhan")

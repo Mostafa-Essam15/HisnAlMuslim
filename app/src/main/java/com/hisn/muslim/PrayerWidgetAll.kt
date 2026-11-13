@@ -30,7 +30,7 @@ class PrayerWidgetAll : AppWidgetProvider() {
                 val fmt = SimpleDateFormat("hh:mm a", Locale("ar"))
                 Prayer.values().forEachIndexed { i, pr ->
                     val color = if (pr == next) 0xFFE8C766.toInt() else 0xFFFFFFFF.toInt()
-                    v.setTextViewText(names[i], pr.ar)
+                    v.setTextViewText(names[i], pr.label)
                     v.setTextViewText(times[i], fmt.format(Engine.timeOf(t, pr)))
                     v.setTextColor(names[i], color)
                     v.setTextColor(times[i], color)

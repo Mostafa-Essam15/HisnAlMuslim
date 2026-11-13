@@ -16,7 +16,12 @@ enum class Prayer(val ar: String, val sunnah: List<Pair<String, String>>) {
     );
 
     val fardKey get() = "${name}_FARD"
+
+    /** اسم العرض: يوم الجمعة الظهر يبقى «الجمعة» */
+    val label: String get() = if (this == DHUHR && isFriday()) "الجمعة" else ar
 }
+
+fun isFriday(): Boolean = Calendar.getInstance().get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY
 
 data class Tip(val kind: String, val text: String, val source: String)
 
@@ -96,6 +101,7 @@ object Content {
     )
 
     fun tip(p: Prayer, offset: Int = 0): Tip {
+        if (p == Prayer.DHUHR && isFriday()) return Tip("حديث", "«الصَّلَوَاتُ الْخَمْسُ، وَالْجُمُعَةُ إِلَى الْجُمُعَةِ، مُكَفِّرَاتٌ مَا بَيْنَهُنَّ إِذَا اجْتُنِبَتِ الْكَبَائِرُ»", "رواه مسلم")
         val list = tips.getValue(p)
         val day = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
         return list[(day + offset) % list.size]

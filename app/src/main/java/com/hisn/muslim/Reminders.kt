@@ -605,7 +605,7 @@ class ReminderReceiver : BroadcastReceiver() {
                 val pr = intent.getStringExtra("prayer")?.let { runCatching { Prayer.valueOf(it) }.getOrNull() }
                 if (pr != null && p.preMin > 0) {
                     Notif.notify(ctx, Notif.ID_PRE, Notif.builder(
-                        ctx, Notif.CH_REMIND, "⏳ اقترب وقت ${pr.ar}", "بقي نحو ${p.preMin} دقيقة على أذان ${pr.ar}. استعد للصلاة."
+                        ctx, Notif.CH_REMIND, "⏳ اقترب وقت ${pr.label}", "بقي نحو ${p.preMin} دقيقة على أذان ${pr.label}. استعد للصلاة."
                     ).build())
                 }
                 Reminders.schedulePreIqama(ctx)
@@ -614,7 +614,7 @@ class ReminderReceiver : BroadcastReceiver() {
                 val pr = intent.getStringExtra("prayer")?.let { runCatching { Prayer.valueOf(it) }.getOrNull() }
                 if (pr != null && p.iqamaMin > 0) {
                     Notif.notify(ctx, Notif.ID_IQAMA, Notif.builder(
-                        ctx, Notif.CH_REMIND, "🕌 موعد إقامة ${pr.ar}", "مرّت ${p.iqamaMin} دقيقة على الأذان. قم إلى الصلاة."
+                        ctx, Notif.CH_REMIND, "🕌 موعد إقامة ${pr.label}", "مرّت ${p.iqamaMin} دقيقة على الأذان. قم إلى الصلاة."
                     ).build())
                 }
                 Reminders.schedulePreIqama(ctx)
@@ -672,8 +672,8 @@ class ReminderReceiver : BroadcastReceiver() {
             )
         )
         val n = Notif.builder(
-            ctx, Notif.CH_CHECK, "انتهى وقت ${prayer.ar}",
-            "هل أتممت صلاة ${prayer.ar}؟ يمكنك تسجيلها «قضاء» إن فاتتك."
+            ctx, Notif.CH_CHECK, "انتهى وقت ${prayer.label}",
+            "هل أتممت صلاة ${prayer.label}؟ يمكنك تسجيلها «قضاء» إن فاتتك."
         )
             .addAction(action("✅ نعم", "P_YES", 600 + prayer.ordinal * 3))
             .addAction(action("↩ قضاء", "P_QADA", 601 + prayer.ordinal * 3))
@@ -683,7 +683,7 @@ class ReminderReceiver : BroadcastReceiver() {
         Notif.notify(ctx, Notif.idPeriod(prayer), n)
         val k = "period_${prayer.name}"
         ForcedOverlay.show(
-            ctx, k, "⏱ انتهى وقت الصلاة", "هل أتممت صلاة ${prayer.ar}؟", "يمكنك تسجيلها «قضاء» إن فاتتك.",
+            ctx, k, "⏱ انتهى وقت الصلاة", "هل أتممت صلاة ${prayer.label}؟", "يمكنك تسجيلها «قضاء» إن فاتتك.",
             listOf(
                 ForcedOverlay.reminderButton(ctx, k, "✅ نعم، أتممتها", true, "P_YES", prayer),
                 ForcedOverlay.reminderButton(ctx, k, "↩ قضاء", false, "P_QADA", prayer),
@@ -708,7 +708,7 @@ class ReminderReceiver : BroadcastReceiver() {
         )
 
         val n = Notif.builder(
-            ctx, Notif.CH_CHECK, "هل صليت ${prayer.ar}؟",
+            ctx, Notif.CH_CHECK, "هل صليت ${prayer.label}؟",
             "اضغط «صليت» لتسجيلها، أو «لسه» وهنفكرك بعد ${p.laterMin} دقيقة."
         )
             .addAction(action("✅ صليت", "DONE", 500 + prayer.ordinal * 2))
@@ -719,7 +719,7 @@ class ReminderReceiver : BroadcastReceiver() {
         Notif.notify(ctx, Notif.idCheck(prayer), n)
         val k = "check_${prayer.name}"
         ForcedOverlay.show(
-            ctx, k, "🤲 تذكير", "هل صليت ${prayer.ar}؟", "اضغط «صليت» لتسجيلها، أو «لسه» وهنفكرك بعد ${p.laterMin} دقيقة.",
+            ctx, k, "🤲 تذكير", "هل صليت ${prayer.label}؟", "اضغط «صليت» لتسجيلها، أو «لسه» وهنفكرك بعد ${p.laterMin} دقيقة.",
             listOf(
                 ForcedOverlay.reminderButton(ctx, k, "✅ صليت", true, "DONE", prayer),
                 ForcedOverlay.reminderButton(ctx, k, "⏳ لسه", false, "LATER", prayer)

@@ -40,12 +40,12 @@ import java.util.Locale
 private class PItem(val name: String, val time: Date, val prayer: Prayer?)
 
 private fun items(t: PrayerTimes): List<PItem> = listOf(
-    PItem(Prayer.FAJR.ar, t.fajr, Prayer.FAJR),
+    PItem(Prayer.FAJR.label, t.fajr, Prayer.FAJR),
     PItem("الشروق", t.sunrise, null),
-    PItem(Prayer.DHUHR.ar, t.dhuhr, Prayer.DHUHR),
-    PItem(Prayer.ASR.ar, t.asr, Prayer.ASR),
-    PItem(Prayer.MAGHRIB.ar, t.maghrib, Prayer.MAGHRIB),
-    PItem(Prayer.ISHA.ar, t.isha, Prayer.ISHA)
+    PItem(Prayer.DHUHR.label, t.dhuhr, Prayer.DHUHR),
+    PItem(Prayer.ASR.label, t.asr, Prayer.ASR),
+    PItem(Prayer.MAGHRIB.label, t.maghrib, Prayer.MAGHRIB),
+    PItem(Prayer.ISHA.label, t.isha, Prayer.ISHA)
 )
 
 /** شريط مواقيت اليوم تحت العدّاد: الصلاة القادمة بإطار ذهبي، والتي عدّت باهتة مع ✓ لو سجّلتها. */

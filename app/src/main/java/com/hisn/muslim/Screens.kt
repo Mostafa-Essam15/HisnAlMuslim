@@ -204,7 +204,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                 if (next != null) {
                     val diff = ((next.second.time - now) / 1000).coerceAtLeast(0)
                     Text("الصلاة القادمة", color = Muted, fontSize = 13.sp)
-                    Text(next.first.ar, fontSize = 34.sp, fontWeight = FontWeight.Bold, color = Gold, fontFamily = Serif)
+                    Text(next.first.label, fontSize = 34.sp, fontWeight = FontWeight.Bold, color = Gold, fontFamily = Serif)
                     Text(
                         String.format(Locale.US, "%02d:%02d:%02d", diff / 3600, (diff % 3600) / 60, diff % 60),
                         fontSize = 44.sp, fontWeight = FontWeight.Light
@@ -221,8 +221,8 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                         )
                         Spacer(Modifier.height(4.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(next.first.ar, fontSize = 12.sp, color = Muted)
-                            Text("منذ ${prev.first.ar}", fontSize = 12.sp, color = Muted)
+                            Text(next.first.label, fontSize = 12.sp, color = Muted)
+                            Text("منذ ${prev.first.label}", fontSize = 12.sp, color = Muted)
                         }
                     }
                 }
@@ -370,7 +370,7 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
             val pr = next?.first ?: Prayer.FAJR
             val tip = remember(pr, day) { Content.tip(pr) }
             Glass(Modifier.clickable { azkarStartMode.intValue = 0; onNavigate(2) }) {
-                SectionTitle("${tip.kind} • ${pr.ar}", Icons.Rounded.AutoAwesome)
+                SectionTitle("${tip.kind} • ${pr.label}", Icons.Rounded.AutoAwesome)
                 Text(tip.text, fontSize = 18.sp, lineHeight = 30.sp, fontFamily = Serif)
                 Spacer(Modifier.height(4.dp))
                 Text(tip.source, fontSize = 12.sp, color = Muted)
@@ -432,7 +432,7 @@ private fun ChallengesPane(prefs: Prefs) {
                     Text("عليك قضاء ${pendingQada.size} صلاة. اضغط «تم القضاء» بعد أدائها.", color = Muted, fontSize = 13.sp)
                     pendingQada.forEach { (d, p) ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("${p.ar} — $d", fontSize = 15.sp)
+                            Text("${p.label} — $d", fontSize = 15.sp)
                             TextButton(onClick = { prefs.setPrayerStatus(d, p, 1); qTick++ }) { Text("تم القضاء", color = Gold) }
                         }
                     }

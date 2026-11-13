@@ -127,7 +127,7 @@ fun AdhanScreen(prayer: Prayer, city: String, onStop: () -> Unit, onOpenApp: () 
                         drawCircle(Gold.copy(alpha = 0.22f), radius = size.minDimension * 0.42f)
                     }
                     Text(
-                        prayer.ar, color = Gold, fontSize = 64.sp,
+                        prayer.label, color = Gold, fontSize = 64.sp,
                         fontWeight = FontWeight.Bold, fontFamily = Serif
                     )
                 }

@@ -22,7 +22,7 @@ class PrayerWidget : AppWidgetProvider() {
             val prefs = Prefs(ctx)
             val next = try { Engine.next(prefs) } catch (e: Exception) { null }
             if (next != null) {
-                v.setTextViewText(R.id.w_name, next.first.ar)
+                v.setTextViewText(R.id.w_name, next.first.label)
                 v.setTextViewText(R.id.w_time, SimpleDateFormat("hh:mm a", Locale("ar")).format(next.second))
             }
             if (next != null) {
