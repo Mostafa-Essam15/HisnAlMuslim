@@ -255,7 +255,11 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                             )
                         }
                 ) {
-                    MushafPageView(page, ink, accent, hiBg, cur, Modifier.fillMaxSize(), mscale)
+                    // صفحة المصحف بتتحسب بالبكسل على أساس خط ثابت: لو خط النظام كبير (وخصوصًا التكبير غير الخطي في أندرويد ١٤+) العرض المقاس مش بيطابق المرسوم فالكلمات بتتقطع
+                    val dMush = androidx.compose.ui.platform.LocalDensity.current
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(dMush.density, 1f)
+                    ) { MushafPageView(page, ink, accent, hiBg, cur, Modifier.fillMaxSize(), mscale) }
                 }
             }
         } else {

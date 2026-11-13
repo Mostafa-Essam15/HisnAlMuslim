@@ -65,16 +65,20 @@ val UiFont = FontFamily(
     Font(R.font.tajawal_bold, FontWeight.Bold)
 )
 
+/** Tajawal ارتفاع سطره الطبيعي أكبر من ما Material بيحدده (خصوصًا النزول تحت الخط) فكان بيقصّ أسفل الحروف (ع، ق، ي) وهمزات الإ؛ فبنسيب ارتفاع السطر للخط نفسه مع حشو الخط. */
+private fun TextStyle.ui() = copy(
+    fontFamily = UiFont,
+    lineHeight = androidx.compose.ui.unit.TextUnit.Unspecified,
+    platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = true)
+)
+
 private val hisnTypography = Typography().let { b ->
     Typography(
-        displayLarge = b.displayLarge.copy(fontFamily = UiFont), displayMedium = b.displayMedium.copy(fontFamily = UiFont),
-        displaySmall = b.displaySmall.copy(fontFamily = UiFont), headlineLarge = b.headlineLarge.copy(fontFamily = UiFont),
-        headlineMedium = b.headlineMedium.copy(fontFamily = UiFont), headlineSmall = b.headlineSmall.copy(fontFamily = UiFont),
-        titleLarge = b.titleLarge.copy(fontFamily = UiFont), titleMedium = b.titleMedium.copy(fontFamily = UiFont),
-        titleSmall = b.titleSmall.copy(fontFamily = UiFont), bodyLarge = b.bodyLarge.copy(fontFamily = UiFont),
-        bodyMedium = b.bodyMedium.copy(fontFamily = UiFont), bodySmall = b.bodySmall.copy(fontFamily = UiFont),
-        labelLarge = b.labelLarge.copy(fontFamily = UiFont), labelMedium = b.labelMedium.copy(fontFamily = UiFont),
-        labelSmall = b.labelSmall.copy(fontFamily = UiFont)
+        displayLarge = b.displayLarge.ui(), displayMedium = b.displayMedium.ui(), displaySmall = b.displaySmall.ui(),
+        headlineLarge = b.headlineLarge.ui(), headlineMedium = b.headlineMedium.ui(), headlineSmall = b.headlineSmall.ui(),
+        titleLarge = b.titleLarge.ui(), titleMedium = b.titleMedium.ui(), titleSmall = b.titleSmall.ui(),
+        bodyLarge = b.bodyLarge.ui(), bodyMedium = b.bodyMedium.ui(), bodySmall = b.bodySmall.ui(),
+        labelLarge = b.labelLarge.ui(), labelMedium = b.labelMedium.ui(), labelSmall = b.labelSmall.ui()
     )
 }
 
@@ -105,7 +109,7 @@ fun HisnTheme(content: @Composable () -> Unit) {
             onBackground = Color.White
         ),
         typography = hisnTypography,
-        content = { ProvideTextStyle(TextStyle(fontFamily = UiFont), content) }
+        content = { ProvideTextStyle(TextStyle(fontFamily = UiFont, platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = true)), content) }
     )
 }
 

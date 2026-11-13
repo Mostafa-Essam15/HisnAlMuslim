@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -239,7 +240,7 @@ fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pai
                 (l.words.size - 1).coerceAtLeast(0) * with(density) { gap0.sp.toPx() }
         val widths = textLines.map { natural(it, measurer) }
         val maxW = widths.maxOrNull()?.takeIf { it > 0 } ?: 1f
-        val fsByWidth = 24f * availW / maxW
+        val fsByWidth = 24f * availW / maxW * 0.97f // هامش أمان ٣٪ لامتداد حبر الخط خارج مقاس الكلمة
         val rowH = availHdp / 15f
         val fs = minOf(fsByWidth, rowH * 0.78f).coerceAtLeast(10f)
         val gapPx = with(density) { (fs * 0.22f).sp.toPx() }
@@ -264,13 +265,15 @@ fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pai
                             val w = widths[ti++]
                             val full = w / maxW >= 0.93f
                             Row(
-                                Modifier.fillMaxWidth(),
+                                // ارتفاع غير مقيّد: خطوط QCF أطول من الصف فكان أسفل الحروف بيتقصّ
+                                Modifier.fillMaxWidth().wrapContentHeight(align = Alignment.CenterVertically, unbounded = true),
                                 horizontalArrangement = if (full && l.words.size > 1) Arrangement.SpaceBetween else Arrangement.spacedBy(with(density) { gapPx.toDp() }, Alignment.CenterHorizontally)
                             ) {
                                 l.words.forEach { word ->
                                     val on = current != null && current.first == word.surah && current.second == word.ayah
                                     Text(
                                         word.glyph, color = ink, fontFamily = family, fontSize = fs.sp,
+                                        softWrap = false, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Visible,
                                         modifier = if (on) Modifier.background(hi) else Modifier
                                     )
                                 }
