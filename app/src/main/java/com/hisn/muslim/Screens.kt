@@ -377,7 +377,6 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
             }
         }
                 }
-                }
             }
         }
     }
