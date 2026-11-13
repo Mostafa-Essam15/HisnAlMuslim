@@ -1,5 +1,6 @@
 package com.hisn.muslim
 
+import androidx.compose.ui.res.painterResource
 import android.app.NotificationManager
 import android.app.TimePickerDialog
 import android.content.Context
@@ -733,6 +734,8 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                 SectionTitle("عن التطبيق والمطوّر", Icons.Rounded.AutoAwesome)
                 Text("حصن المسلم — النسخة 2.0", fontWeight = FontWeight.Bold)
                 Text("تطوير: Mostafa Essam", fontSize = 15.sp)
+                Text("Is an Egyptian electrical engineer", fontSize = 13.sp, color = Muted)
+                Text("هذا التطبيق خالص لوجه الله تعالى 🤍", fontSize = 13.sp, color = Gold)
                 Text("Mostafaesam15@gmail.com", fontSize = 14.sp, color = Gold)
                 Row {
                     TextButton(onClick = {
@@ -742,6 +745,14 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                         }
                     }) { Text("✉ تواصل مع المطوّر", color = Gold) }
                     TextButton(onClick = { shareText(ctx, "تطبيق حصن المسلم — تطوير Mostafa Essam (Mostafaesam15@gmail.com)") }) { Text("مشاركة", color = Gold) }
+                }
+                Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Image(painterResource(com.hisn.muslim.R.drawable.ic_facebook), "فيسبوك", Modifier.size(40.dp).clickable {
+                        runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.facebook.com/share/1FdCUBXAXh/")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    })
+                    Image(painterResource(com.hisn.muslim.R.drawable.ic_whatsapp), "واتساب", Modifier.size(40.dp).clickable {
+                        runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/201090033790")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    })
                 }
                 Text("أرسل أي ملاحظة أو خطأ في نص أو مصدر وسيتم تصحيحه.", fontSize = 11.sp, color = Muted)
             }
