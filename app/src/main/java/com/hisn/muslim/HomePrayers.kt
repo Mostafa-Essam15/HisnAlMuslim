@@ -3,6 +3,8 @@
 package com.hisn.muslim
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
@@ -82,8 +84,17 @@ private fun statusLabel(s: Int) = when (s) { 2 -> "على وقتها"; 1 -> "م�
 @Composable
 fun PrayerSheet(prefs: Prefs, times: PrayerTimes, next: Prayer?, day: String, now: Long, hijri: String, onSettings: () -> Unit, onDismiss: () -> Unit) {
     val f = SimpleDateFormat("hh:mm a", Locale("ar"))
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Ink, contentColor = OnCard) {
-        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss, containerColor = Ink, contentColor = OnCard,
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        val scroll = androidx.compose.foundation.rememberScrollState()
+        var openForScroll by remember { mutableStateOf<Prayer?>(null) }
+        // لما تفتح صلاة قرب آخر القائمة نسحب لتحت عشان خانات الفرض والسنن تبان
+        androidx.compose.runtime.LaunchedEffect(openForScroll) {
+            if (openForScroll != null && openForScroll!!.ordinal >= 2) { kotlinx.coroutines.delay(80); scroll.animateScrollTo(scroll.maxValue) }
+        }
+        Column(Modifier.verticalScroll(scroll).padding(horizontal = 20.dp).padding(bottom = 48.dp).navigationBarsPadding()) {
             Text("مواقيت اليوم", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Gold, fontFamily = Serif)
             Text(hijri + " • " + SimpleDateFormat("EEEE d MMMM yyyy", Locale("ar")).format(Date(now)), fontSize = 12.sp, color = Muted)
             Spacer(Modifier.height(10.dp))
@@ -98,7 +109,7 @@ fun PrayerSheet(prefs: Prefs, times: PrayerTimes, next: Prayer?, day: String, no
                     Modifier.fillMaxWidth().padding(vertical = 3.dp)
                         .background(if (isNext) Gold.copy(alpha = 0.14f) else CardBg, RoundedCornerShape(16.dp))
                         .then(if (isNext) Modifier.border(1.5.dp, Gold, RoundedCornerShape(16.dp)) else Modifier)
-                        .clickable(enabled = it.prayer != null) { open = if (expanded) null else it.prayer }
+                        .clickable(enabled = it.prayer != null) { open = if (expanded) null else it.prayer; openForScroll = open }
                         .padding(horizontal = 14.dp, vertical = 12.dp)
                 ) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {

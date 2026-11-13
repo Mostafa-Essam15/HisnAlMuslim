@@ -417,18 +417,25 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
         }
         }
     }
-    if (readerFull) {
-        // أدوات عائمة صغيرة: خروج + تنقل بين الصفحات + رقم الصفحة
+    // أدوات الشاشة الكاملة مخفية افتراضيًا (عشان ما تغطيش كلام المصحف)؛ لمسة على الصفحة بتظهرها ٣ ثواني
+    var showCtl by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(showCtl, readerFull) {
+        if (showCtl) { kotlinx.coroutines.delay(3000); showCtl = false }
+    }
+    if (readerFull && !showCtl) Box(
+        Modifier.fillMaxSize().pointerInput(Unit) { androidx.compose.foundation.gestures.detectTapGestures(onTap = { showCtl = true }) }
+    )
+    if (readerFull && showCtl) {
         Row(Modifier.align(Alignment.TopStart).padding(8.dp)) {
-            androidx.compose.material3.FilledTonalIconButton(onClick = { readerFull = false }) { Text("✕", fontSize = 16.sp) }
+            androidx.compose.material3.FilledTonalIconButton(onClick = { readerFull = false }, modifier = Modifier.size(40.dp)) { Text("✕", fontSize = 14.sp) }
         }
         Row(
-            Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp),
+            Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically
         ) {
-            androidx.compose.material3.FilledTonalIconButton(onClick = { if (page > 1) onPage(page - 1) }) { Text("›", fontSize = 20.sp) }
-            Text(Quran.arabicDigits(page), color = ink, fontSize = 13.sp, modifier = Modifier.background(pageBg.copy(alpha = 0.85f), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
-            androidx.compose.material3.FilledTonalIconButton(onClick = { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }) { Text("‹", fontSize = 20.sp) }
+            androidx.compose.material3.FilledTonalIconButton(onClick = { if (page > 1) { onPage(page - 1); showCtl = true } }, modifier = Modifier.size(40.dp)) { Text("›", fontSize = 18.sp) }
+            Text(Quran.arabicDigits(page), color = ink, fontSize = 13.sp, modifier = Modifier.background(pageBg.copy(alpha = 0.9f), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
+            androidx.compose.material3.FilledTonalIconButton(onClick = { if (page < Quran.TOTAL_PAGES) { onPage(page + 1); showCtl = true } }, modifier = Modifier.size(40.dp)) { Text("‹", fontSize = 18.sp) }
         }
     }
     }
