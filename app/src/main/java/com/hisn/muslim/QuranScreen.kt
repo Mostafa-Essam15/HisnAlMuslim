@@ -1,5 +1,6 @@
 package com.hisn.muslim
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
@@ -423,7 +424,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
         if (showCtl) { kotlinx.coroutines.delay(3000); showCtl = false }
     }
     if (readerFull && !showCtl) Box(
-        Modifier.fillMaxSize().pointerInput(Unit) { androidx.compose.foundation.gestures.detectTapGestures(onTap = { showCtl = true }) }
+        Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures(onTap = { showCtl = true }) }
     )
     if (readerFull && showCtl) {
         Row(Modifier.align(Alignment.TopStart).padding(8.dp)) {
