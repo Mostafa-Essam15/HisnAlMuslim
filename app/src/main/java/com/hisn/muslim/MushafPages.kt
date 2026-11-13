@@ -252,20 +252,21 @@ fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pai
                 Box(Modifier.fillMaxWidth().height(rowH.dp), contentAlignment = Alignment.Center) {
                     when (l.type) {
                         "surah-header" -> Box(
-                            Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 2.dp)
+                            Modifier.fillMaxSize().padding(horizontal = 6.dp, vertical = 3.dp)
                                 .background(accent.copy(alpha = 0.18f), androidx.compose.foundation.shape.RoundedCornerShape(10.dp)),
                             contentAlignment = Alignment.Center
                         ) {
+                            // خط أصغر + ارتفاع غير مقيّد عشان أعلى/أسفل الحروف ما يتقصّش
                             Text(
-                                l.text, color = accent, fontFamily = Serif, fontSize = (rowH * 0.4f).sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                softWrap = false, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Visible,
+                                l.text, color = accent, fontFamily = Serif, fontSize = (rowH * 0.34f).sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Visible,
                                 modifier = Modifier.wrapContentHeight(align = Alignment.CenterVertically, unbounded = true)
                             )
                         }
                         "basmala" -> Text(
                             "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ",
-                            color = ink, fontFamily = Serif, fontSize = (rowH * 0.42f).sp,
-                            softWrap = false, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Visible,
+                            color = ink, fontFamily = Serif, fontSize = (rowH * 0.4f).sp,
+                            maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Visible,
                             modifier = Modifier.wrapContentHeight(align = Alignment.CenterVertically, unbounded = true)
                         )
                         "text" -> {
