@@ -1,5 +1,6 @@
 package com.hisn.muslim
 
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import kotlin.math.roundToInt
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -681,7 +682,7 @@ private fun BookmarksPane(prefs: Prefs, onOpen: (Int) -> Unit) {
 
 /** تكبير/تصغير بإصبعين: بيشتغل بس لما يكون فيه إصبعين، والإصبع الواحد بيعدّي للتمرير/السحب عادي. */
 private fun Modifier.pinchZoom(onZoom: (Float) -> Unit, onEnd: () -> Unit): Modifier = this.pointerInput(Unit) {
-    androidx.compose.foundation.gestures.awaitEachGesture {
+    awaitEachGesture {
         awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
         var prev = 0f
         var zoomed = false
