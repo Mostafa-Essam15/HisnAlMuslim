@@ -3,6 +3,7 @@ package com.hisn.muslim
 import android.content.Context
 import android.graphics.Typeface as AndroidTypeface
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -182,7 +183,7 @@ object MushafStore {
 
 /** عرض صفحة مصحف المدينة. لو الصفحة مش محمّلة بيحاول يحمّلها، ولو فشل بيعرض زر التحميل. */
 @Composable
-fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pair<Int, Int>?, modifier: Modifier = Modifier, scale: Float = 1f) {
+fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pair<Int, Int>?, modifier: Modifier = Modifier, scale: Float = 1f, onAyah: ((Int, Int) -> Unit)? = null) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var attempt by remember(page) { mutableIntStateOf(0) }
@@ -274,7 +275,11 @@ fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pai
                                     Text(
                                         word.glyph, color = ink, fontFamily = family, fontSize = fs.sp,
                                         softWrap = false, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Visible,
-                                        modifier = if (on) Modifier.background(hi) else Modifier
+                                        modifier = (if (on) Modifier.background(hi) else Modifier).then(
+                                            if (onAyah != null && word.surah > 0) Modifier.clickable(
+                                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null
+                                            ) { onAyah(word.surah, word.ayah) } else Modifier
+                                        )
                                     )
                                 }
                             }

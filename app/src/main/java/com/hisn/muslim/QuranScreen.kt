@@ -187,6 +187,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
     var theme by remember { mutableIntStateOf(prefs.quranTheme) }
     var bmTick by remember { mutableIntStateOf(0) }
     var mode by remember { mutableIntStateOf(prefs.mushafMode) }
+    var ayahSheet by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var mscale by remember { mutableStateOf(prefs.mushafScale) }
     var repeat by remember { mutableIntStateOf(prefs.repeatMode) }
     var reciter by remember { mutableStateOf(prefs.reciter) }
@@ -278,7 +279,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                     val dMush = androidx.compose.ui.platform.LocalDensity.current
                     androidx.compose.runtime.CompositionLocalProvider(
                         androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(dMush.density, 1f)
-                    ) { MushafPageView(page, ink, accent, hiBg, cur, Modifier.fillMaxSize(), mscale) }
+                    ) { MushafPageView(page, ink, accent, hiBg, ayahSheet ?: cur, Modifier.fillMaxSize(), mscale) { s, a -> ayahSheet = s to a } }
                 }
             }
         } else {
@@ -419,6 +420,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
         }
     }
     // أدوات الشاشة الكاملة مخفية افتراضيًا (عشان ما تغطيش كلام المصحف)؛ لمسة على الصفحة بتظهرها ٣ ثواني
+    ayahSheet?.let { (s, a) -> AyahActionsSheet(s, a, onRange = { _, _ -> }, onDismiss = { ayahSheet = null }) }
     var showCtl by remember { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(showCtl, readerFull) {
         if (showCtl) { kotlinx.coroutines.delay(3000); showCtl = false }
