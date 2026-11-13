@@ -2,6 +2,7 @@ package com.hisn.muslim
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -35,6 +36,21 @@ fun AyahActionsSheet(surah: Int, ayah: Int, onPlay: (List<Ayah>, Boolean) -> Uni
     val src = if (from == to) "[سورة $name: ${Quran.arabicDigits(from)}]" else "[سورة $name: ${Quran.arabicDigits(from)}–${Quran.arabicDigits(to)}]"
     val shareBody = "﴿ $body ﴾"
 
+    val prefs = remember { Prefs(ctx) }
+    var showTafsir by remember(surah, ayah) { mutableStateOf(false) }
+    var slug by remember { mutableStateOf(prefs.tafsirSlug) }
+    var tMap by remember(surah, slug) { mutableStateOf<Map<Int, String>?>(null) }
+    var tMsg by remember(surah, slug) { mutableStateOf<String?>(null) }
+    LaunchedEffect(showTafsir, surah, slug) {
+        if (!showTafsir) return@LaunchedEffect
+        tMsg = null
+        tMap = withContext(Dispatchers.IO) {
+            if (!TafsirStore.hasSurah(ctx, slug, surah)) TafsirStore.downloadSurah(ctx, slug, surah)?.let { tMsg = "تعذّر تحميل التفسير ($it). تأكد من الاتصال بالإنترنت." }
+            TafsirStore.load(ctx, slug, surah)
+        }
+    }
+    val ed = TafsirStore.editions.firstOrNull { it.slug == slug } ?: TafsirStore.editions.first()
+
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Ink, contentColor = OnCard) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 32.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("سورة $name • ${if (from == to) "آية ${Quran.arabicDigits(from)}" else "الآيات ${Quran.arabicDigits(from)}–${Quran.arabicDigits(to)}"}", color = Gold, fontWeight = FontWeight.Bold)
@@ -59,6 +75,30 @@ fun AyahActionsSheet(surah: Int, ayah: Int, onPlay: (List<Ayah>, Boolean) -> Uni
                         "مشاركة كصورة" to { ShareCard.share(ctx, shareBody, src) }
                     )
                 )
+                Button(onClick = { showTafsir = !showTafsir }, colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = androidx.compose.ui.graphics.Color.Black)) {
+                    Text(if (showTafsir) "إخفاء التفسير" else if (from == to) "📖 تفسير الآية" else "📖 تفسير المحدد")
+                }
+                if (showTafsir) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TafsirStore.editions.forEach { e -> GoldChip(e.name, slug == e.slug) { slug = e.slug; prefs.tafsirSlug = e.slug } }
+                    }
+                    val m = tMap
+                    if (m == null) Text(tMsg ?: "جارٍ التحميل…", color = if (tMsg != null) androidx.compose.ui.graphics.Color(0xFFFF8A80) else Gold, fontSize = 13.sp)
+                    else {
+                        var prevT: String? = null
+                        for (n in from..to) {
+                            val t = m[n]
+                            if (t == null) Text("آية ${Quran.arabicDigits(n)}: التفسير غير متاح حاليًا", color = Muted, fontSize = 13.sp)
+                            else if (t == prevT) Text("آية ${Quran.arabicDigits(n)}: داخلة في شرح الآية السابقة (نفس الفقرة).", color = Muted, fontSize = 13.sp)
+                            else {
+                                if (to > from) Text("آية ${Quran.arabicDigits(n)}", color = Gold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                SelectionContainer { Text(t, fontSize = 16.sp, lineHeight = 28.sp) }
+                            }
+                            prevT = t
+                        }
+                        Text("— ${ed.name}: ${ed.author}", color = Muted, fontSize = 11.sp)
+                    }
+                }
                 Text("الاستماع", color = Gold, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
                 FlowRowButtons(
                     listOf(

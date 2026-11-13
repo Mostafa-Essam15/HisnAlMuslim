@@ -78,12 +78,14 @@ private fun buildPageBlocks(page: Int, accent: Color, hi: Pair<Int, Int>?, hiBg:
             }
             out += Block.Head(a.surah)
         }
+        sb.pushStringAnnotation("ayah", "${a.surah}:${a.num}")
         if (hi != null && hi.first == a.surah && hi.second == a.num) sb.pushStyle(SpanStyle(background = hiBg))
         else sb.pushStyle(SpanStyle())
         sb.append(a.text + " ")
         sb.pop()
         sb.pushStyle(SpanStyle(color = accent))
         sb.append("﴿${Quran.arabicDigits(a.num)}﴾ ")
+        sb.pop()
         sb.pop()
         has = true
     }
@@ -331,10 +333,28 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                                     }
                                 }
                             }
-                            is Block.Run -> Text(
-                                b.text, color = ink, fontSize = font.sp,
-                                lineHeight = (font * 2.0f).sp, fontFamily = Serif, textAlign = TextAlign.Justify
-                            )
+                            is Block.Run -> {
+                                var lay by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
+                                val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+                                Text(
+                                    b.text, color = ink, fontSize = font.sp,
+                                    lineHeight = (font * 2.0f).sp, fontFamily = Serif, textAlign = TextAlign.Justify,
+                                    onTextLayout = { lay = it },
+                                    modifier = Modifier.pointerInput(b.text) {
+                                        detectTapGestures(onLongPress = { pos ->
+                                            val l = lay ?: return@detectTapGestures
+                                            val o = l.getOffsetForPosition(pos)
+                                            b.text.getStringAnnotations("ayah", o, o).firstOrNull()?.item?.split(":")?.let { p ->
+                                                val s = p.getOrNull(0)?.toIntOrNull(); val n = p.getOrNull(1)?.toIntOrNull()
+                                                if (s != null && n != null) {
+                                                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                                    ayahSheet = s to n
+                                                }
+                                            }
+                                        })
+                                    }
+                                )
+                            }
                         }
                     }
                 }
