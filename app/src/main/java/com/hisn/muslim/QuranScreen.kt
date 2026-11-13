@@ -87,6 +87,9 @@ private fun buildPageBlocks(page: Int, accent: Color, hi: Pair<Int, Int>?, hiBg:
     return out
 }
 
+/** وضع «الشاشة كاملة» للقراءة: يخفي الشريط السفلي وشريط النظام وأدوات القراءة */
+var readerFull by androidx.compose.runtime.mutableStateOf(false)
+
 @Composable
 fun QuranScreen(prefs: Prefs, jumpTo: Int, onJumpConsumed: () -> Unit) {
     val ctx = LocalContext.current
@@ -151,7 +154,7 @@ fun QuranScreen(prefs: Prefs, jumpTo: Int, onJumpConsumed: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        Row(
+        if (!(readerFull && section == 0)) Row(
             Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -205,8 +208,22 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
     val first = Quran.byPage[page]?.firstOrNull()
     val isRead = remember(page, readTick) { page in prefs.khatmaPagesRead() || page in prefs.pagesReadOn(prefs.dayKey()) }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Row(
+    val activityWin = (ctx as? android.app.Activity)?.window
+    val hostView = androidx.compose.ui.platform.LocalView.current
+    androidx.compose.runtime.DisposableEffect(readerFull) {
+        val c = activityWin?.let { androidx.core.view.WindowCompat.getInsetsController(it, hostView) }
+        if (readerFull) {
+            c?.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            c?.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        } else c?.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        onDispose { c?.show(androidx.core.view.WindowInsetsCompat.Type.systemBars()) }
+    }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { readerFull = false } }
+    androidx.activity.compose.BackHandler(enabled = readerFull) { readerFull = false }
+
+    Box(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize().padding(horizontal = if (readerFull) 4.dp else 16.dp)) {
+        if (!readerFull) Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -221,7 +238,8 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 }
             }
         }
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (!readerFull) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            GoldChip("⛶ شاشة كاملة", false) { readerFull = true }
             GoldChip(if (mode == 1) "عرض: المصحف" else "عرض: النص", false) { mode = 1 - mode; prefs.mushafMode = mode }
             GoldChip(when (theme) { 0 -> "ورق"; 1 -> "أبيض"; else -> "داكن" }, false) { theme = (theme + 1) % 3; prefs.quranTheme = theme }
             GoldChip("تصغير الخط  أ-", false) {
@@ -233,7 +251,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 else { font = (font + 2).coerceAtMost(44); prefs.quranFont = font }
             }
         }
-        Spacer(Modifier.height(6.dp))
+        if (!readerFull) Spacer(Modifier.height(6.dp))
 
         if (mode == 1) {
             key(page) {
@@ -296,6 +314,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
             }
         }
 
+        if (!readerFull) {
         Spacer(Modifier.height(6.dp))
         // التلاوة
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -619,5 +638,24 @@ private fun BookmarksPane(prefs: Prefs, onOpen: (Int) -> Unit) {
                 }
             }
         }
+        }
+    }
+    if (readerFull) {
+        // أدوات عائمة صغيرة: خروج + تنقل بين الصفحات + رقم الصفحة
+        Row(
+            Modifier.align(Alignment.TopStart).padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            androidx.compose.material3.FilledTonalIconButton(onClick = { readerFull = false }) { Text("✕", fontSize = 16.sp) }
+        }
+        Row(
+            Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically
+        ) {
+            androidx.compose.material3.FilledTonalIconButton(onClick = { if (page > 1) onPage(page - 1) }) { Text("›", fontSize = 20.sp) }
+            Text("${Quran.arabicDigits(page)}", color = ink, fontSize = 13.sp, modifier = Modifier.background(pageBg.copy(alpha = 0.85f), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 4.dp))
+            androidx.compose.material3.FilledTonalIconButton(onClick = { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }) { Text("‹", fontSize = 20.sp) }
+        }
+    }
     }
 }

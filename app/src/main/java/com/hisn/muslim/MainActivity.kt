@@ -170,7 +170,7 @@ fun App() {
             bottomBar = {
                 // الشريط السفلي مساحته ثابتة: نحدّ خط عناوينه عند ١٫١٥ (الأيقونات تكمّل المعنى)
                 val navDens = androidx.compose.ui.platform.LocalDensity.current
-                CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(navDens.density, navDens.fontScale.coerceAtMost(1.15f))) {
+                if (!readerFull) CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(navDens.density, navDens.fontScale.coerceAtMost(1.15f))) {
                 NavigationBar(containerColor = if (Look.light) Color(0xF2FFFFFF) else Color(0xE6051510)) {
                     appTabs.forEachIndexed { i, t ->
                         NavigationBarItem(
