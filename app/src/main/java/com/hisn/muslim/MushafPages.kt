@@ -3,7 +3,8 @@ package com.hisn.muslim
 import android.content.Context
 import android.graphics.Typeface as AndroidTypeface
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -182,9 +183,11 @@ object MushafStore {
 }
 
 /** عرض صفحة مصحف المدينة. لو الصفحة مش محمّلة بيحاول يحمّلها، ولو فشل بيعرض زر التحميل. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pair<Int, Int>?, modifier: Modifier = Modifier, scale: Float = 1f, onAyah: ((Int, Int) -> Unit)? = null) {
     val ctx = LocalContext.current
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     var attempt by remember(page) { mutableIntStateOf(0) }
     var err by remember(page) { mutableStateOf<String?>(null) }
@@ -283,9 +286,14 @@ fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pai
                                         word.glyph, color = ink, fontFamily = family, fontSize = fs.sp,
                                         softWrap = false, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Visible,
                                         modifier = (if (on) Modifier.background(hi) else Modifier).then(
-                                            if (onAyah != null && word.surah > 0) Modifier.clickable(
-                                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null
-                                            ) { onAyah(word.surah, word.ayah) } else Modifier
+                                            if (onAyah != null && word.surah > 0) Modifier.combinedClickable(
+                                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null,
+                                                onClick = {},
+                                                onLongClick = {
+                                                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                                    onAyah(word.surah, word.ayah)
+                                                }
+                                            ) else Modifier
                                         )
                                     )
                                 }

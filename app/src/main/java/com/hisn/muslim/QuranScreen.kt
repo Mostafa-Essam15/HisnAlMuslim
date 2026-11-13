@@ -1,5 +1,7 @@
 package com.hisn.muslim
 
+import androidx.compose.foundation.gestures.awaitFirstDown
+import kotlin.math.roundToInt
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -184,7 +186,8 @@ private var skipStop = false
 
 @Composable
 private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
-    var font by remember { mutableIntStateOf(prefs.quranFont) }
+    var fontF by remember { mutableStateOf(prefs.quranFont.toFloat()) }
+    val font = fontF.roundToInt()
     var readTick by remember { mutableIntStateOf(0) }
     val ctx = LocalContext.current
     var theme by remember { mutableIntStateOf(prefs.quranTheme) }
@@ -254,11 +257,11 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
             GoldChip(when (theme) { 0 -> "ورق"; 1 -> "أبيض"; else -> "داكن" }, false) { theme = (theme + 1) % 3; prefs.quranTheme = theme }
             GoldChip("تصغير الخط  أ-", false) {
                 if (mode == 1) { mscale = (mscale - 0.25f).coerceAtLeast(0.75f); prefs.mushafScale = mscale }
-                else { font = (font - 2).coerceAtLeast(18); prefs.quranFont = font }
+                else { fontF = (font - 2f).coerceAtLeast(18f); prefs.quranFont = fontF.roundToInt() }
             }
             GoldChip("تكبير الخط  أ+", false) {
                 if (mode == 1) { mscale = (mscale + 0.25f).coerceAtMost(2.5f); prefs.mushafScale = mscale }
-                else { font = (font + 2).coerceAtMost(44); prefs.quranFont = font }
+                else { fontF = (font + 2f).coerceAtMost(44f); prefs.quranFont = fontF.roundToInt() }
             }
         }
         if (!readerFull) Spacer(Modifier.height(6.dp))
@@ -271,6 +274,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                         .clip(RoundedCornerShape(22.dp))
                         .background(pageBg)
                         .padding(horizontal = 8.dp, vertical = 6.dp)
+                        .pinchZoom(onZoom = { z -> mscale = (mscale * z).coerceIn(0.75f, 2.5f) }, onEnd = { prefs.mushafScale = mscale })
                         .pointerInput(page) {
                             detectHorizontalDragGestures(
                                 onDragStart = { drag = 0f },
@@ -297,6 +301,18 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                     Modifier.weight(1f).fillMaxWidth()
                         .clip(RoundedCornerShape(22.dp))
                         .background(pageBg)
+                        .pinchZoom(onZoom = { z -> fontF = (fontF * z).coerceIn(18f, 44f) }, onEnd = { prefs.quranFont = fontF.roundToInt() })
+                        .pointerInput(page) {
+                            var drag = 0f
+                            detectHorizontalDragGestures(
+                                onDragStart = { drag = 0f },
+                                onDragEnd = {
+                                    if (drag > 120f && page < Quran.TOTAL_PAGES) onPage(page + 1)
+                                    else if (drag < -120f && page > 1) onPage(page - 1)
+                                },
+                                onHorizontalDrag = { _, d -> drag += d }
+                            )
+                        }
                         .verticalScroll(scroll)
                         .padding(18.dp)
                 ) {
@@ -659,5 +675,26 @@ private fun BookmarksPane(prefs: Prefs, onOpen: (Int) -> Unit) {
                 }
             }
         }
+    }
+}
+
+
+/** تكبير/تصغير بإصبعين: بيشتغل بس لما يكون فيه إصبعين، والإصبع الواحد بيعدّي للتمرير/السحب عادي. */
+private fun Modifier.pinchZoom(onZoom: (Float) -> Unit, onEnd: () -> Unit): Modifier = this.pointerInput(Unit) {
+    androidx.compose.foundation.gestures.awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+        var prev = 0f
+        var zoomed = false
+        do {
+            val ev = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+            val pts = ev.changes.filter { it.pressed }
+            if (pts.size >= 2) {
+                val d = (pts[0].position - pts[1].position).getDistance()
+                if (prev > 0f && d > 0f) { onZoom(d / prev); zoomed = true }
+                prev = d
+                ev.changes.forEach { it.consume() }
+            } else prev = 0f
+        } while (ev.changes.any { it.pressed })
+        if (zoomed) onEnd()
     }
 }
