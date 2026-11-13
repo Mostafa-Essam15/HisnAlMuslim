@@ -256,11 +256,17 @@ fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pai
                                 .background(accent.copy(alpha = 0.18f), androidx.compose.foundation.shape.RoundedCornerShape(10.dp)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(l.text, color = accent, fontFamily = Serif, fontSize = (rowH * 0.5f).sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                            Text(
+                                l.text, color = accent, fontFamily = Serif, fontSize = (rowH * 0.4f).sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                softWrap = false, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Visible,
+                                modifier = Modifier.wrapContentHeight(align = Alignment.CenterVertically, unbounded = true)
+                            )
                         }
                         "basmala" -> Text(
                             "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ",
-                            color = ink, fontFamily = Serif, fontSize = (rowH * 0.5f).sp
+                            color = ink, fontFamily = Serif, fontSize = (rowH * 0.42f).sp,
+                            softWrap = false, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Visible,
+                            modifier = Modifier.wrapContentHeight(align = Alignment.CenterVertically, unbounded = true)
                         )
                         "text" -> {
                             val w = widths[ti++]
