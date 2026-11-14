@@ -48,6 +48,7 @@ object Notif {
     const val ID_PRE = 409
     const val ID_IQAMA = 410
     const val ID_UPDATE = 411
+    const val ID_SUNRISE = 412
     fun idHadith(p: Prayer) = 420 + p.ordinal
     fun idCheck(p: Prayer) = 300 + p.ordinal
     fun idPeriod(p: Prayer) = 320 + p.ordinal
@@ -105,6 +106,7 @@ object Reminders {
     private const val RC_IQAMA = 251
     private const val RC_UPDATE = 260
     private const val RC_LOC = 261
+    private const val RC_SUNRISE = 262
     private const val RC_FOCUS_ON = 230
     private const val RC_FOCUS_OFF = 231
     private const val RC_PERIOD_LATER = 220 // + ordinal
@@ -131,6 +133,7 @@ object Reminders {
     fun scheduleAll(ctx: Context) {
         Scheduler.schedule(ctx)
         scheduleDuha(ctx)
+        scheduleSunrise(ctx)
         scheduleQiyam(ctx)
         scheduleFasting(ctx)
         schedulePopup(ctx)
@@ -210,6 +213,16 @@ object Reminders {
 
     private fun day(offset: Int): java.util.Date =
         Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, offset) }.time
+
+    /** إشعار وقت الشروق (طلوع الشمس) مع حديث؛ هادئ بدون صوت */
+    fun scheduleSunrise(ctx: Context) {
+        val p = Prefs(ctx)
+        val now = System.currentTimeMillis()
+        for (off in 0..1) {
+            val t = Engine.times(p, day(off)).sunrise.time
+            if (t > now + 30_000) { setAt(ctx, RC_SUNRISE, t, "SUNRISE"); return }
+        }
+    }
 
     fun scheduleDuha(ctx: Context) {
         val p = Prefs(ctx)
@@ -545,6 +558,16 @@ class ReminderReceiver : BroadcastReceiver() {
                 refreshTick.intValue++
             }
             "FOCUS_ON", "FOCUS_OFF" -> Reminders.scheduleFocus(ctx)
+            "SUNRISE" -> {
+                val hadith = listOf(
+                    "«من صلى الفجر في جماعة، ثم قعد يذكر الله حتى تطلع الشمس، ثم صلى ركعتين، كانت له كأجر حجة وعمرة تامة تامة تامة» — رواه الترمذي",
+                    "«لن يلج النار أحد صلى قبل طلوع الشمس وقبل غروبها» يعني الفجر والعصر — رواه مسلم"
+                )
+                val h = hadith[java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR) % hadith.size]
+                Notif.ensureChannels(ctx)
+                Notif.notify(ctx, Notif.ID_SUNRISE, Notif.builder(ctx, Notif.CH_HADITH, "حان وقت الشروق", h).setWhen(System.currentTimeMillis()).setShowWhen(true).build())
+                Reminders.scheduleSunrise(ctx)
+            }
             "DUHA" -> {
                 val n = Notif.builder(
                     ctx, Notif.CH_REMIND, "☀️ وقت صلاة الضحى",
