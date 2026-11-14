@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
 /** قائمة الآية في المصحف: تحديد نص، نسخ، مشاركة كنص، مشاركة كصورة. النص من نص المصحف المحمّل (حفص). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AyahActionsSheet(surah: Int, ayah: Int, onPlay: (List<Ayah>, Boolean) -> Unit, onExitFull: (() -> Unit)?, onDismiss: () -> Unit) {
+fun AyahActionsSheet(surah: Int, ayah: Int, onPlay: (List<Ayah>, Boolean) -> Unit, onExitFull: (() -> Unit)?, onBookmark: () -> Unit, onDismiss: () -> Unit) {
     val ctx = LocalContext.current
     val clip = LocalClipboardManager.current
     var ready by remember { mutableStateOf(Quran.loaded) }
@@ -75,6 +75,15 @@ fun AyahActionsSheet(surah: Int, ayah: Int, onPlay: (List<Ayah>, Boolean) -> Uni
                         "مشاركة كصورة" to { ShareCard.share(ctx, shareBody, src) }
                     )
                 )
+                val pg = sel.first().page
+                var marked by remember(pg) { mutableStateOf(pg in prefs.bookmarks()) }
+                Button(
+                    onClick = {
+                        prefs.toggleBookmark(pg); marked = !marked; onBookmark()
+                        android.widget.Toast.makeText(ctx, if (marked) "تمت إضافة علامة في صفحة ${Quran.arabicDigits(pg)}" else "تمت إزالة العلامة", android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = androidx.compose.ui.graphics.Color.Black)
+                ) { Text(if (marked) "✓ علامة محفوظة (إزالة)" else "🔖 إضافة علامة") }
                 Button(onClick = { showTafsir = !showTafsir }, colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = androidx.compose.ui.graphics.Color.Black)) {
                     Text(if (showTafsir) "إخفاء التفسير" else if (from == to) "📖 تفسير الآية" else "📖 تفسير المحدد")
                 }

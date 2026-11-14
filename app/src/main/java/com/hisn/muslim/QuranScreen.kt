@@ -413,6 +413,27 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                         colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
                     ) { Text("▶ شغّل النطاق") }
                 }
+                // تشغيل كامل من المكان اللي واقف عنده: الآية الجارية لو في الصفحة، وإلا آية «من:» المختارة
+                val here = cur?.let { c -> pageAyahs.firstOrNull { it.surah == c.first && it.num == c.second } } ?: pageAyahs[rFrom.coerceIn(0, pageAyahs.size - 1)]
+                Text("التشغيل الكامل يبدأ من: سورة ${Quran.surahName(here.surah)} آية ${Quran.arabicDigits(here.num)}", color = Muted, fontSize = 12.sp)
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Button(
+                        onClick = { followNav = false; QuranAudio.play(ctx, reciter, pageAyahs.dropWhile { it !== here }, 0, { prefs.repeatMode }) {} },
+                        colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                    ) { Text("▶ باقي الصفحة", fontSize = 12.sp) }
+                    Button(
+                        onClick = { followNav = true; QuranAudio.play(ctx, reciter, Quran.ayahs.filter { it.surah == here.surah && it.num >= here.num }, 0, { prefs.repeatMode }) {} },
+                        colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                    ) { Text("▶ السورة كاملة", fontSize = 12.sp) }
+                    Button(
+                        onClick = {
+                            followNav = true
+                            val i = Quran.ayahs.indexOfFirst { it.surah == here.surah && it.num == here.num }.coerceAtLeast(0)
+                            QuranAudio.play(ctx, reciter, Quran.ayahs.subList(i, Quran.ayahs.size), 0, { prefs.repeatMode }) {}
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                    ) { Text("▶ المصحف كامل", fontSize = 12.sp) }
+                }
             }
         }
         if (QuranAudio.current != null || QuranAudio.sleepAt > 0L) {
@@ -470,6 +491,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
             s, a,
             onPlay = { list, follow -> QuranAudio.play(ctx, reciter, list, 0, { prefs.repeatMode }) {}; followNav = follow },
             onExitFull = if (readerFull) ({ readerFull = false }) else null,
+            onBookmark = { bmTick++ },
             onDismiss = { ayahSheet = null }
         )
     }
