@@ -50,6 +50,12 @@ import java.util.Locale
 
 /** شاشة الأذان الكاملة (بتظهر فوق شاشة القفل وقت الأذان) */
 class AdhanActivity : ComponentActivity() {
+    // لما الشاشة الكاملة تظهر فعلًا نشيل النافذة العائمة عشان ما يبقاش فيه شاشتين أذان فوق بعض
+    override fun onResume() {
+        super.onResume()
+        ForcedOverlay.dismiss(this, "adhan")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setShowWhenLocked(true)
