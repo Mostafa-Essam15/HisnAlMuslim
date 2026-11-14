@@ -114,6 +114,11 @@ fun AyahActionsSheet(surah: Int, ayah: Int, onPlay: (List<Ayah>, Boolean) -> Uni
                         (if (from == to) "▶ هذه الآية" else "▶ النص المحدد") to { onPlay(sel, false); onDismiss() },
                         "▶ الصفحة كاملة" to { onPlay(Quran.byPage[sel.first().page].orEmpty(), false); onDismiss() },
                         "▶ السورة كاملة" to { onPlay(Quran.ayahs.filter { it.surah == surah }, true); onDismiss() },
+                        "▶ باقي السورة من هنا" to { onPlay(Quran.ayahs.filter { it.surah == surah && it.num >= from }, true); onDismiss() },
+                        "▶ المصحف كامل من هنا" to {
+                            val i = Quran.ayahs.indexOfFirst { it.surah == surah && it.num == from }.coerceAtLeast(0)
+                            onPlay(Quran.ayahs.subList(i, Quran.ayahs.size), true); onDismiss()
+                        },
                         "⏹ إيقاف" to { QuranAudio.stop() }
                     )
                 )
