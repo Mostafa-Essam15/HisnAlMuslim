@@ -98,6 +98,19 @@ class AdhanService : Service() {
                 .build()
         }
 
+        // إشعار «صلاة X حانت» + حديث: عادي (مش مرتبط بخدمة الأذان) فيفضل في الإشعارات بعد ما الأذان يخلص
+        if (!isTest) runCatching {
+            Notif.ensureChannels(this)
+            Notif.notify(
+                this, Notif.idHadith(prayer),
+                Notif.builder(
+                    this, Notif.CH_HADITH,
+                    if (prayer == Prayer.DHUHR && isFriday()) "صلاة الجمعة تناديك" else "صلاة ${prayer.label} حانت",
+                    tip.text, "${tip.text}\n${tip.source}"
+                ).setWhen(System.currentTimeMillis()).setShowWhen(true).build()
+            )
+        }
+
         // لازم نناديها خلال ٥ ثواني من startForegroundService في كل الحالات
         ServiceCompat.startForeground(
             this, NOTIF_ID, notification,
