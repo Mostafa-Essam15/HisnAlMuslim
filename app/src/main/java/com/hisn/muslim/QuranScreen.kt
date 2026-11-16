@@ -166,6 +166,7 @@ fun QuranScreen(prefs: Prefs, jumpTo: Int, onJumpConsumed: () -> Unit) {
         ) {
             GoldChip("القراءة", section == 0) { section = 0 }
             GoldChip("التفسير", section == 6) { section = 6 }
+            GoldChip("أسباب النزول", section == 7) { section = 7 }
             GoldChip("السور والأجزاء", section == 1) { section = 1 }
             GoldChip("ختمة / ورد", section == 2) { section = 2 }
             GoldChip("بحث", section == 3) { section = 3 }
@@ -179,6 +180,7 @@ fun QuranScreen(prefs: Prefs, jumpTo: Int, onJumpConsumed: () -> Unit) {
             3 -> SearchPane { p -> page = p; prefs.quranPage = p; section = 0 }
             5 -> MemorizePane(prefs)
             6 -> TafsirPane(prefs, page)
+            7 -> AsbabPane(page)
             else -> BookmarksPane(prefs) { p -> page = p; prefs.quranPage = p; section = 0 }
         }
     }

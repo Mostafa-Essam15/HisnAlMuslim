@@ -108,6 +108,31 @@ fun AyahActionsSheet(surah: Int, ayah: Int, onPlay: (List<Ayah>, Boolean) -> Uni
                         Text("— ${ed.name}: ${ed.author}", color = Muted, fontSize = 11.sp)
                     }
                 }
+                var showAsbab by remember(surah, ayah) { mutableStateOf(false) }
+                val asrc = Asbab.sources.first()
+                var aMap by remember(surah) { mutableStateOf<Map<Int, String>?>(null) }
+                var aMsg by remember(surah) { mutableStateOf<String?>(null) }
+                LaunchedEffect(showAsbab, surah) {
+                    if (!showAsbab) return@LaunchedEffect
+                    val (m, e) = withContext(Dispatchers.IO) { Asbab.load(ctx, asrc.slug, surah) }
+                    aMap = m; aMsg = e
+                }
+                Button(onClick = { showAsbab = !showAsbab }, colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = androidx.compose.ui.graphics.Color.Black)) {
+                    Text(if (showAsbab) "إخفاء أسباب النزول" else "📜 أسباب النزول")
+                }
+                if (showAsbab) {
+                    val m = aMap
+                    if (m == null) Text(aMsg ?: "جارٍ التحميل…", color = if (aMsg != null) androidx.compose.ui.graphics.Color(0xFFFF8A80) else Gold, fontSize = 13.sp)
+                    else {
+                        val found = (from..to).filter { !m[it].isNullOrBlank() }
+                        if (found.isEmpty()) Text("لا يوجد سبب نزول منقول لهذه الآية في هذا المصدر (ليس لكل آية سبب نزول).", color = Muted, fontSize = 13.sp)
+                        found.forEach { n ->
+                            if (to > from) Text("آية ${Quran.arabicDigits(n)}", color = Gold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            SelectionContainer { Text(m[n].orEmpty(), fontSize = 15.sp, lineHeight = 24.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Left) }
+                        }
+                        Text("— ${asrc.name}", color = Muted, fontSize = 11.sp)
+                    }
+                }
                 Text("الاستماع", color = Gold, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
                 FlowRowButtons(
                     listOf(
