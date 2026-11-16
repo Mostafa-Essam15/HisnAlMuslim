@@ -24,7 +24,7 @@ class AsbabItem(val ayahs: List<Int>, val texts: List<String>)
  * أسباب النزول:
  *  - العربي: مضمّن في التطبيق (بيعمل بدون إنترنت) من «صحيح أسباب النزول — دراسة حديثية» لإبراهيم بن محمد العلي،
  *    عبر مجموعة بيانات mostafaahmed97/asbab-al-nuzul-dataset (ترخيص MIT، نصها في assets/licenses).
- *  - الإنجليزي: كتاب «أسباب النزول» للواحدي بالترجمة الإنجليزية من altafsir.com عبر spa5k/tafsir_api، بيتحمّل عند الحاجة.
+ *  (المصدر الإنجليزي للواحدي اتشال: ملفه في spa5k/tafsir_api مش بنفس الصيغة وما اتحمّلش على الجهاز.)
  * النص بيتعرض كما هو بدون أي تعديل. الآيات اللي ما لهاش سبب نزول منقول بتظهر فاضية.
  */
 object Asbab {
@@ -32,10 +32,6 @@ object Asbab {
         AsbabSource(
             "ar-sahih", "صحيح أسباب النزول (عربي)",
             "من كتاب «صحيح أسباب النزول — دراسة حديثية» لإبراهيم بن محمد العلي (الصحيح من أسباب النزول)، عبر مجموعة بيانات mostafaahmed97/asbab-al-nuzul-dataset (MIT).", false
-        ),
-        AsbabSource(
-            "en-asbab-al-nuzul-by-al-wahidi", "أسباب النزول — الواحدي (ترجمة إنجليزية)",
-            "كتاب «أسباب النزول» لأبي الحسن الواحدي، بالترجمة الإنجليزية. المصدر: altafsir.com عبر مستودع spa5k/tafsir_api.", true
         )
     )
 
@@ -87,7 +83,7 @@ fun AsbabForRange(surah: Int, from: Int, to: Int) {
     val src = Asbab.sources[srcIdx]
     var res by remember(surah, srcIdx) { mutableStateOf<Pair<List<AsbabItem>?, String?>?>(null) }
     LaunchedEffect(surah, srcIdx) { res = withContext(Dispatchers.IO) { Asbab.items(ctx, src, surah) } }
-    Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    if (Asbab.sources.size > 1) Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Asbab.sources.forEachIndexed { i, s -> GoldChip(if (s.latin) "English" else "عربي", srcIdx == i) { srcIdx = i } }
     }
     val r = res
@@ -130,7 +126,7 @@ fun AsbabPane(page: Int) {
         item {
             Glass {
                 SectionTitle("أسباب النزول — صفحة ${Quran.arabicDigits(page)}")
-                Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (Asbab.sources.size > 1) Row(Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Asbab.sources.forEachIndexed { i, s -> GoldChip(s.name, srcIdx == i) { srcIdx = i } }
                 }
                 Text(src.credit, color = Muted, fontSize = 11.sp)
