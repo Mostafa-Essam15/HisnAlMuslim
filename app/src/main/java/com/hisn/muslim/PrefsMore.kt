@@ -156,7 +156,16 @@ fun Prefs.tasbihTotal(day: String): Int = tasbihDay(day).values.sum()
 
 // ───────────── الأذكار ─────────────
 
-fun Prefs.favorites(): Set<String> = sp.getStringSet("favAzkar", emptySet())?.toSet() ?: emptySet()
+fun Prefs.favorites(): Set<String> {
+    // ترحيل مرة واحدة: القائمة الجديدة (أذكار الصباح والمساء الكاملة) غيّرت أرقام الأذكار، فنحوّل المفضلة القديمة لأرقامها الجديدة
+    if (!sp.getBoolean("favAzkarV2", false)) {
+        val oldFirst = intArrayOf(1, 3, 6, 7, 10, 19, 20, 33) // آية الكرسي، المعوّذات، أصبحنا، أمسينا، اللهم أنت ربي، بسم الله الذي لا يضر، رضيت بالله، سبحان الله وبحمده
+        val cur = sp.getStringSet("favAzkar", emptySet())?.toSet() ?: emptySet()
+        val moved = cur.mapNotNull { it.toIntOrNull() }.map { if (it < 8) oldFirst[it] else it - 8 + MorningEvening.list.size }.map { it.toString() }.toSet()
+        sp.edit().putStringSet("favAzkar", moved).putBoolean("favAzkarV2", true).apply()
+    }
+    return sp.getStringSet("favAzkar", emptySet())?.toSet() ?: emptySet()
+}
 fun Prefs.toggleFavorite(id: String) {
     val s = favorites().toMutableSet()
     if (!s.add(id)) s.remove(id)

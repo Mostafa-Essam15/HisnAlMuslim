@@ -506,6 +506,7 @@ fun AzkarScreen(prefs: Prefs) {
                 Glass {
                     Text(z.text, fontSize = 19.sp, lineHeight = 32.sp, fontFamily = Serif)
                     Spacer(Modifier.height(6.dp))
+                    if (z.fadl.isNotBlank()) { Text("الفضل: ${z.fadl}", fontSize = 13.sp, color = Gold); Spacer(Modifier.height(4.dp)) }
                     Text(z.source, fontSize = 12.sp, color = Muted)
                     Spacer(Modifier.height(10.dp))
                     val ctxA = androidx.compose.ui.platform.LocalContext.current
