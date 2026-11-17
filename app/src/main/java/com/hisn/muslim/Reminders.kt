@@ -35,6 +35,9 @@ object Notif {
     const val CH_CHECK = "check_channel"
     const val CH_REMIND = "remind_channel"
     const val CH_HADITH = "hadith_time"
+    const val CH_UPDATE_DL = "update_download"
+    const val ID_UPDATE_DL = 430
+    const val ID_UPDATE_DONE = 431
 
     const val ID_DUHA = 400
     const val ID_QIYAM = 401
@@ -59,6 +62,7 @@ object Notif {
         adhan.setSound(null, null) // الصوت بيشغله مشغّل الأذان بنفسه
         nm.createNotificationChannel(adhan)
         nm.createNotificationChannel(NotificationChannel(CH_CHECK, "تأكيد أداء الصلاة", NotificationManager.IMPORTANCE_HIGH))
+        nm.createNotificationChannel(NotificationChannel(CH_UPDATE_DL, "تنزيل التحديث", NotificationManager.IMPORTANCE_LOW))
         nm.createNotificationChannel(NotificationChannel(CH_HADITH, "حديث وقت الصلاة", NotificationManager.IMPORTANCE_LOW))
         nm.createNotificationChannel(NotificationChannel(CH_REMIND, "التذكيرات (صيام، نوافل، أذكار، ورد)", NotificationManager.IMPORTANCE_DEFAULT))
     }

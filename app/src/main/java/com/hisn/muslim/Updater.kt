@@ -85,41 +85,72 @@ object Updater {
             return
         }
         progress = 0; message = ""
-        Thread {
-            val dir = File(app.cacheDir, "update").apply { mkdirs() }
-            dir.listFiles()?.forEach { it.delete() }
-            val tmp = File(dir, "HisnAlMuslim.part")
-            val out = File(dir, "HisnAlMuslim.apk")
+        // التنزيل بيشتغل في خدمة أمامية (إشعار بالنسبة) عشان ما يتقطعش لو خرجت من التطبيق أو بدّلت التبويب،
+        // وبيكمّل من آخر نقطة (Range) لو النت قطع أو النظام قفل التطبيق.
+        try {
+            androidx.core.content.ContextCompat.startForegroundService(
+                app,
+                Intent(app, UpdateService::class.java).putExtra("code", info.code).putExtra("url", info.apkUrl).putExtra("size", info.size)
+            )
+        } catch (e: Exception) {
+            progress = -1; message = "تعذّر بدء التنزيل: ${e.message ?: ""}"
+        }
+    }
+
+    /** تنزيل قابل للاستئناف. بيرجع ملف الـAPK الكامل أو بيرمي استثناء. من thread خلفي. */
+    fun downloadResumable(app: Context, info: UpdateInfo, onPct: (Int) -> Unit): File {
+        val dir = File(app.cacheDir, "update").apply { mkdirs() }
+        val prefix = "HisnAlMuslim-${info.code}"
+        dir.listFiles()?.filter { !it.name.startsWith(prefix) }?.forEach { it.delete() }
+        val out = File(dir, "$prefix.apk")
+        val part = File(dir, "$prefix.part")
+        if (out.exists() && info.size > 0 && out.length() == info.size) return out
+        var attempts = 0
+        while (true) {
+            var have = if (part.exists()) part.length() else 0L
             val c = open(info.apkUrl)
             try {
                 c.readTimeout = 60_000
-                if (c.responseCode !in 200..299) throw java.io.IOException("كود ${c.responseCode}")
-                val total = c.contentLengthLong.takeIf { it > 0 } ?: info.size
-                var done = 0L
+                if (have > 0) c.setRequestProperty("Range", "bytes=$have-")
+                val rc = c.responseCode
+                if (rc == 416) { part.delete(); if (attempts++ < 3) continue else throw java.io.IOException("كود 416") }
+                if (rc !in 200..299) throw java.io.IOException("كود $rc")
+                val append = rc == 206
+                if (!append) have = 0L
+                val len = c.contentLengthLong
+                val total = if (len > 0) have + len else info.size
+                var done = have
                 c.inputStream.use { i ->
-                    FileOutputStream(tmp).use { o ->
+                    FileOutputStream(part, append).use { o ->
                         val buf = ByteArray(64 * 1024)
                         while (true) {
                             val n = i.read(buf); if (n < 0) break
                             o.write(buf, 0, n); done += n
-                            if (total > 0) progress = (done * 100 / total).toInt().coerceIn(0, 99)
+                            if (total > 0) onPct((done * 100 / total).toInt().coerceIn(0, 99))
                         }
                     }
                 }
                 if (total > 0 && done < total) throw java.io.IOException("تنزيل ناقص")
-                if (!tmp.renameTo(out)) throw java.io.IOException("تعذّر الحفظ")
-                progress = 100
-                install(app, out)
-                message = "بدأ التثبيت — أكمل من شاشة النظام."
-            } catch (e: Exception) {
-                tmp.delete(); message = "فشل التنزيل: ${e.message ?: "تحقق من الاتصال"}"
+                out.delete()
+                if (!part.renameTo(out)) throw java.io.IOException("تعذّر الحفظ")
+                return out
+            } catch (e: java.io.IOException) {
+                // انقطاع مؤقت: نعيد المحاولة من آخر نقطة (حتى ٦ مرات)
+                if (++attempts > 6) throw e
+                try { Thread.sleep(3000L * attempts) } catch (_: InterruptedException) {}
             } finally {
-                c.disconnect(); progress = -1
+                c.disconnect()
             }
-        }.start()
+        }
     }
 
-    private fun install(ctx: Context, apk: File) {
+    fun installIntent(ctx: Context, apk: File): Intent {
+        val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.files", apk)
+        return Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+
+    fun install(ctx: Context, apk: File) {
         val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.files", apk)
         ctx.startActivity(
             Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
