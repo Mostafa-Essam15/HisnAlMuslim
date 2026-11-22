@@ -16,7 +16,7 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-class Reciter(val id: String, val name: String, val alt: String? = null, val key: String? = null, val surahUrl: String? = null)
+class Reciter(val id: String, val name: String, val alt: String? = null, val key: String? = null, val surahUrl: String? = null, val baseUrl: String? = null)
 
 /**
  * تلاوة آية بآية من everyayah.com (ملف لكل آية: /data/<القارئ>/<سورة ٣ أرقام><آية ٣ أرقام>.mp3).
@@ -33,8 +33,8 @@ object QuranAudio {
         Reciter("Mohammad_al_Tablaway_128kbps", "محمد محمود الطبلاوي", "Mohammad_al_Tablaway_64kbps", "tablaw"),
         // نفس الملاحظة: الاسم من الذاكرة ولم أتحقق منه؛ بيجرّب بدائل كتابة المجلد تلقائيًا
         Reciter("mahmoud_ali_al_banna_32kbps", "محمود علي البنا", "Mahmoud_Ali_Al_Banna_32kbps,mahmoud_ali_al_banna_64kbps", "banna"),
-        // حسن محمد صالح: تلاوات كاملة لكل سورة (مش آية بآية) من archive.org عبر surahquran.com؛ بتتشغّل سورة كاملة بالبث المباشر
-        Reciter("hassan_saleh", "حسن صالح", surahUrl = "https://archive.org/download/hassan_mohaed_saleh/%03d.mp3")
+        // حسن محمد صالح (رواية حفص): ملف لكل آية على archive.org (نفس تسمية everyayah: SSSAAA.mp3)
+        Reciter("hassan_saleh", "حسن صالح", baseUrl = "https://archive.org/download/Hassan_Saleh_Hafs/")
     )
 
     var current by mutableStateOf<Pair<Int, Int>?>(null) // سورة، آية
@@ -104,7 +104,7 @@ object QuranAudio {
             val folder = folders[idx++]
             var c: HttpURLConnection? = null
             try {
-                c = (URL("https://everyayah.com/data/$folder/${name(a)}").openConnection() as HttpURLConnection).apply {
+                c = (URL(if (rec?.baseUrl != null) rec.baseUrl + name(a) else "https://everyayah.com/data/$folder/${name(a)}").openConnection() as HttpURLConnection).apply {
                     connectTimeout = 15_000; readTimeout = 30_000
                     setRequestProperty("User-Agent", "HisnAlMuslim/2.0")
                 }
