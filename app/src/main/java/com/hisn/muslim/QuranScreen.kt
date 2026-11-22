@@ -447,6 +447,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
             }
         }
         QuranAudio.error?.let { Text(it, color = Color(0xFFFF8A80), fontSize = 12.sp) }
+        if (QuranAudio.reciters.firstOrNull { it.id == reciter }?.surahUrl != null) Text("هذا القارئ يشغّل السورة كاملة من ملف واحد (بالإنترنت): بدون تظليل الآية الجارية ولا تكرار نطاق.", color = Muted, fontSize = 11.sp)
         val big = bigFont()
         val prevB: @Composable (Modifier) -> Unit = { m ->
             OutlinedButton(onClick = { if (page > 1) onPage(page - 1) }, modifier = m, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("السابقة", color = Gold, fontSize = 13.sp, textAlign = TextAlign.Center) }

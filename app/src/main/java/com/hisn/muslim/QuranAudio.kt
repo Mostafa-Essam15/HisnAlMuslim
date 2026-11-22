@@ -16,7 +16,7 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-class Reciter(val id: String, val name: String, val alt: String? = null, val key: String? = null)
+class Reciter(val id: String, val name: String, val alt: String? = null, val key: String? = null, val surahUrl: String? = null)
 
 /**
  * تلاوة آية بآية من everyayah.com (ملف لكل آية: /data/<القارئ>/<سورة ٣ أرقام><آية ٣ أرقام>.mp3).
@@ -32,7 +32,9 @@ object QuranAudio {
         // اسم المجلد على everyayah لم أستطع التحقق منه من بيئة العمل؛ لو الأول فشل بيجرّب البديل تلقائيًا
         Reciter("Mohammad_al_Tablaway_128kbps", "محمد محمود الطبلاوي", "Mohammad_al_Tablaway_64kbps", "tablaw"),
         // نفس الملاحظة: الاسم من الذاكرة ولم أتحقق منه؛ بيجرّب بدائل كتابة المجلد تلقائيًا
-        Reciter("mahmoud_ali_al_banna_32kbps", "محمود علي البنا", "Mahmoud_Ali_Al_Banna_32kbps,mahmoud_ali_al_banna_64kbps", "banna")
+        Reciter("mahmoud_ali_al_banna_32kbps", "محمود علي البنا", "Mahmoud_Ali_Al_Banna_32kbps,mahmoud_ali_al_banna_64kbps", "banna"),
+        // حسن محمد صالح: تلاوات كاملة لكل سورة (مش آية بآية) من archive.org عبر surahquran.com؛ بتتشغّل سورة كاملة بالبث المباشر
+        Reciter("hassan_saleh", "حسن صالح", surahUrl = "https://archive.org/download/hassan_mohaed_saleh/%03d.mp3")
     )
 
     var current by mutableStateOf<Pair<Int, Int>?>(null) // سورة، آية
@@ -166,6 +168,10 @@ object QuranAudio {
     /** ينزّل الآيات الناقصة (بتكمّل من حيث وقفت). يحتاج التطبيق مفتوحًا. */
     fun download(ctx: Context, reciter: String, list: List<Ayah>, label: String) {
         if (dlActive) return
+        if (reciters.firstOrNull { it.id == reciter }?.surahUrl != null) {
+            dlError = "هذا القارئ يشغّل السورة كاملة بالبث المباشر (يحتاج إنترنت) ولا يدعم التنزيل آية بآية."
+            return
+        }
         val app = ctx.applicationContext
         val todo = list.filter { !has(app, reciter, it) }
         dlCancel = false; dlError = null; dlLabel = label; dlDone = 0; dlFailed = 0
@@ -197,6 +203,10 @@ object QuranAudio {
         stop()
         loopsLeft = loops
         if (list.isEmpty()) return
+        reciters.firstOrNull { it.id == reciter }?.surahUrl?.let { url ->
+            playSurah(url, list[start.coerceIn(0, list.size - 1)].surah, repeat)
+            return
+        }
         val g = ++gen
         error = null
         playAt(ctx.applicationContext, reciter, list, start.coerceIn(0, list.size - 1), repeat, onFinished, g)
@@ -242,6 +252,46 @@ object QuranAudio {
                 } catch (e: Exception) {
                     error = "تعذّر تشغيل الملف الصوتي (${e.javaClass.simpleName})"
                     try { fileFor(ctx, reciter, a).delete() } catch (_: Exception) {}
+                    stopInternal()
+                }
+            }
+        }.start()
+    }
+
+    /** تشغيل سورة كاملة من ملف واحد (للقراء اللي مالهمش ملفات آية بآية). بدون تظليل آية؛ current = (سورة، ٠). */
+    private fun playSurah(urlPattern: String, surah: Int, repeat: () -> Int) {
+        val g = ++gen
+        error = null
+        current = surah to 0
+        loading = true
+        Thread {
+            try {
+                val p = MediaPlayer()
+                p.setAudioAttributes(
+                    AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
+                )
+                p.setDataSource(urlPattern.format(surah))
+                p.prepare()
+                main.post {
+                    if (g != gen) { p.release(); return@post }
+                    try { mp?.release() } catch (_: Exception) {}
+                    p.setOnCompletionListener {
+                        if (g != gen) return@setOnCompletionListener
+                        if (repeat() != 0) { try { p.seekTo(0); p.start() } catch (_: Exception) { stopInternal() } }
+                        else stopInternal()
+                    }
+                    p.setOnErrorListener { _, what, extra -> error = "تعذّر تشغيل التلاوة (خطأ $what/$extra)"; stopInternal(); true }
+                    p.start()
+                    if (speed != 1f) try { p.playbackParams = p.playbackParams.setSpeed(speed) } catch (_: Exception) {}
+                    mp = p
+                    loading = false
+                    playing = true
+                }
+            } catch (e: Exception) {
+                main.post {
+                    if (g != gen) return@post
+                    error = "تعذّر تحميل التلاوة: تأكد من الاتصال بالإنترنت (${e.javaClass.simpleName})"
                     stopInternal()
                 }
             }
