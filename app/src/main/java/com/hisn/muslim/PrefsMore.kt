@@ -262,6 +262,7 @@ var Prefs.fajrCustomOn: Boolean
 
 val HOME_CARDS = listOf(
     "next" to "الصلاة القادمة والعدّاد",
+    "wird" to "وردك اليوم (الختمة وسلسلة القراءة)",
     "summary" to "ملخص عبادة اليوم",
     "shortcuts" to "اختصارات (مصحف/أذكار/سبحة/قبلة)",
     "ayah" to "آية اليوم (مع تفسيرها)",
@@ -278,7 +279,13 @@ fun Prefs.homeLayout(): List<Pair<String, Boolean>> {
         if (p.size == 2 && HOME_CARDS.any { c -> c.first == p[0] }) p[0] to (p[1] == "1") else null
     }
     val known = saved.map { it.first }.toSet()
-    return saved + HOME_CARDS.filter { it.first !in known }.map { it.first to true }
+    val out = saved.toMutableList()
+    HOME_CARDS.filter { it.first !in known }.forEach { c ->
+        // البطاقات الجديدة تتحط بعد بطاقة الصلاة القادمة لو موجودة، وإلا في آخر القائمة
+        val i = out.indexOfFirst { it.first == "next" }
+        if (c.first == "wird" && i >= 0) out.add(i + 1, c.first to true) else out.add(c.first to true)
+    }
+    return out
 }
 
 fun Prefs.setHomeLayout(l: List<Pair<String, Boolean>>) {
@@ -354,3 +361,12 @@ var Prefs.lastNotifiedUpdate: Int
 var Prefs.locAt: Long
     get() = sp.getLong("locAt", 0L)
     set(v) { sp.edit().putLong("locAt", v).apply() }
+
+/** عدد الأيام المتتالية اللي قرأت فيها صفحة على الأقل (اليوم لو لسه ما قرأتش مش بيقطع السلسلة) */
+fun Prefs.readStreak(): Int {
+    val cal = java.util.Calendar.getInstance()
+    if (pagesReadOn(dayKey(cal.time)).isEmpty()) cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
+    var n = 0
+    while (n < 3650 && pagesReadOn(dayKey(cal.time)).isNotEmpty()) { n++; cal.add(java.util.Calendar.DAY_OF_YEAR, -1) }
+    return n
+}

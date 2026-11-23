@@ -240,6 +240,45 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
             }
         }
                 }
+                "wird" -> {
+        item {
+            val st = remember(tick, day) { Khatma.stats(prefs) }
+            val rs = remember(tick, day) { prefs.readStreak() }
+            val todayPages = remember(tick, day) { prefs.pagesReadOn(day).size }
+            val resume = st?.nextPage ?: prefs.quranPage
+            Glass(Modifier.clickable { homeQuranJump.intValue = resume; onNavigate(1) }) {
+                SectionTitle("وردك اليوم", Icons.Rounded.AutoAwesome)
+                if (st == null) {
+                    Text("اقرأ كل يوم ولو صفحة. ابدأ ختمة بمدة تناسبك من المصحف ← ختمة / ورد، والتطبيق يحسب وردك اليومي.", fontSize = 13.sp, color = Muted)
+                } else {
+                    val goal = st.goalToday.coerceAtLeast(1)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("قرأت اليوم ${Quran.arabicDigits(st.readToday)} من ${Quran.arabicDigits(st.goalToday)} صفحة", fontWeight = FontWeight.Bold)
+                        Text("الختمة ${Quran.arabicDigits(st.read * 100 / Khatma.TOTAL)}٪", color = Gold, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    LinearProgressIndicator(
+                        progress = { (st.readToday / goal.toFloat()).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape), color = Gold, trackColor = Track
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    LinearProgressIndicator(
+                        progress = { (st.read / Khatma.TOTAL.toFloat()).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape), color = Gold.copy(alpha = 0.55f), trackColor = Track
+                    )
+                    Text("باقي ${Quran.arabicDigits(st.daysLeft)} يوم على الموعد", fontSize = 12.sp, color = Muted)
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (rs > 0) "🔥 ${Quran.arabicDigits(rs)} يوم متتالي من القراءة" else if (todayPages == 0) "ابدأ سلسلة قراءتك اليوم" else " ",
+                        fontSize = 13.sp, color = Gold
+                    )
+                    Text("تابع من صفحة ${Quran.arabicDigits(resume)} ◂", fontSize = 13.sp, color = Gold, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+                }
                 "summary" -> {
         item {
             val fard = done.count { it.endsWith("_FARD") }
