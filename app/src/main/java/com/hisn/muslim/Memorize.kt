@@ -101,6 +101,10 @@ fun Prefs.markReviewed(key: String, ok: Boolean) {
     saveRev(rev)
 }
 
+var Prefs.reviewReminder: Boolean
+    get() = sp.getBoolean("revRemind", true)
+    set(v) { sp.edit().putBoolean("revRemind", v).apply() }
+
 @Composable
 fun MemorizePane(prefs: Prefs) {
     val ctx = LocalContext.current
@@ -141,6 +145,10 @@ fun MemorizePane(prefs: Prefs) {
             val totalDue = remember(tick) { prefs.reviewCountDue() }
             Glass {
                 SectionTitle("مراجعة اليوم")
+                var rem by remember { mutableStateOf(prefs.reviewReminder) }
+                CheckRow("تذكير يوميًا الساعة ٧ مساءً (لو فيه آيات مستحقة)", rem) {
+                    rem = !rem; prefs.reviewReminder = rem; Reminders.scheduleReview(ctx)
+                }
                 if (mem.isEmpty()) {
                     Text("سجّل الآيات اللي حفظتها (زر «حفظتها ✓») وهتظهر هنا للمراجعة على فترات متباعدة: بعد يوم ثم ٣ ثم ٧ ثم ١٤ ثم ٣٠ ثم ٦٠ يومًا.", color = Muted, fontSize = 13.sp)
                 } else if (due.isEmpty()) {

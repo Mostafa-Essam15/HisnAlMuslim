@@ -94,6 +94,7 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         CloudSync.autoPush(this)
+        DailyWidget.updateAll(this)
     }
 
     override fun onResume() {

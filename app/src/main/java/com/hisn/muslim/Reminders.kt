@@ -44,6 +44,7 @@ object Notif {
     const val ID_FAST = 402
     const val ID_POPUP = 403
     const val ID_WIRD = 404
+    const val ID_REVIEW = 432
     const val ID_ADHKAR_AM = 405
     const val ID_ADHKAR_PM = 406
     const val ID_SUHOOR = 407
@@ -101,6 +102,7 @@ object Reminders {
     private const val RC_FASTING = 202
     private const val RC_POPUP = 203
     private const val RC_WIRD = 204
+    private const val RC_REVIEW = 205
     private const val RC_PERIOD = 210
     private const val RC_ADHKAR_AM = 240
     private const val RC_ADHKAR_PM = 241
@@ -142,6 +144,7 @@ object Reminders {
         scheduleFasting(ctx)
         schedulePopup(ctx)
         scheduleWird(ctx)
+        scheduleReview(ctx)
         schedulePeriodEnd(ctx)
         scheduleFocus(ctx)
         scheduleAdhkar(ctx)
@@ -150,6 +153,7 @@ object Reminders {
         scheduleUpdateCheck(ctx)
         scheduleLocationCheck(ctx)
         PrayerWidget.updateAll(ctx)
+        DailyWidget.updateAll(ctx)
     }
 
     private fun nm(ctx: Context) = ctx.getSystemService(android.app.NotificationManager::class.java)
@@ -370,6 +374,13 @@ object Reminders {
             AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 3 * 60 * 60_000L, 3 * 60 * 60_000L,
             pi(ctx, RC_LOC, "LOC")
         )
+    }
+
+    /** تذكير يومي ٧ مساءً بمراجعة الحفظ (بيظهر بس لو فيه آيات مستحقة) */
+    fun scheduleReview(ctx: Context) {
+        val p = Prefs(ctx)
+        if (!p.reviewReminder) { cancelAlarm(ctx, RC_REVIEW, "REVIEW"); return }
+        setAt(ctx, RC_REVIEW, nextDailyAt(19 * 60, System.currentTimeMillis()), "REVIEW")
     }
 
     fun scheduleWird(ctx: Context) {
@@ -672,6 +683,17 @@ class ReminderReceiver : BroadcastReceiver() {
                         } finally { pending.finish() }
                     }.start()
                 }
+            }
+            "REVIEW" -> {
+                val due = p.reviewCountDue()
+                if (p.reviewReminder && due > 0) {
+                    val n = Notif.builder(
+                        ctx, Notif.CH_REMIND, "🧠 مراجعة الحفظ",
+                        "عندك $due آية مستحقة للمراجعة اليوم. افتح المصحف ← الحفظ."
+                    ).build()
+                    Notif.notify(ctx, Notif.ID_REVIEW, n)
+                }
+                Reminders.scheduleReview(ctx)
             }
             "WIRD" -> {
                 val st = Khatma.stats(p)
