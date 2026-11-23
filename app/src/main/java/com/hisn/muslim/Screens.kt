@@ -489,10 +489,24 @@ private fun ChallengesPane(prefs: Prefs) {
 fun AzkarTasbihScreen(prefs: Prefs) {
     var mode by remember { mutableIntStateOf(azkarStartMode.intValue).also { azkarStartMode.intValue = 0 } }
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            GoldChip("الأذكار", mode == 0) { mode = 0 }
-            GoldChip("السبحة والاستغفار", mode == 1) { mode = 1 }
-            GoldChip("القبلة", mode == 2) { mode = 2 }
+        val segShape = RoundedCornerShape(22.dp)
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).clip(segShape)
+                .background(if (Look.light) Color(0x14000000) else Color(0x40000000))
+                .border(1.dp, Gold.copy(alpha = 0.25f), segShape).padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            listOf("الأذكار", "السبحة", "القبلة").forEachIndexed { i, l ->
+                val sel = mode == i
+                Box(
+                    Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(18.dp))
+                        .background(if (sel) Gold else Color.Transparent).clickable { mode = i },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(l, fontSize = 14.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal,
+                        color = if (sel) (if (Look.light) Color.White else Color.Black) else OnCard)
+                }
+            }
         }
         when (mode) { 0 -> AzkarScreen(prefs); 1 -> TasbihScreen(prefs); else -> QiblaScreen(prefs) }
     }
@@ -512,27 +526,77 @@ fun AzkarScreen(prefs: Prefs) {
             (q.isEmpty() || it.value.text.contains(q) || it.value.source.contains(q))
     }
 
+    var showSearch by remember { mutableStateOf(false) }
+    // تقدّم أذكار الصباح/المساء: كام ذكر خلص من الإجمالي
+    val sectionIds = remember(cat) { if (cat == "الصباح" || cat == "المساء") Content.azkar.withIndex().filter { cat in it.value.cats }.map { it.index } else emptyList() }
+    val sectionDone = sectionIds.count { (counters[it] ?: 0) >= Content.azkar[it].count }
+
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically
         ) {
+            Box(
+                Modifier.size(36.dp).clip(CircleShape)
+                    .background(if (showSearch || q.isNotEmpty()) Gold.copy(alpha = 0.22f) else Color.Transparent)
+                    .border(1.dp, Gold.copy(alpha = 0.45f), CircleShape).clickable { showSearch = !showSearch },
+                contentAlignment = Alignment.Center
+            ) { Text("🔍", fontSize = 15.sp) }
             (Content.azkarCats + "المفضلة").forEach { c -> GoldChip(c, cat == c) { cat = c } }
         }
-        androidx.compose.material3.OutlinedTextField(
-            value = query, onValueChange = { query = it }, singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), label = { Text("بحث في الأذكار") }
-        )
+        if (showSearch || q.isNotEmpty()) {
+            androidx.compose.material3.OutlinedTextField(
+                value = query, onValueChange = { query = it }, singleLine = true,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                placeholder = { Text("ابحث في الأذكار…", color = Muted) },
+                shape = RoundedCornerShape(18.dp)
+            )
+        }
+        if (sectionIds.isNotEmpty()) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("أذكار ${cat}", fontSize = 12.sp, color = Muted)
+                    Text("${Quran.arabicDigits(sectionDone)} من ${Quran.arabicDigits(sectionIds.size)}", fontSize = 12.sp, color = Gold, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(4.dp))
+                LinearProgressIndicator(
+                    progress = { sectionDone / sectionIds.size.toFloat() },
+                    modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape), color = Gold, trackColor = Track
+                )
+            }
+        }
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             if (shown.isEmpty()) item { Text(if (cat == "المفضلة") "لا أذكار مفضلة بعد (اضغط ☆)." else "لا نتائج", color = Muted) }
             items(shown) { (idx, z) ->
                 val c = counters[idx] ?: 0
                 val fav = idx.toString() in favs
+                var more by remember(idx) { mutableStateOf(false) }
                 Glass {
-                    Text(z.text, fontSize = 19.sp, lineHeight = 32.sp, fontFamily = Serif)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        if (z.count > 1) Box(
+                            Modifier.clip(RoundedCornerShape(10.dp)).background(Gold.copy(alpha = 0.18f)).padding(horizontal = 10.dp, vertical = 3.dp)
+                        ) { Text("×${Quran.arabicDigits(z.count)}", color = Gold, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
+                        Spacer(Modifier.weight(1f))
+                        Text(if (fav) "★" else "☆", color = Gold, fontSize = 22.sp,
+                            modifier = Modifier.clip(CircleShape).clickable { prefs.toggleFavorite(idx.toString()); favTick++ }.padding(4.dp))
+                    }
                     Spacer(Modifier.height(6.dp))
-                    if (z.fadl.isNotBlank()) { Text("الفضل: ${z.fadl}", fontSize = 13.sp, color = Gold); Spacer(Modifier.height(4.dp)) }
-                    Text(z.source, fontSize = 12.sp, color = Muted)
+                    Text(z.text, fontSize = 20.sp, lineHeight = 36.sp, fontFamily = Serif, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    if (z.fadl.isNotBlank() || z.source.isNotBlank()) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            if (more) "إخفاء الفضل والمصدر ▴" else "الفضل والمصدر ▾", color = Gold, fontSize = 12.sp,
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { more = !more }.padding(vertical = 6.dp),
+                            textAlign = TextAlign.Center
+                        )
+                        if (more) {
+                            if (z.fadl.isNotBlank()) Text("الفضل: ${z.fadl}", fontSize = 13.sp, lineHeight = 22.sp, color = Gold)
+                            if (z.source.isNotBlank()) {
+                                Spacer(Modifier.height(4.dp))
+                                Text(z.source, fontSize = 12.sp, lineHeight = 19.sp, color = Muted)
+                            }
+                        }
+                    }
                     Spacer(Modifier.height(10.dp))
                     val ctxA = androidx.compose.ui.platform.LocalContext.current
                     val tap = {
@@ -549,29 +613,32 @@ fun AzkarScreen(prefs: Prefs) {
                             }
                         }
                     }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        // زرار العدّ: دايرة كبيرة بالرقم الحالي، اضغط عليها لكل مرة
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                        // حلقة العدّ: بتتملي مع كل مرة، وتتحول لـ✓ ذهبي لما الذكر يخلص
+                        val done = c >= z.count
+                        val gold = Gold
+                        val trk = Track
                         Box(
-                            Modifier.size(64.dp).clip(CircleShape)
-                                .background(if (c >= z.count) Color(0x66E8C766) else Gold)
-                                .clickable(enabled = c < z.count) { tap() },
+                            Modifier.size(68.dp).clip(CircleShape).clickable(enabled = !done) { tap() },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                if (c >= z.count) "✅" else Quran.arabicDigits(c),
-                                color = Color.Black, fontSize = 24.sp, fontWeight = FontWeight.Bold
-                            )
+                            androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+                                val sw = 6.dp.toPx()
+                                val tl = androidx.compose.ui.geometry.Offset(sw / 2, sw / 2)
+                                val sz = androidx.compose.ui.geometry.Size(size.width - sw, size.height - sw)
+                                if (done) drawCircle(gold) else {
+                                    drawArc(trk, 0f, 360f, false, tl, sz, style = androidx.compose.ui.graphics.drawscope.Stroke(sw))
+                                    drawArc(gold, -90f, 360f * (c / z.count.toFloat()), false, tl, sz,
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(sw, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+                                }
+                            }
+                            Text(if (done) "✓" else Quran.arabicDigits(c), color = if (done) Color.Black else OnCard, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                         }
-                        Spacer(Modifier.width(12.dp))
+                        Spacer(Modifier.width(14.dp))
                         Column {
-                            Text("العدد المطلوب: ${Quran.arabicDigits(z.count)} ${if (z.count == 1) "مرة" else "مرات"}", fontWeight = FontWeight.Bold)
-                            Text(if (c >= z.count) "تم ✅" else "اضغط الدائرة عند كل مرة (المتبقي ${Quran.arabicDigits(z.count - c)})", fontSize = 12.sp, color = Muted)
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        if (c > 0) TextButton(onClick = { counters[idx] = 0 }) { Text("إعادة", color = Gold) }
-                        Spacer(Modifier.weight(1f))
-                        TextButton(onClick = { prefs.toggleFavorite(idx.toString()); favTick++ }) {
-                            Text(if (fav) "★" else "☆", color = Gold, fontSize = 22.sp)
+                            Text(if (done) "تم، تقبّل الله" else "المتبقي ${Quran.arabicDigits(z.count - c)}", fontWeight = FontWeight.Bold, color = if (done) Gold else OnCard)
+                            if (!done) Text("اضغط الدائرة عند كل مرة", fontSize = 11.sp, color = Muted)
+                            if (c > 0) Text("إعادة", color = Gold, fontSize = 12.sp, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { counters[idx] = 0 }.padding(vertical = 4.dp))
                         }
                     }
                 }
