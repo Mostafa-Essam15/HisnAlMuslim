@@ -58,6 +58,49 @@ var Prefs.memGoal: Int
     get() = sp.getInt("memGoal", 5)
     set(v) { sp.edit().putInt("memGoal", v.coerceIn(1, 100)).apply() }
 
+// ───────────── المراجعة بالتكرار المتباعد (ليتنر) ─────────────
+
+private val REV_GAPS = intArrayOf(1, 3, 7, 14, 30, 60)
+
+/** key "سورة:آية" -> (المرحلة، تاريخ الاستحقاق yyyy-MM-dd) */
+private fun Prefs.revMap(): MutableMap<String, Pair<Int, String>> {
+    val m = mutableMapOf<String, Pair<Int, String>>()
+    (sp.getString("memRev", "") ?: "").split(";").forEach { e ->
+        val p = e.split("|")
+        if (p.size == 3) p[1].toIntOrNull()?.let { m[p[0]] = it to p[2] }
+    }
+    return m
+}
+
+private fun Prefs.saveRev(m: Map<String, Pair<Int, String>>) {
+    sp.edit().putString("memRev", m.entries.joinToString(";") { "${it.key}|${it.value.first}|${it.value.second}" }).apply()
+}
+
+/** المحفوظ اللي حان موعد مراجعته (اللي بلا سجل يُعتبر مستحقًا اليوم)، الأقدم استحقاقًا أولًا */
+fun Prefs.reviewDue(limit: Int = 10): List<String> {
+    val today = dayKey()
+    val rev = revMap()
+    return memorized().filter { (rev[it]?.second ?: today) <= today }
+        .sortedWith(compareBy({ rev[it]?.second ?: today }, { it.substringBefore(":").toInt() }, { it.substringAfter(":").toInt() }))
+        .take(limit)
+}
+
+fun Prefs.reviewCountDue(): Int {
+    val today = dayKey()
+    val rev = revMap()
+    return memorized().count { (rev[it]?.second ?: today) <= today }
+}
+
+/** [ok] = راجعتها بنجاح: ننقلها لمرحلة أبعد؛ غير كده ترجع لمرحلة اليوم التالي */
+fun Prefs.markReviewed(key: String, ok: Boolean) {
+    val rev = revMap()
+    val box = if (ok) ((rev[key]?.first ?: 0) + 1).coerceAtMost(REV_GAPS.size) else 1
+    val gap = REV_GAPS[box - 1]
+    val due = java.time.LocalDate.now().plusDays(gap.toLong()).toString()
+    rev[key] = box to due
+    saveRev(rev)
+}
+
 @Composable
 fun MemorizePane(prefs: Prefs) {
     val ctx = LocalContext.current
@@ -91,6 +134,38 @@ fun MemorizePane(prefs: Prefs) {
                 Text("اليوم: $doneToday / $goal آية • هذا الأسبوع: $week آية", color = Muted, fontSize = 13.sp)
                 ChipRow(listOf("٣" to 3, "٥" to 5, "١٠" to 10, "٢٠" to 20), goal) { goal = it; prefs.memGoal = it }
                 Text("الهدف اليومي بالآيات (تسجّل الآية بنفسك بعد ما تسمّعها).", fontSize = 11.sp, color = Muted)
+            }
+        }
+        item {
+            val due = remember(tick) { prefs.reviewDue() }
+            val totalDue = remember(tick) { prefs.reviewCountDue() }
+            Glass {
+                SectionTitle("مراجعة اليوم")
+                if (mem.isEmpty()) {
+                    Text("سجّل الآيات اللي حفظتها (زر «حفظتها ✓») وهتظهر هنا للمراجعة على فترات متباعدة: بعد يوم ثم ٣ ثم ٧ ثم ١٤ ثم ٣٠ ثم ٦٠ يومًا.", color = Muted, fontSize = 13.sp)
+                } else if (due.isEmpty()) {
+                    Text("خلّصت مراجعة اليوم. ما شاء الله 🤍", color = Gold, fontWeight = FontWeight.Bold)
+                } else {
+                    Text("مستحق للمراجعة: ${Quran.arabicDigits(totalDue)} آية (بنعرض ${Quran.arabicDigits(due.size)} كل مرة). سمّع من ذاكرتك ثم اضغط.", color = Muted, fontSize = 12.sp)
+                    due.forEach { key ->
+                        val sn = key.substringBefore(":").toInt()
+                        val an = key.substringAfter(":").toInt()
+                        val ay = Quran.ayahs.firstOrNull { it.surah == sn && it.num == an }
+                        var shown by remember(key) { mutableStateOf(false) }
+                        Spacer(Modifier.height(8.dp))
+                        Text("${Quran.surahName(sn)} — آية ${Quran.arabicDigits(an)}", color = Gold, fontWeight = FontWeight.Bold)
+                        if (ay != null) Text(
+                            if (shown) ay.text else ay.text.split(" ").first() + " …",
+                            fontFamily = Serif, fontSize = 20.sp, lineHeight = 32.sp, color = if (shown) androidx.compose.ui.graphics.Color.Unspecified else Muted
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TextButton(onClick = { shown = !shown }) { Text(if (shown) "إخفاء" else "إظهار", color = Gold) }
+                            if (ay != null) TextButton(onClick = { QuranAudio.play(ctx, reciter, listOf(ay), 0, { 0 }) {} }) { Text("▶", color = Gold) }
+                            TextButton(onClick = { prefs.markReviewed(key, true); tick++ }) { Text("راجعتها ✓", color = Gold) }
+                            TextButton(onClick = { prefs.markReviewed(key, false); tick++ }) { Text("نسيتها", color = Gold) }
+                        }
+                    }
+                }
             }
         }
         item {
