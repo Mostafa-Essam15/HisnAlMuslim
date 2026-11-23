@@ -8,6 +8,9 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -83,18 +86,41 @@ fun NextPrayerRing(prayer: String, remainSec: Long, frac: Float, atText: String,
                 val m = (remainSec % 3600) / 60
                 val sec = remainSec % 60
                 // الأرقام دايمًا من الشمال لليمين (س:د ثم الثواني) حتى لو الواجهة RTL
+                Spacer(Modifier.height(4.dp))
                 androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr) {
-                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.Center) {
-                        Text(String.format(Locale.US, "%02d:%02d", h, m), fontSize = 34.sp, fontWeight = FontWeight.Medium)
-                        Text(
-                            String.format(Locale.US, ":%02d", sec), fontSize = 14.sp, fontWeight = FontWeight.Bold,
-                            color = Gold, modifier = Modifier.width(26.dp).padding(bottom = 6.dp)
-                        )
+                    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        DigitBox(String.format(Locale.US, "%02d", h), "ساعة", false)
+                        DigitBox(String.format(Locale.US, "%02d", m), "دقيقة", false)
+                        DigitBox(String.format(Locale.US, "%02d", sec), "ثانية", true)
                     }
                 }
+                Spacer(Modifier.height(4.dp))
                 Text("الساعة $atText", fontSize = 11.sp, color = Muted)
             }
         }
         if (rangeText != null) Text(rangeText, fontSize = 12.sp, color = Muted, textAlign = TextAlign.Center)
     }
 }
+
+/** خانة رقم زجاجية: رقمين بعرض ثابت + اسم الوحدة تحتها؛ الثواني بلمسة ذهبية */
+@Composable
+private fun DigitBox(value: String, unit: String, accent: Boolean) {
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier.width(54.dp).height(50.dp)
+                .androidx_clip(shape)
+                .background(Brush.verticalGradient(
+                    if (accent) listOf(Gold.copy(alpha = 0.30f), Gold.copy(alpha = 0.10f))
+                    else listOf(Color(0x30FFFFFF), Color(0x0FFFFFFF))
+                ))
+                .border(1.dp, if (accent) Gold.copy(alpha = 0.7f) else Color(0x33FFFFFF), shape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(value, fontSize = 30.sp, fontWeight = FontWeight.Bold, color = if (accent) Gold else OnCard)
+        }
+        Text(unit, fontSize = 10.sp, color = Muted)
+    }
+}
+
+private fun Modifier.androidx_clip(shape: androidx.compose.ui.graphics.Shape): Modifier = this.then(Modifier.clip(shape))
