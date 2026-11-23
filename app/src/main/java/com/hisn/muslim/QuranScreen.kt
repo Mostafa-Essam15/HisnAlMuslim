@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import kotlin.math.roundToInt
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.clickable
@@ -160,17 +161,25 @@ fun QuranScreen(prefs: Prefs, jumpTo: Int, onJumpConsumed: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        if (!(readerFull && section == 0)) Row(
-            Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            GoldChip("القراءة", section == 0) { section = 0 }
-            GoldChip("التفسير", section == 6) { section = 6 }
-            GoldChip("السور والأجزاء", section == 1) { section = 1 }
-            GoldChip("ختمة / ورد", section == 2) { section = 2 }
-            GoldChip("بحث", section == 3) { section = 3 }
-            GoldChip("العلامات", section == 4) { section = 4 }
-            GoldChip("الحفظ والمراجعة", section == 5) { section = 5 }
+        if (!(readerFull && section == 0)) {
+            val moreSec = section == 3 || section == 4 || section == 5
+            var moreMenu by remember { mutableStateOf(false) }
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically
+            ) {
+                listOf("القراءة" to 0, "التفسير" to 6, "السور" to 1, "الختمة" to 2).forEach { (l, sec) ->
+                    Box(Modifier.weight(1f)) { TabPill(l, section == sec) { section = sec } }
+                }
+                Box(Modifier.weight(1f)) {
+                    TabPill(if (moreSec) when (section) { 3 -> "بحث"; 4 -> "العلامات"; else -> "الحفظ" } else "المزيد ▾", moreSec) { moreMenu = true }
+                    androidx.compose.material3.DropdownMenu(expanded = moreMenu, onDismissRequest = { moreMenu = false }) {
+                        listOf("بحث في المصحف" to 3, "العلامات المرجعية" to 4, "الحفظ والمراجعة" to 5).forEach { (l, sec) ->
+                            androidx.compose.material3.DropdownMenuItem(text = { Text(l) }, onClick = { moreMenu = false; section = sec })
+                        }
+                    }
+                }
+            }
         }
         when (section) {
             0 -> ReaderPane(prefs, page) { page = it; prefs.quranPage = it }
@@ -184,9 +193,37 @@ fun QuranScreen(prefs: Prefs, jumpTo: Int, onJumpConsumed: () -> Unit) {
     }
 }
 
+@Composable
+private fun TabPill(label: String, selected: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(18.dp)
+    Box(
+        Modifier.fillMaxWidth().height(38.dp).clip(shape)
+            .background(if (selected) Gold else if (Look.light) Color(0x14000000) else Color(0x33000000))
+            .then(if (selected) Modifier else Modifier.border(1.dp, Gold.copy(alpha = 0.25f), shape))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, fontSize = 12.sp, maxLines = 1, softWrap = false, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            color = if (selected) (if (Look.light) Color.White else Color.Black) else OnCard)
+    }
+}
+
+/** زرار دائري صغير لشريط التشغيل */
+@Composable
+private fun RoundBtn(label: String, active: Boolean = false, size: Int = 40, onClick: () -> Unit) {
+    Box(
+        Modifier.size(size.dp).clip(CircleShape)
+            .background(if (active) Gold.copy(alpha = 0.22f) else Color.Transparent)
+            .border(1.dp, Gold.copy(alpha = if (active) 0.9f else 0.4f), CircleShape)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) { Text(label, color = if (active) Gold else OnCard, fontSize = 16.sp) }
+}
+
 private var followNav = false
 private var skipStop = false
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
     var fontF by remember { mutableStateOf(prefs.quranFont.toFloat()) }
@@ -201,6 +238,8 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
     var repeat by remember { mutableIntStateOf(prefs.repeatMode) }
     var reciter by remember { mutableStateOf(prefs.reciter) }
     var showReciters by remember { mutableStateOf(false) }
+    var showAudioSheet by remember { mutableStateOf(false) }
+    var optMenu by remember { mutableStateOf(false) }
     var showRange by remember { mutableStateOf(false) }
     var rFrom by remember(page) { mutableIntStateOf(0) }
     var rTo by remember(page) { mutableIntStateOf(0) }
@@ -252,19 +291,28 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 TextButton(onClick = { prefs.toggleBookmark(page); bmTick++ }) {
                     Text(if (bookmarked) "★" else "☆", color = Gold, fontSize = 22.sp)
                 }
-            }
-        }
-        if (!readerFull) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            GoldChip("⛶ شاشة كاملة", false) { readerFull = true }
-            GoldChip(if (mode == 1) "عرض: المصحف" else "عرض: النص", false) { mode = 1 - mode; prefs.mushafMode = mode }
-            GoldChip(when (theme) { 0 -> "ورق"; 1 -> "أبيض"; else -> "داكن" }, false) { theme = (theme + 1) % 3; prefs.quranTheme = theme }
-            GoldChip("تصغير الخط  أ-", false) {
-                if (mode == 1) { mscale = (mscale - 0.25f).coerceAtLeast(0.75f); prefs.mushafScale = mscale }
-                else { fontF = (font - 2f).coerceAtLeast(18f); prefs.quranFont = fontF.roundToInt() }
-            }
-            GoldChip("تكبير الخط  أ+", false) {
-                if (mode == 1) { mscale = (mscale + 0.25f).coerceAtMost(2.5f); prefs.mushafScale = mscale }
-                else { fontF = (font + 2f).coerceAtMost(44f); prefs.quranFont = fontF.roundToInt() }
+                Box {
+                    TextButton(onClick = { optMenu = true }) { Text("⋮", color = Gold, fontSize = 24.sp, fontWeight = FontWeight.Bold) }
+                    androidx.compose.material3.DropdownMenu(expanded = optMenu, onDismissRequest = { optMenu = false }) {
+                        androidx.compose.material3.DropdownMenuItem(text = { Text("⛶  شاشة كاملة") }, onClick = { optMenu = false; readerFull = true })
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(if (mode == 1) "التحويل إلى عرض النص" else "التحويل إلى عرض المصحف") },
+                            onClick = { optMenu = false; mode = 1 - mode; prefs.mushafMode = mode }
+                        )
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text("لون الصفحة: " + when (theme) { 0 -> "ورق"; 1 -> "أبيض"; else -> "داكن" } + " (اضغط للتبديل)") },
+                            onClick = { theme = (theme + 1) % 3; prefs.quranTheme = theme }
+                        )
+                        androidx.compose.material3.DropdownMenuItem(text = { Text("تكبير الخط  أ+") }, onClick = {
+                            if (mode == 1) { mscale = (mscale + 0.25f).coerceAtMost(2.5f); prefs.mushafScale = mscale }
+                            else { fontF = (font + 2f).coerceAtMost(44f); prefs.quranFont = fontF.roundToInt() }
+                        })
+                        androidx.compose.material3.DropdownMenuItem(text = { Text("تصغير الخط  أ-") }, onClick = {
+                            if (mode == 1) { mscale = (mscale - 0.25f).coerceAtLeast(0.75f); prefs.mushafScale = mscale }
+                            else { fontF = (font - 2f).coerceAtLeast(18f); prefs.quranFont = fontF.roundToInt() }
+                        })
+                    }
+                }
             }
         }
         if (!readerFull) Spacer(Modifier.height(6.dp))
@@ -363,94 +411,41 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
 
         if (!readerFull) {
         Spacer(Modifier.height(6.dp))
-        // التلاوة
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Button(
-                onClick = {
+        // التلاوة: شريط واحد مدمج؛ القارئ والنطاق والتنزيل والسرعة والنوم في نافذة سفلية
+        val barShape = RoundedCornerShape(30.dp)
+        val reciterName = QuranAudio.reciters.firstOrNull { it.id == reciter }?.name ?: "القارئ"
+        Row(
+            Modifier.fillMaxWidth().clip(barShape).background(CardBg)
+                .border(1.dp, Gold.copy(alpha = 0.30f), barShape).padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { showAudioSheet = true }.padding(horizontal = 4.dp, vertical = 2.dp)) {
+                Text(reciterName, color = Gold, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Text(
+                    if (QuranAudio.loading) "جارٍ التحميل…" else if (QuranAudio.playing) "جارٍ التشغيل" else "خيارات الصوت ▾",
+                    color = Muted, fontSize = 11.sp, maxLines = 1
+                )
+            }
+            RoundBtn(when (repeat) { 1 -> "🔂"; else -> "🔁" }, active = repeat != 0) {
+                repeat = (repeat + 1) % 3; prefs.repeatMode = repeat
+                android.widget.Toast.makeText(ctx, when (repeat) { 1 -> "تكرار الآية"; 2 -> "تكرار الصفحة"; else -> "بدون تكرار" }, android.widget.Toast.LENGTH_SHORT).show()
+            }
+            RoundBtn("⏹") { QuranAudio.stop() }
+            Box(
+                Modifier.size(52.dp).clip(CircleShape).background(Gold).clickable {
                     if (QuranAudio.loading) QuranAudio.stop()
                     else if (QuranAudio.current != null) QuranAudio.pauseResume()
                     else if (pageAyahs.isEmpty()) android.widget.Toast.makeText(ctx, "لا توجد آيات محمّلة لهذه الصفحة؛ حمّل نص المصحف أولًا", android.widget.Toast.LENGTH_LONG).show()
                     else QuranAudio.play(ctx, reciter, pageAyahs, 0, { prefs.repeatMode }) { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-            ) { Text(if (QuranAudio.loading) "…" else if (QuranAudio.playing) "⏸ إيقاف مؤقت" else "▶ استمع") }
-            OutlinedButton(onClick = { QuranAudio.stop() }) { Text("⏹", color = Gold) }
-            OutlinedButton(onClick = { repeat = (repeat + 1) % 3; prefs.repeatMode = repeat }) {
-                Text(when (repeat) { 1 -> "🔂 آية"; 2 -> "🔁 صفحة"; else -> "تكرار: لا" }, color = Gold, fontSize = 12.sp)
-            }
-            OutlinedButton(onClick = { showRange = !showRange }) { Text("نطاق", color = Gold, fontSize = 12.sp) }
-            OutlinedButton(onClick = { showDl = true }) { Text("⬇ تنزيل", color = Gold, fontSize = 12.sp) }
-            OutlinedButton(onClick = { showReciters = !showReciters }) {
-                Text(QuranAudio.reciters.firstOrNull { it.id == reciter }?.name ?: "القارئ", color = Gold, fontSize = 12.sp, maxLines = 1)
-            }
-        }
-        if (showReciters) {
-            Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                QuranAudio.reciters.forEach { r ->
-                    GoldChip(r.name, reciter == r.id) { reciter = r.id; prefs.reciter = r.id; QuranAudio.stop() }
-                }
-            }
-        }
-        if (showRange && pageAyahs.isNotEmpty()) {
-            Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                Text("تكرار نطاق من آيات الصفحة", color = Gold, fontSize = 12.sp)
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("من:", color = Muted, fontSize = 12.sp)
-                    pageAyahs.forEachIndexed { i, a -> GoldChip(Quran.arabicDigits(a.num), rFrom == i) { rFrom = i; if (rTo < i) rTo = i } }
-                }
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("إلى:", color = Muted, fontSize = 12.sp)
-                    pageAyahs.forEachIndexed { i, a -> if (i >= rFrom) GoldChip(Quran.arabicDigits(a.num), rTo == i) { rTo = i } }
-                }
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("مرات:", color = Muted, fontSize = 12.sp)
-                    listOf(1 to "١", 3 to "٣", 5 to "٥", 10 to "١٠", 0 to "∞").forEach { (n, l) -> GoldChip(l, rTimes == n) { rTimes = n } }
-                    Button(
-                        onClick = {
-                            val to = rTo.coerceIn(rFrom, pageAyahs.size - 1)
-                            QuranAudio.play(ctx, reciter, pageAyahs.subList(rFrom, to + 1), 0, { if (rTimes == 0) 2 else 0 }, rTimes) {}
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-                    ) { Text("▶ شغّل النطاق") }
-                }
-                // تشغيل كامل من المكان اللي واقف عنده: الآية الجارية لو في الصفحة، وإلا آية «من:» المختارة
-                val here = cur?.let { c -> pageAyahs.firstOrNull { it.surah == c.first && it.num == c.second } } ?: pageAyahs[rFrom.coerceIn(0, pageAyahs.size - 1)]
-                Text("التشغيل الكامل يبدأ من: سورة ${Quran.surahName(here.surah)} آية ${Quran.arabicDigits(here.num)}", color = Muted, fontSize = 12.sp)
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Button(
-                        onClick = { followNav = false; QuranAudio.play(ctx, reciter, pageAyahs.dropWhile { it !== here }, 0, { prefs.repeatMode }) {} },
-                        colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-                    ) { Text("▶ باقي الصفحة", fontSize = 12.sp) }
-                    Button(
-                        onClick = { followNav = true; QuranAudio.play(ctx, reciter, Quran.ayahs.filter { it.surah == here.surah && it.num >= here.num }, 0, { prefs.repeatMode }) {} },
-                        colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-                    ) { Text("▶ السورة كاملة", fontSize = 12.sp) }
-                    Button(
-                        onClick = {
-                            followNav = true
-                            val i = Quran.ayahs.indexOfFirst { it.surah == here.surah && it.num == here.num }.coerceAtLeast(0)
-                            QuranAudio.play(ctx, reciter, Quran.ayahs.subList(i, Quran.ayahs.size), 0, { prefs.repeatMode }) {}
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-                    ) { Text("▶ المصحف كامل", fontSize = 12.sp) }
-                }
-            }
-        }
-        if (QuranAudio.current != null || QuranAudio.sleepAt > 0L) {
-            Row(Modifier.horizontalScroll(rememberScrollState()).padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                listOf(0.75f, 1f, 1.25f, 1.5f).forEach { v -> GoldChip("${v}x", QuranAudio.speed == v) { QuranAudio.changeSpeed(v) } }
-                Text("نوم:", color = Muted, fontSize = 12.sp)
-                listOf(0 to "لا", 15 to "15 د", 30 to "30 د", 60 to "60 د").forEach { (m, l) ->
-                    GoldChip(l, (m == 0 && QuranAudio.sleepAt == 0L)) { QuranAudio.setSleep(m) }
-                }
-                if (QuranAudio.sleepAt > 0L) Text("مفعّل", color = Gold, fontSize = 12.sp)
-            }
+                contentAlignment = Alignment.Center
+            ) { Text(if (QuranAudio.loading) "…" else if (QuranAudio.playing) "⏸" else "▶", color = Color.Black, fontSize = 22.sp) }
         }
         QuranAudio.error?.let { Text(it, color = Color(0xFFFF8A80), fontSize = 12.sp) }
         if (QuranAudio.reciters.firstOrNull { it.id == reciter }?.surahUrl != null) Text("هذا القارئ يشغّل السورة كاملة من ملف واحد (بالإنترنت): بدون تظليل الآية الجارية ولا تكرار نطاق.", color = Muted, fontSize = 11.sp)
         val big = bigFont()
         val prevB: @Composable (Modifier) -> Unit = { m ->
-            OutlinedButton(onClick = { if (page > 1) onPage(page - 1) }, modifier = m, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("السابقة", color = Gold, fontSize = 13.sp, textAlign = TextAlign.Center) }
+            TextButton(onClick = { if (page > 1) onPage(page - 1) }, modifier = m, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("السابقة", color = Gold, fontSize = 13.sp, textAlign = TextAlign.Center) }
         }
         val doneB: @Composable (Modifier) -> Unit = { m ->
             Button(
@@ -461,11 +456,11 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 },
                 enabled = !isRead,
                 modifier = m, contentPadding = PaddingValues(horizontal = 6.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                colors = ButtonDefaults.buttonColors(containerColor = Gold.copy(alpha = 0.22f), contentColor = Gold, disabledContainerColor = Color(0x22FFFFFF), disabledContentColor = Muted)
             ) { Text(if (isRead) "✓ مقروءة" else "أتممت الصفحة ✓", fontSize = 13.sp, textAlign = TextAlign.Center) }
         }
         val nextB: @Composable (Modifier) -> Unit = { m ->
-            OutlinedButton(onClick = { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }, modifier = m, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("التالية", color = Gold, fontSize = 13.sp, textAlign = TextAlign.Center) }
+            TextButton(onClick = { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }, modifier = m, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("التالية", color = Gold, fontSize = 13.sp, textAlign = TextAlign.Center) }
         }
         if (big) {
             // خط كبير: الأزرار تتكدّس عموديًا بعرض كامل بدل ما تضيق وتتقطع
@@ -484,6 +479,86 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 prevB(Modifier.weight(1f)); doneB(Modifier.weight(1.6f)); nextB(Modifier.weight(1f))
             }
         }
+        }
+    }
+    if (showAudioSheet) {
+        androidx.compose.material3.ModalBottomSheet(
+            onDismissRequest = { showAudioSheet = false }, containerColor = Ink, contentColor = OnCard,
+            sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 40.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("خيارات الصوت", color = Gold, fontWeight = FontWeight.Bold, fontSize = 20.sp, fontFamily = Serif)
+                Text("القارئ", color = Muted, fontSize = 12.sp)
+                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    QuranAudio.reciters.forEach { r ->
+                        GoldChip(r.name, reciter == r.id) { reciter = r.id; prefs.reciter = r.id; QuranAudio.stop() }
+                    }
+                }
+                OutlinedButton(onClick = { showAudioSheet = false; showDl = true }, modifier = Modifier.fillMaxWidth()) { Text("⬇ تنزيل للاستماع بدون إنترنت", color = Gold) }
+                Text("التكرار", color = Muted, fontSize = 12.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(0 to "بدون", 1 to "آية", 2 to "صفحة").forEach { (v, l) -> GoldChip(l, repeat == v) { repeat = v; prefs.repeatMode = v } }
+                }
+                Text("السرعة", color = Muted, fontSize = 12.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(0.75f, 1f, 1.25f, 1.5f).forEach { v -> GoldChip("${v}x", QuranAudio.speed == v) { QuranAudio.changeSpeed(v) } }
+                }
+                Text("مؤقت النوم", color = Muted, fontSize = 12.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(0 to "لا", 15 to "15 د", 30 to "30 د", 60 to "60 د").forEach { (m, l) ->
+                        GoldChip(l, (m == 0 && QuranAudio.sleepAt == 0L)) { QuranAudio.setSleep(m) }
+                    }
+                }
+                if (QuranAudio.sleepAt > 0L) Text("مؤقت النوم مفعّل", color = Gold, fontSize = 12.sp)
+                Spacer(Modifier.height(6.dp))
+                if (pageAyahs.isNotEmpty()) {
+                    Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                        Text("تكرار نطاق من آيات الصفحة", color = Gold, fontSize = 12.sp)
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("من:", color = Muted, fontSize = 12.sp)
+                            pageAyahs.forEachIndexed { i, a -> GoldChip(Quran.arabicDigits(a.num), rFrom == i) { rFrom = i; if (rTo < i) rTo = i } }
+                        }
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("إلى:", color = Muted, fontSize = 12.sp)
+                            pageAyahs.forEachIndexed { i, a -> if (i >= rFrom) GoldChip(Quran.arabicDigits(a.num), rTo == i) { rTo = i } }
+                        }
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("مرات:", color = Muted, fontSize = 12.sp)
+                            listOf(1 to "١", 3 to "٣", 5 to "٥", 10 to "١٠", 0 to "∞").forEach { (n, l) -> GoldChip(l, rTimes == n) { rTimes = n } }
+                            Button(
+                                onClick = {
+                                    showAudioSheet = false
+                                    val to = rTo.coerceIn(rFrom, pageAyahs.size - 1)
+                                    QuranAudio.play(ctx, reciter, pageAyahs.subList(rFrom, to + 1), 0, { if (rTimes == 0) 2 else 0 }, rTimes) {}
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                            ) { Text("▶ شغّل النطاق") }
+                        }
+                        // تشغيل كامل من المكان اللي واقف عنده: الآية الجارية لو في الصفحة، وإلا آية «من:» المختارة
+                        val here = cur?.let { c -> pageAyahs.firstOrNull { it.surah == c.first && it.num == c.second } } ?: pageAyahs[rFrom.coerceIn(0, pageAyahs.size - 1)]
+                        Text("التشغيل الكامل يبدأ من: سورة ${Quran.surahName(here.surah)} آية ${Quran.arabicDigits(here.num)}", color = Muted, fontSize = 12.sp)
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Button(
+                                onClick = { showAudioSheet = false; followNav = false; QuranAudio.play(ctx, reciter, pageAyahs.dropWhile { it !== here }, 0, { prefs.repeatMode }) {} },
+                                colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                            ) { Text("▶ باقي الصفحة", fontSize = 12.sp) }
+                            Button(
+                                onClick = { showAudioSheet = false; followNav = true; QuranAudio.play(ctx, reciter, Quran.ayahs.filter { it.surah == here.surah && it.num >= here.num }, 0, { prefs.repeatMode }) {} },
+                                colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                            ) { Text("▶ السورة كاملة", fontSize = 12.sp) }
+                            Button(
+                                onClick = {
+                                    showAudioSheet = false
+                                    followNav = true
+                                    val i = Quran.ayahs.indexOfFirst { it.surah == here.surah && it.num == here.num }.coerceAtLeast(0)
+                                    QuranAudio.play(ctx, reciter, Quran.ayahs.subList(i, Quran.ayahs.size), 0, { prefs.repeatMode }) {}
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                            ) { Text("▶ المصحف كامل", fontSize = 12.sp) }
+                        }
+                    }
+                }
+            }
         }
     }
     // أدوات الشاشة الكاملة مخفية افتراضيًا (عشان ما تغطيش كلام المصحف)؛ لمسة على الصفحة بتظهرها ٣ ثواني
