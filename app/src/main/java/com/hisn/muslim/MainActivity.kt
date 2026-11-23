@@ -30,10 +30,12 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
@@ -172,7 +174,10 @@ fun App() {
                 // الشريط السفلي مساحته ثابتة: نحدّ خط عناوينه عند ١٫١٥ (الأيقونات تكمّل المعنى)
                 val navDens = androidx.compose.ui.platform.LocalDensity.current
                 if (!readerFull) CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(navDens.density, navDens.fontScale.coerceAtMost(1.15f))) {
-                NavigationBar(containerColor = if (Look.light) Color(0xF2FFFFFF) else Color(0xE6051510)) {
+                NavigationBar(
+                    modifier = Modifier.drawBehind { drawLine(Gold.copy(alpha = 0.28f), androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(size.width, 0f), 1.dp.toPx()) },
+                    containerColor = if (Look.light) Color(0xEBFFFFFF) else Color(0xC8051510)
+                ) {
                     appTabs.forEachIndexed { i, t ->
                         NavigationBarItem(
                             selected = tab == i,

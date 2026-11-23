@@ -1,6 +1,10 @@
 package com.hisn.muslim
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -115,14 +119,21 @@ fun HisnTheme(content: @Composable () -> Unit) {
 
 @Composable
 fun Glass(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg, contentColor = OnCard),
-        border = BorderStroke(1.dp, Gold.copy(alpha = 0.28f))
-    ) {
-        Column(Modifier.padding(18.dp), content = content)
-    }
+    val shape = RoundedCornerShape(24.dp)
+    // «زجاج»: أرضية شبه شفافة + لمعة بيضاء متدرجة من فوق + حد متدرّج (أفتح عند الزاوية العليا) بدل كارت مصمت
+    val sheen = if (Look.light) Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color(0x00FFFFFF)))
+    else Brush.verticalGradient(listOf(Color(0x1FFFFFFF), Color(0x05FFFFFF)))
+    val edge = if (Look.light) Brush.linearGradient(listOf(Gold.copy(alpha = 0.55f), Color(0x22000000), Gold.copy(alpha = 0.30f)))
+    else Brush.linearGradient(listOf(Gold.copy(alpha = 0.60f), Color(0x22FFFFFF), Gold.copy(alpha = 0.22f)))
+    Column(
+        modifier.fillMaxWidth()
+            .clip(shape)
+            .background(CardBg)
+            .background(sheen)
+            .border(BorderStroke(1.dp, edge), shape)
+            .padding(18.dp),
+        content = content
+    )
 }
 
 @Composable
