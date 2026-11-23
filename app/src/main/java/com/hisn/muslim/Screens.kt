@@ -203,28 +203,14 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                 Spacer(Modifier.height(10.dp))
                 if (next != null) {
                     val diff = ((next.second.time - now) / 1000).coerceAtLeast(0)
-                    Text("الصلاة القادمة", color = Muted, fontSize = 13.sp)
-                    Text(next.first.label, fontSize = 34.sp, fontWeight = FontWeight.Bold, color = Gold, fontFamily = Serif)
-                    Text(
-                        String.format(Locale.US, "%02d:%02d:%02d", diff / 3600, (diff % 3600) / 60, diff % 60),
-                        fontSize = 44.sp, fontWeight = FontWeight.Light
-                    )
-                    Text("الساعة ${fmt.format(next.second)}", color = Muted)
-                    if (prev != null) {
+                    val frac = if (prev != null) {
                         val span = (next.second.time - prev.second.time).coerceAtLeast(1)
-                        val frac = ((now - prev.second.time).toFloat() / span).coerceIn(0f, 1f)
-                        Spacer(Modifier.height(10.dp))
-                        LinearProgressIndicator(
-                            progress = { frac },
-                            modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
-                            color = Gold, trackColor = Track
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(next.first.label, fontSize = 12.sp, color = Muted)
-                            Text("منذ ${prev.first.label}", fontSize = 12.sp, color = Muted)
-                        }
-                    }
+                        ((now - prev.second.time).toFloat() / span).coerceIn(0f, 1f)
+                    } else 0f
+                    NextPrayerRing(
+                        next.first.label, diff, frac, fmt.format(next.second),
+                        prev?.let { "من ${it.first.label} إلى ${next.first.label}" }
+                    )
                 }
                 WeatherLine()
                 Spacer(Modifier.height(12.dp))
