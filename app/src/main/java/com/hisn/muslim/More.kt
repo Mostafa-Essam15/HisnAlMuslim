@@ -105,20 +105,32 @@ fun MoreScreen(prefs: Prefs, onOpenQuran: (Int) -> Unit = {}) {
     androidx.activity.compose.BackHandler(enabled = sec >= 0) { sec = -1 }
     if (sec < 0) {
         val open = remember { mutableStateOf(setOf(0, 1, 2)) }
+        var filter by remember { mutableStateOf("") }
+        val fq = filter.trim()
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item { Text("المزيد", fontSize = 26.sp, fontWeight = FontWeight.Bold, fontFamily = Serif) }
+            item {
+                androidx.compose.material3.OutlinedTextField(
+                    value = filter, onValueChange = { filter = it }, singleLine = true,
+                    placeholder = { Text("ابحث في الأقسام…", color = Muted) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                )
+            }
             MORE_GROUPS.forEachIndexed { gi, g ->
+                val shown = if (fq.isEmpty()) g.items else g.items.filter { fq in it.title || fq in it.sub }
+                if (shown.isEmpty()) return@forEachIndexed
                 item {
-                    val isOpen = gi in open.value
+                    val isOpen = fq.isNotEmpty() || gi in open.value
                     Glass {
                         Row(
                             Modifier.fillMaxWidth().clickable { open.value = if (isOpen) open.value - gi else open.value + gi },
                             horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(g.title, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Gold)
-                            Text((if (isOpen) "⌄ " else "‹ ") + Quran.arabicDigits(g.items.size), color = Muted, fontSize = 13.sp)
+                            Text((if (isOpen) "⌄ " else "‹ ") + Quran.arabicDigits(shown.size), color = Muted, fontSize = 13.sp)
                         }
-                        if (isOpen) g.items.forEach { it ->
+                        if (isOpen) shown.forEach { it ->
                             Row(
                                 Modifier.fillMaxWidth().padding(top = 10.dp).clickable { sec = it.id },
                                 verticalAlignment = Alignment.CenterVertically
