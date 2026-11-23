@@ -7,6 +7,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -191,15 +192,31 @@ fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pai
     val scope = rememberCoroutineScope()
     var attempt by remember(page) { mutableIntStateOf(0) }
     var err by remember(page) { mutableStateOf<String?>(null) }
+    var busy by remember(page, attempt) { mutableStateOf(true) }
     val data by produceState<Pair<List<MLine>, FontFamily>?>(null, page, attempt, MushafStore.bulkProgress / 50) {
+        busy = true
         value = withContext(Dispatchers.IO) {
             MushafStore.load(ctx, page) ?: run {
                 err = MushafStore.downloadPage(ctx, page)
                 MushafStore.load(ctx, page)
             }
         }
+        busy = false
+        // تحميل مسبق للصفحات المجاورة في الخلفية عشان التقليب ما يوقفش على شاشة تحميل
+        withContext(Dispatchers.IO) {
+            if (value != null) listOf(page + 1, page - 1, page + 2, page - 2)
+                .filter { it in 1..Quran.TOTAL_PAGES && !MushafStore.hasPage(ctx, it) }
+                .forEach { try { MushafStore.downloadPage(ctx, it) } catch (_: Exception) {} }
+        }
     }
     val d = data
+    if (d == null && busy) {
+        // أثناء التحميل: مؤشر هادي بس، من غير رسالة «غير محمّلة»
+        Box(modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+            androidx.compose.material3.CircularProgressIndicator(color = Gold, strokeWidth = 3.dp, modifier = Modifier.size(32.dp))
+        }
+        return
+    }
     if (d == null) {
         Column(modifier.padding(16.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             Text("صفحة المصحف غير محمّلة", color = ink, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
