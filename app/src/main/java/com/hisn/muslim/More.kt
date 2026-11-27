@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -77,22 +80,22 @@ object Occasions {
 
 private fun hijriOf(p: Prefs, d: LocalDate): HijrahDate = HijrahDate.from(d.plusDays(p.hijriAdj.toLong()))
 
-private class MoreItem(val id: Int, val icon: String, val title: String, val sub: String)
+private class MoreItem(val id: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector, val title: String, val sub: String)
 private class MoreGroup(val title: String, val items: List<MoreItem>)
 
 private val MORE_GROUPS = listOf(
     MoreGroup("القرآن والحديث", listOf(
-        MoreItem(5, "📚", "الأحاديث", "البخاري ومسلم والسنن الأربعة والموطأ"),
-        MoreItem(6, "🤲", "الأدعية", "أدعية القرآن والسنة بمصادرها"),
-        MoreItem(4, "🔎", "بحث شامل", "في المصحف والأذكار")
+        MoreItem(5, androidx.compose.material.icons.Icons.Rounded.MenuBook, "الأحاديث", "البخاري ومسلم والسنن الأربعة والموطأ"),
+        MoreItem(6, androidx.compose.material.icons.Icons.Rounded.VolunteerActivism, "الأدعية", "أدعية القرآن والسنة بمصادرها"),
+        MoreItem(4, androidx.compose.material.icons.Icons.Rounded.Search, "بحث شامل", "في المصحف والأذكار")
     )),
     MoreGroup("عبادات ومواقيت", listOf(
-        MoreItem(0, "📅", "التقويم الهجري", "الأيام والمناسبات"),
-        MoreItem(1, "🌙", "رمضان والسحور", "السحور والإفطار والصيام"),
-        MoreItem(2, "📊", "إحصاءات العبادة", "الفروض والقرآن والتسبيح")
+        MoreItem(0, androidx.compose.material.icons.Icons.Rounded.CalendarMonth, "التقويم الهجري", "الأيام والمناسبات"),
+        MoreItem(1, androidx.compose.material.icons.Icons.Rounded.NightsStay, "رمضان والسحور", "السحور والإفطار والصيام"),
+        MoreItem(2, androidx.compose.material.icons.Icons.Rounded.BarChart, "إحصاءات العبادة", "الفروض والقرآن والتسبيح")
     )),
     MoreGroup("التطبيق", listOf(
-        MoreItem(3, "💾", "نسخ احتياطي", "تصدير واستعادة بياناتك")
+        MoreItem(3, androidx.compose.material.icons.Icons.Rounded.Backup, "نسخ احتياطي", "تصدير واستعادة بياناتك")
     ))
 )
 
@@ -104,7 +107,6 @@ fun MoreScreen(prefs: Prefs, onOpenQuran: (Int) -> Unit = {}) {
     var sec by remember { mutableIntStateOf(moreStartSec.intValue.also { moreStartSec.intValue = -1 }) }
     androidx.activity.compose.BackHandler(enabled = sec >= 0) { sec = -1 }
     if (sec < 0) {
-        val open = remember { mutableStateOf(setOf(0, 1, 2)) }
         var filter by remember { mutableStateOf("") }
         val fq = filter.trim()
         LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -113,42 +115,31 @@ fun MoreScreen(prefs: Prefs, onOpenQuran: (Int) -> Unit = {}) {
                 androidx.compose.material3.OutlinedTextField(
                     value = filter, onValueChange = { filter = it }, singleLine = true,
                     placeholder = { Text("ابحث في الأقسام…", color = Muted) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
+                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)
                 )
             }
-            MORE_GROUPS.forEachIndexed { gi, g ->
+            MORE_GROUPS.forEach { g ->
                 val shown = if (fq.isEmpty()) g.items else g.items.filter { fq in it.title || fq in it.sub }
-                if (shown.isEmpty()) return@forEachIndexed
-                item {
-                    val isOpen = fq.isNotEmpty() || gi in open.value
-                    Glass {
-                        Row(
-                            Modifier.fillMaxWidth().clickable { open.value = if (isOpen) open.value - gi else open.value + gi },
-                            horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(g.title, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Gold)
-                            Text((if (isOpen) "⌄ " else "‹ ") + Quran.arabicDigits(shown.size), color = Muted, fontSize = 13.sp)
-                        }
-                        if (isOpen) shown.forEach { it ->
-                            Row(
-                                Modifier.fillMaxWidth().padding(top = 10.dp).clickable { sec = it.id },
-                                verticalAlignment = Alignment.CenterVertically
+                if (shown.isEmpty()) return@forEach
+                item { Text(g.title, color = Gold, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(top = 6.dp, start = 4.dp, end = 4.dp)) }
+                // بطاقتين في الصف؛ لو العدد فردي بنسيب الخانة الأخيرة فاضية
+                items(shown.chunked(2)) { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        row.forEach { it ->
+                            Column(
+                                Modifier.weight(1f).glassSurface(22.dp).clickable { sec = it.id }.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Box(
-                                    Modifier.size(44.dp).background(
-                                        androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0xFF2E9E75), Color(0xFF1B6B50))),
-                                        RoundedCornerShape(14.dp)
-                                    ),
+                                    Modifier.size(44.dp).clip(CircleShape).background(Gold.copy(alpha = 0.16f))
+                                        .border(1.dp, Gold.copy(alpha = 0.45f), CircleShape),
                                     contentAlignment = Alignment.Center
-                                ) { Text(it.icon, fontSize = 20.sp) }
-                                Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                                    Text(it.title, fontWeight = FontWeight.Bold)
-                                    Text(it.sub, fontSize = 11.sp, color = Muted)
-                                }
-                                Text("‹", color = Muted, fontSize = 20.sp)
+                                ) { androidx.compose.material3.Icon(it.icon, null, tint = Gold, modifier = Modifier.size(24.dp)) }
+                                Text(it.title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                Text(it.sub, fontSize = 11.sp, lineHeight = 16.sp, color = Muted, maxLines = 2)
                             }
                         }
+                        if (row.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
             }

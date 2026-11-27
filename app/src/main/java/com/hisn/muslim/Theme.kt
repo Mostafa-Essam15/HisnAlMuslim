@@ -136,6 +136,17 @@ fun Glass(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> 
     )
 }
 
+/** سطح زجاجي صغير للبطاقات المتجاورة (نفس لغة Glass) */
+@Composable
+fun Modifier.glassSurface(radius: androidx.compose.ui.unit.Dp = 20.dp): Modifier {
+    val shape = RoundedCornerShape(radius)
+    val sheen = if (Look.light) Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color(0x00FFFFFF)))
+    else Brush.verticalGradient(listOf(Color(0x1FFFFFFF), Color(0x05FFFFFF)))
+    val edge = if (Look.light) Brush.linearGradient(listOf(Gold.copy(alpha = 0.55f), Color(0x22000000), Gold.copy(alpha = 0.30f)))
+    else Brush.linearGradient(listOf(Gold.copy(alpha = 0.60f), Color(0x22FFFFFF), Gold.copy(alpha = 0.22f)))
+    return this.clip(shape).background(CardBg).background(sheen).border(BorderStroke(1.dp, edge), shape)
+}
+
 @Composable
 fun SectionTitle(text: String, icon: ImageVector? = null) {
     Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
