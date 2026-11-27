@@ -5,6 +5,18 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -76,6 +88,7 @@ class AdhanActivity : ComponentActivity() {
                     AdhanScreen(
                         prayer = prayer,
                         city = prefs.city,
+                        hijri = Fasting.hijriText(prefs),
                         onStop = { AdhanService.stop(this@AdhanActivity) },
                         onOpenApp = {
                             startActivity(
@@ -100,84 +113,92 @@ private fun sceneFor(p: Prayer) = when (p) {
 }
 
 @Composable
-fun AdhanScreen(prayer: Prayer, city: String, onStop: () -> Unit, onOpenApp: () -> Unit) {
+fun AdhanScreen(prayer: Prayer, city: String, hijri: String = "", onStop: () -> Unit, onOpenApp: () -> Unit) {
     val tip = Content.tip(prayer)
     val time = SimpleDateFormat("hh:mm a", Locale("ar")).format(Date())
 
-    val t = rememberInfiniteTransition(label = "pulse")
-    val pulse by t.animateFloat(
-        0.88f, 1.18f,
-        infiniteRepeatable(tween(2000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "pulse"
+    // الهالة بتتنفّس بنعومة (الشفافية بس، من غير تكبير/تصغير للحلقة)
+    val t = rememberInfiniteTransition(label = "breath")
+    val glow by t.animateFloat(
+        0.10f, 0.30f,
+        infiniteRepeatable(tween(2400, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "glow"
     )
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    val appear by animateFloatAsState(if (shown) 1f else 0f, tween(700), label = "appear")
+    val gold = Gold
+    val cardShape = RoundedCornerShape(26.dp)
 
     Box(Modifier.fillMaxSize()) {
         MosqueScene(sceneFor(prayer), Modifier.fillMaxSize())
+        // تعتيم خفيف فوق وتحت بس عشان النص يتقري ومشهد المسجد يفضل ظاهر
         Box(
             Modifier.fillMaxSize().background(
-                Brush.verticalGradient(listOf(Color(0x88000000), Color(0x11000000), Color(0x99000000)))
+                Brush.verticalGradient(
+                    0f to Color(0xAA000000), 0.32f to Color(0x10000000),
+                    0.55f to Color(0x10000000), 1f to Color(0xDD000000)
+                )
             )
         )
         Column(
-            Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 40.dp),
+            Modifier.fillMaxSize().alpha(appear).padding(horizontal = 24.dp, vertical = 44.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Spacer(Modifier.height(16.dp))
-                Text("حان الآن موعد أذان", color = Color(0xFFE9EFEC), fontSize = 18.sp)
-                Spacer(Modifier.height(8.dp))
-                Box(contentAlignment = Alignment.Center) {
-                    Canvas(Modifier.size(210.dp).scale(pulse)) {
-                        drawCircle(Gold.copy(alpha = 0.10f))
-                        drawCircle(Gold.copy(alpha = 0.22f), radius = size.minDimension * 0.42f)
+                Text("حان الآن موعد أذان", color = Color(0xFFE9EFEC), fontSize = 16.sp)
+                Spacer(Modifier.height(14.dp))
+                Box(Modifier.size(230.dp), contentAlignment = Alignment.Center) {
+                    Canvas(Modifier.fillMaxSize()) {
+                        drawCircle(
+                            Brush.radialGradient(listOf(gold.copy(alpha = glow), Color.Transparent), radius = size.minDimension / 2f)
+                        )
+                        drawCircle(gold.copy(alpha = 0.85f), radius = size.minDimension * 0.40f, style = Stroke(3.dp.toPx()))
+                        drawCircle(Color.White.copy(alpha = 0.10f), radius = size.minDimension * 0.44f, style = Stroke(1.dp.toPx()))
                     }
-                    Text(
-                        prayer.label, color = Gold, fontSize = 64.sp,
-                        fontWeight = FontWeight.Bold, fontFamily = Serif
-                    )
+                    Text(prayer.label, color = gold, fontSize = 52.sp, fontWeight = FontWeight.Bold, fontFamily = Serif)
                 }
-                Text(time, color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
-                if (city.isNotBlank()) Text(city, color = Muted, fontSize = 15.sp)
+                Spacer(Modifier.height(10.dp))
+                Text(time, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.SemiBold)
+                val sub = listOf(hijri, city).filter { it.isNotBlank() }.joinToString(" • ")
+                if (sub.isNotBlank()) Text(sub, color = Muted, fontSize = 14.sp, textAlign = TextAlign.Center)
             }
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Column(
-                    Modifier.fillMaxWidth()
-                        .background(Color(0x99000000), RoundedCornerShape(22.dp))
-                        .padding(18.dp),
+                    Modifier.fillMaxWidth().clip(cardShape)
+                        .background(Color(0x66071611))
+                        .background(Brush.verticalGradient(listOf(Color(0x22FFFFFF), Color(0x05FFFFFF))))
+                        .border(1.dp, Brush.linearGradient(listOf(gold.copy(alpha = 0.55f), Color(0x22FFFFFF), gold.copy(alpha = 0.22f))), cardShape)
+                        .padding(horizontal = 18.dp, vertical = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(tip.kind, color = Gold, fontWeight = FontWeight.Bold)
+                    Text(tip.kind, color = gold, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        tip.text, color = Color.White, fontSize = 18.sp, lineHeight = 30.sp,
-                        textAlign = TextAlign.Center, fontFamily = Serif
+                        tip.text, color = Color.White, fontSize = 17.sp, lineHeight = 28.sp,
+                        textAlign = TextAlign.Center, fontFamily = Serif,
+                        maxLines = 4, overflow = TextOverflow.Ellipsis
                     )
                     Spacer(Modifier.height(4.dp))
-                    Text(tip.source, color = Muted, fontSize = 12.sp)
+                    Text(tip.source, color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (prayer == Prayer.FAJR) {
                         Spacer(Modifier.height(8.dp))
                         Text(
                             "في أذان الفجر يُقال: «الصلاة خير من النوم» مرتين",
-                            color = Gold, fontSize = 14.sp, textAlign = TextAlign.Center
+                            color = gold, fontSize = 13.sp, textAlign = TextAlign.Center
                         )
                     }
                 }
-                Spacer(Modifier.height(22.dp))
-                Button(
-                    onClick = onStop,
-                    modifier = Modifier.fillMaxWidth().height(58.dp),
-                    shape = RoundedCornerShape(40.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-                ) { Text("إيقاف الأذان", fontSize = 18.sp, fontWeight = FontWeight.Bold) }
-                Spacer(Modifier.height(10.dp))
-                OutlinedButton(
-                    onClick = onOpenApp,
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    shape = RoundedCornerShape(40.dp),
-                    border = BorderStroke(1.dp, Gold.copy(alpha = 0.6f))
-                ) { Text("فتح التطبيق", color = Gold) }
+                Spacer(Modifier.height(24.dp))
+                Box(
+                    Modifier.size(76.dp).clip(CircleShape).background(gold).clickable { onStop() },
+                    contentAlignment = Alignment.Center
+                ) { Text("⏹", color = Color.Black, fontSize = 30.sp) }
+                Spacer(Modifier.height(6.dp))
+                Text("إيقاف الأذان", color = Color(0xFFE9EFEC), fontSize = 13.sp)
+                TextButton(onClick = onOpenApp) { Text("فتح التطبيق", color = gold, fontSize = 15.sp) }
             }
         }
     }
