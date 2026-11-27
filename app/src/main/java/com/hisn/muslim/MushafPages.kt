@@ -67,6 +67,9 @@ class MLine(val type: String, val text: String, val words: List<MWord>)
  */
 object MushafStore {
     private const val JSON_URL = "https://raw.githubusercontent.com/zonetecde/mushaf-layout/v2/mushaf/QPC1/page-%03d.json"
+    // مرايا على jsDelivr (نفس المستودعات): لو raw.githubusercontent محجوب على الشبكة/الجهاز
+    private const val JSON_MIRROR = "https://cdn.jsdelivr.net/gh/zonetecde/mushaf-layout@v2/mushaf/QPC1/page-%03d.json"
+    private const val FONT_MIRROR = "https://cdn.jsdelivr.net/gh/mustafa0x/qpc-fonts@master/mushaf/QCF_P%03d.TTF"
     private const val FONT_URL = "https://raw.githubusercontent.com/mustafa0x/qpc-fonts/master/mushaf/QCF_P%03d.TTF"
 
     var bulkProgress by mutableIntStateOf(0)      // عدد الصفحات المكتملة
@@ -117,13 +120,17 @@ object MushafStore {
 
     /** تحميل صفحة واحدة (JSON + الخط). بيرجع null لو نجح أو رسالة الخطأ. من thread خلفي. */
     fun downloadPage(ctx: Context, p: Int): String? {
-        if (!validJson(jsonFile(ctx, p))) fetch(JSON_URL.format(p), jsonFile(ctx, p))?.let { return it }
+        if (!validJson(jsonFile(ctx, p))) {
+            val e1 = fetch(JSON_URL.format(p), jsonFile(ctx, p))
+            if (e1 != null) fetch(JSON_MIRROR.format(p), jsonFile(ctx, p))?.let { return "$e1 | المرآة: $it" }
+        }
         if (!validJson(jsonFile(ctx, p))) return "ملف الصفحة غير صالح"
         // تأكد إن الـ JSON سليم
         try { parse(jsonFile(ctx, p).readText()) } catch (e: Exception) { jsonFile(ctx, p).delete(); return "ملف الصفحة تالف" }
         if (!validFont(fontFile(ctx, p))) {
             fontFile(ctx, p).delete()
-            fetch(FONT_URL.format(p), fontFile(ctx, p))?.let { return it }
+            val f1 = fetch(FONT_URL.format(p), fontFile(ctx, p))
+            if (f1 != null) fetch(FONT_MIRROR.format(p), fontFile(ctx, p))?.let { return "$f1 | المرآة: $it" }
             if (!validFont(fontFile(ctx, p))) { fontFile(ctx, p).delete(); return "خط الصفحة غير صالح" }
         }
         return null
