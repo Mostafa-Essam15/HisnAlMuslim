@@ -12,6 +12,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material.icons.rounded.Backup
+import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.NightsStay
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.VolunteerActivism
+import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
