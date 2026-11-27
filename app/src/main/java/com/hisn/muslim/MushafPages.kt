@@ -240,6 +240,7 @@ fun MushafPageView(page: Int, ink: Color, accent: Color, hi: Color, current: Pai
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0x33888888), contentColor = ink)
                 ) { Text("إعادة محاولة هذه الصفحة") }
                 MushafStore.bulkError?.let { Text(it, color = Color(0xFFB3261E), fontSize = 12.sp) }
+                NetDiagButton()
             }
         }
         return

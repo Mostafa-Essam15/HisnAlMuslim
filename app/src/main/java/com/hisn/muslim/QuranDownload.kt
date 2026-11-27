@@ -64,6 +64,7 @@ fun AudioDownloadDialog(reciter: String, page: Int, onDismiss: () -> Unit) {
                     if (stored.first > 0) TextButton(onClick = { QuranAudio.deleteStored(ctx, reciter); bump++ }) { Text("حذف صوت هذا القارئ من الجهاز", color = Color(0xFFFF8A80)) }
                 }
                 QuranAudio.dlError?.let { Text(it, fontSize = 12.sp, color = Color(0xFFFF8A80)) }
+                NetDiagButton()
                 Spacer(Modifier.height(2.dp))
             }
         },
