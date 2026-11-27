@@ -109,7 +109,7 @@ object MushafStore {
             if (tmp.renameTo(target)) null else "تعذّر الحفظ"
         } catch (e: Exception) {
             tmp.delete()
-            "تعذّر الاتصال"
+            "تعذّر الاتصال: ${e.javaClass.simpleName}" + (e.message?.take(60)?.let { " — $it" } ?: "")
         } finally {
             conn?.disconnect()
         }

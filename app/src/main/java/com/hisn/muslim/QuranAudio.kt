@@ -115,7 +115,7 @@ object QuranAudio {
                 return null
             } catch (e: Exception) {
                 tmp.delete()
-                lastErr = "تعذّر تحميل التلاوة: تأكد من الاتصال بالإنترنت (${e.javaClass.simpleName})"
+                lastErr = "تعذّر تحميل التلاوة: تأكد من الاتصال بالإنترنت (${e.javaClass.simpleName}${e.message?.take(60)?.let { " — $it" } ?: ""})"
             } finally {
                 c?.disconnect()
             }
