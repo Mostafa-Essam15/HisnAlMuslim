@@ -486,66 +486,57 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
             onDismissRequest = { showAudioSheet = false }, containerColor = Ink, contentColor = OnCard,
             sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ) {
-            Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 40.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("خيارات الصوت", color = Gold, fontWeight = FontWeight.Bold, fontSize = 20.sp, fontFamily = Serif)
-                Text("القارئ", color = Muted, fontSize = 12.sp)
-                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    QuranAudio.reciters.forEach { r ->
-                        GoldChip(r.name, reciter == r.id) { reciter = r.id; prefs.reciter = r.id; QuranAudio.stop() }
+            Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 40.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("خيارات الصوت", color = Gold, fontWeight = FontWeight.Bold, fontSize = 20.sp, fontFamily = Serif, modifier = Modifier.padding(horizontal = 4.dp))
+                OptCard("القارئ") {
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), maxItemsInEachRow = 2
+                    ) {
+                        QuranAudio.reciters.forEach { r ->
+                            val on = reciter == r.id
+                            val sh = RoundedCornerShape(14.dp)
+                            Box(
+                                Modifier.weight(1f).clip(sh).background(if (on) Gold else Color.Transparent)
+                                    .border(1.dp, Gold.copy(alpha = if (on) 0f else 0.3f), sh)
+                                    .clickable { reciter = r.id; prefs.reciter = r.id; QuranAudio.stop() }
+                                    .padding(vertical = 11.dp, horizontal = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(r.name, fontSize = 13.sp, maxLines = 1, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    color = if (on) (if (Look.light) Color.White else Color.Black) else OnCard)
+                            }
+                        }
                     }
+                    TextButton(onClick = { showAudioSheet = false; showDl = true }, modifier = Modifier.fillMaxWidth()) { Text("⬇ تنزيل للاستماع بدون إنترنت", color = Gold) }
                 }
-                OutlinedButton(onClick = { showAudioSheet = false; showDl = true }, modifier = Modifier.fillMaxWidth()) { Text("⬇ تنزيل للاستماع بدون إنترنت", color = Gold) }
-                Text("التكرار", color = Muted, fontSize = 12.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(0 to "بدون", 1 to "آية", 2 to "صفحة").forEach { (v, l) -> GoldChip(l, repeat == v) { repeat = v; prefs.repeatMode = v } }
+                OptCard("التشغيل") {
+                    Text("التكرار", color = Muted, fontSize = 12.sp)
+                    SegRow(listOf("بدون", "آية", "صفحة"), repeat) { repeat = it; prefs.repeatMode = it }
+                    Spacer(Modifier.height(4.dp))
+                    Text("السرعة", color = Muted, fontSize = 12.sp)
+                    val speeds = listOf(0.75f, 1f, 1.25f, 1.5f)
+                    SegRow(speeds.map { "${it}x" }, speeds.indexOf(QuranAudio.speed)) { QuranAudio.changeSpeed(speeds[it]) }
+                    Spacer(Modifier.height(4.dp))
+                    Text("مؤقت النوم" + if (QuranAudio.sleepAt > 0L) " (مفعّل)" else "", color = Muted, fontSize = 12.sp)
+                    val sleeps = listOf(0, 15, 30, 60)
+                    SegRow(listOf("لا", "15 د", "30 د", "60 د"), if (QuranAudio.sleepAt == 0L) 0 else -1) { QuranAudio.setSleep(sleeps[it]) }
                 }
-                Text("السرعة", color = Muted, fontSize = 12.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(0.75f, 1f, 1.25f, 1.5f).forEach { v -> GoldChip("${v}x", QuranAudio.speed == v) { QuranAudio.changeSpeed(v) } }
-                }
-                Text("مؤقت النوم", color = Muted, fontSize = 12.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(0 to "لا", 15 to "15 د", 30 to "30 د", 60 to "60 د").forEach { (m, l) ->
-                        GoldChip(l, (m == 0 && QuranAudio.sleepAt == 0L)) { QuranAudio.setSleep(m) }
-                    }
-                }
-                if (QuranAudio.sleepAt > 0L) Text("مؤقت النوم مفعّل", color = Gold, fontSize = 12.sp)
-                Spacer(Modifier.height(6.dp))
                 if (pageAyahs.isNotEmpty()) {
-                    Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                        Text("تكرار نطاق من آيات الصفحة", color = Gold, fontSize = 12.sp)
-                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("من:", color = Muted, fontSize = 12.sp)
-                            pageAyahs.forEachIndexed { i, a -> GoldChip(Quran.arabicDigits(a.num), rFrom == i) { rFrom = i; if (rTo < i) rTo = i } }
-                        }
-                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("إلى:", color = Muted, fontSize = 12.sp)
-                            pageAyahs.forEachIndexed { i, a -> if (i >= rFrom) GoldChip(Quran.arabicDigits(a.num), rTo == i) { rTo = i } }
-                        }
-                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("مرات:", color = Muted, fontSize = 12.sp)
-                            listOf(1 to "١", 3 to "٣", 5 to "٥", 10 to "١٠", 0 to "∞").forEach { (n, l) -> GoldChip(l, rTimes == n) { rTimes = n } }
-                            Button(
-                                onClick = {
-                                    showAudioSheet = false
-                                    val to = rTo.coerceIn(rFrom, pageAyahs.size - 1)
-                                    QuranAudio.play(ctx, reciter, pageAyahs.subList(rFrom, to + 1), 0, { if (rTimes == 0) 2 else 0 }, rTimes) {}
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-                            ) { Text("▶ شغّل النطاق") }
-                        }
-                        // تشغيل كامل من المكان اللي واقف عنده: الآية الجارية لو في الصفحة، وإلا آية «من:» المختارة
-                        val here = cur?.let { c -> pageAyahs.firstOrNull { it.surah == c.first && it.num == c.second } } ?: pageAyahs[rFrom.coerceIn(0, pageAyahs.size - 1)]
-                        Text("التشغيل الكامل يبدأ من: سورة ${Quran.surahName(here.surah)} آية ${Quran.arabicDigits(here.num)}", color = Muted, fontSize = 12.sp)
-                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    // تشغيل كامل من المكان اللي واقف عنده: الآية الجارية لو في الصفحة، وإلا آية «من:» المختارة
+                    val here = cur?.let { c -> pageAyahs.firstOrNull { it.surah == c.first && it.num == c.second } } ?: pageAyahs[rFrom.coerceIn(0, pageAyahs.size - 1)]
+                    OptCard("تشغيل من هنا") {
+                        Text("يبدأ من: سورة ${Quran.surahName(here.surah)} آية ${Quran.arabicDigits(here.num)}", color = Muted, fontSize = 12.sp)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            val bc = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
                             Button(
                                 onClick = { showAudioSheet = false; followNav = false; QuranAudio.play(ctx, reciter, pageAyahs.dropWhile { it !== here }, 0, { prefs.repeatMode }) {} },
-                                colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-                            ) { Text("▶ باقي الصفحة", fontSize = 12.sp) }
+                                colors = bc, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp)
+                            ) { Text("باقي الصفحة", fontSize = 12.sp, maxLines = 1) }
                             Button(
                                 onClick = { showAudioSheet = false; followNav = true; QuranAudio.play(ctx, reciter, Quran.ayahs.filter { it.surah == here.surah && it.num >= here.num }, 0, { prefs.repeatMode }) {} },
-                                colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-                            ) { Text("▶ السورة كاملة", fontSize = 12.sp) }
+                                colors = bc, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp)
+                            ) { Text("السورة كاملة", fontSize = 12.sp, maxLines = 1) }
                             Button(
                                 onClick = {
                                     showAudioSheet = false
@@ -553,9 +544,30 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                                     val i = Quran.ayahs.indexOfFirst { it.surah == here.surah && it.num == here.num }.coerceAtLeast(0)
                                     QuranAudio.play(ctx, reciter, Quran.ayahs.subList(i, Quran.ayahs.size), 0, { prefs.repeatMode }) {}
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-                            ) { Text("▶ المصحف كامل", fontSize = 12.sp) }
+                                colors = bc, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 4.dp)
+                            ) { Text("المصحف كامل", fontSize = 12.sp, maxLines = 1) }
                         }
+                    }
+                    OptCard("تكرار نطاق من آيات الصفحة") {
+                        val opts = pageAyahs.mapIndexed { i, a -> i.toString() to "آية ${Quran.arabicDigits(a.num)}" }
+                        PickRow("من", opts.getOrNull(rFrom)?.second ?: "", opts) { rFrom = it.toInt(); if (rTo < rFrom) rTo = rFrom }
+                        androidx.compose.material3.HorizontalDivider(color = Gold.copy(alpha = 0.12f))
+                        PickRow("إلى", opts.getOrNull(rTo)?.second ?: "", opts.filter { it.first.toInt() >= rFrom }) { rTo = it.toInt() }
+                        androidx.compose.material3.HorizontalDivider(color = Gold.copy(alpha = 0.12f))
+                        Spacer(Modifier.height(6.dp))
+                        Text("عدد المرات", color = Muted, fontSize = 12.sp)
+                        val times = listOf(1, 3, 5, 10, 0)
+                        SegRow(listOf("١", "٣", "٥", "١٠", "∞"), times.indexOf(rTimes)) { rTimes = times[it] }
+                        Spacer(Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                showAudioSheet = false
+                                val to = rTo.coerceIn(rFrom, pageAyahs.size - 1)
+                                QuranAudio.play(ctx, reciter, pageAyahs.subList(rFrom, to + 1), 0, { if (rTimes == 0) 2 else 0 }, rTimes) {}
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                        ) { Text("▶ شغّل النطاق") }
                     }
                 }
             }
@@ -815,5 +827,14 @@ private fun Modifier.pinchZoom(onZoom: (Float) -> Unit, onEnd: () -> Unit): Modi
             } else prev = 0f
         } while (ev.changes.any { it.pressed })
         if (zoomed) onEnd()
+    }
+}
+
+/** كارت زجاجي بعنوان لتجميع خيارات الصوت */
+@Composable
+private fun OptCard(title: String, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    Column(Modifier.fillMaxWidth().glassSurface(20.dp).padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(title, color = Gold, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        content()
     }
 }

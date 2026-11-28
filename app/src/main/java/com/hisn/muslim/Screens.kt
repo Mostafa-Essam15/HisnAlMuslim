@@ -431,6 +431,27 @@ fun SegTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     }
 }
 
+/** مبدّل مدمج (أزرار متساوية العرض) لاختيار قيمة واحدة؛ selected = -1 لو مفيش اختيار */
+@Composable
+fun SegRow(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (Look.light) Color(0x14000000) else Color(0x33000000)).padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        labels.forEachIndexed { i, t ->
+            val on = i == selected
+            Box(
+                Modifier.weight(1f).clip(RoundedCornerShape(11.dp)).background(if (on) Gold else Color.Transparent)
+                    .clickable { onSelect(i) }.padding(vertical = 9.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(t, fontSize = 13.sp, maxLines = 1, softWrap = false, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                    color = if (on) (if (Look.light) Color.White else Color.Black) else OnCard)
+            }
+        }
+    }
+}
+
 /** حلقة تقدّم دائرية بمحتوى في الوسط */
 @Composable
 fun RingProgress(frac: Float, size: androidx.compose.ui.unit.Dp, stroke: androidx.compose.ui.unit.Dp, content: @Composable () -> Unit) {

@@ -83,7 +83,10 @@ object QuranAudio {
     fun has(ctx: Context, reciter: String, a: Ayah) = fileFor(ctx, reciter, a).let { it.exists() && it.length() > 1000 }
 
     /** يرجّع null لو تمام أو رسالة الخطأ. من thread خلفي. */
-    private fun ensure(ctx: Context, reciter: String, a: Ayah): String? {
+    private fun ensure(ctx: Context, reciter: String, a: Ayah): String? =
+        synchronized((reciter + "/" + name(a)).intern()) { ensureLocked(ctx, reciter, a) }
+
+    private fun ensureLocked(ctx: Context, reciter: String, a: Ayah): String? {
         val f = fileFor(ctx, reciter, a)
         if (f.exists() && f.length() > 1000) return null
         val tmp = File(f.parentFile, f.name + ".part")
@@ -219,18 +222,33 @@ object QuranAudio {
         loading = true
         Thread {
             val err = ensure(ctx, reciter, a)
+            // نجهّز المشغّل (prepare) على خيط الخلفية عشان الانتقال بين الآيات ما يحصلش فيه تأخير على الخيط الرئيسي
+            var p: MediaPlayer? = null
+            var perr: String? = null
+            if (err == null) {
+                try {
+                    p = MediaPlayer().also {
+                        it.setAudioAttributes(
+                            AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
+                        )
+                        it.setDataSource(fileFor(ctx, reciter, a).absolutePath)
+                        it.prepare()
+                    }
+                } catch (e: Exception) {
+                    perr = "تعذّر تشغيل الملف الصوتي (${e.javaClass.simpleName})"
+                    try { p?.release() } catch (_: Exception) {}
+                    p = null
+                    try { fileFor(ctx, reciter, a).delete() } catch (_: Exception) {}
+                }
+            }
             main.post {
-                if (g != gen) return@post
+                if (g != gen) { try { p?.release() } catch (_: Exception) {}; return@post }
                 loading = false
                 if (err != null) { error = err; playing = false; current = null; return@post }
+                if (p == null) { error = perr; stopInternal(); return@post }
                 try {
                     mp?.release()
-                    val p = MediaPlayer()
-                    p.setAudioAttributes(
-                        AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
-                    )
-                    p.setDataSource(fileFor(ctx, reciter, a).absolutePath)
                     p.setOnCompletionListener {
                         if (g != gen) return@setOnCompletionListener
                         val next = when {
@@ -244,14 +262,20 @@ object QuranAudio {
                         else { stopInternal(); onFinished() }
                     }
                     p.setOnErrorListener { _, what, extra -> error = "تعذّر تشغيل الملف الصوتي (خطأ $what/$extra)"; stopInternal(); true }
-                    p.prepare()
                     p.start()
                     if (speed != 1f) try { p.playbackParams = p.playbackParams.setSpeed(speed) } catch (_: Exception) {}
                     mp = p
                     playing = true
+                    // تنزيل مسبق للآيات الجاية أثناء ما الحالية بتشتغل (عشان ما نستناش الشبكة بين الآيات)
+                    Thread {
+                        for (k in 1..3) {
+                            val n = idx + k
+                            if (n >= list.size || g != gen) break
+                            ensure(ctx, reciter, list[n])
+                        }
+                    }.start()
                 } catch (e: Exception) {
                     error = "تعذّر تشغيل الملف الصوتي (${e.javaClass.simpleName})"
-                    try { fileFor(ctx, reciter, a).delete() } catch (_: Exception) {}
                     stopInternal()
                 }
             }
