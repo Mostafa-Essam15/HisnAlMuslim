@@ -20,7 +20,7 @@ object Photos {
     private val asr = listOf(13, 7)
     private val maghrib = listOf(4, 9, 15, 7)
 
-    fun name(i: Int) = "bg/bg%02d.jpg".format(i)
+    fun name(i: Int) = "bg/bg%02d.jpg".format(java.util.Locale.US, i)
 
     /**
      * صورة الوقت الحالي في وضع «صور تلقائي»: بتتغيّر مع كل أذان (كل صلاة ليها ترتيبها)،

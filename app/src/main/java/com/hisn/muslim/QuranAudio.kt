@@ -72,7 +72,7 @@ object QuranAudio {
     private var gen = 0
     private val main = Handler(Looper.getMainLooper())
 
-    private fun name(a: Ayah) = "%03d%03d.mp3".format(a.surah, a.num)
+    private fun name(a: Ayah) = "%03d%03d.mp3".format(java.util.Locale.US, a.surah, a.num)
 
     private fun fileFor(ctx: Context, reciter: String, a: Ayah): File {
         val dir = File(ctx.filesDir, "quran_audio/$reciter")
@@ -295,7 +295,7 @@ object QuranAudio {
                     AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
                 )
-                p.setDataSource(urlPattern.format(surah))
+                p.setDataSource(urlPattern.format(java.util.Locale.US, surah))
                 p.prepare()
                 main.post {
                     if (g != gen) { p.release(); return@post }

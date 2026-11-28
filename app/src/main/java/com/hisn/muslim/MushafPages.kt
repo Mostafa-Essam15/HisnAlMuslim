@@ -77,8 +77,8 @@ object MushafStore {
     var bulkError by mutableStateOf<String?>(null)
 
     private fun dir(ctx: Context) = File(ctx.filesDir, "mushaf").apply { mkdirs() }
-    private fun jsonFile(ctx: Context, p: Int) = File(dir(ctx), "page-%03d.json".format(p))
-    private fun fontFile(ctx: Context, p: Int) = File(dir(ctx), "QCF_P%03d.ttf".format(p))
+    private fun jsonFile(ctx: Context, p: Int) = File(dir(ctx), "page-%03d.json".format(java.util.Locale.US, p))
+    private fun fontFile(ctx: Context, p: Int) = File(dir(ctx), "QCF_P%03d.ttf".format(java.util.Locale.US, p))
 
     fun hasPage(ctx: Context, p: Int) = validJson(jsonFile(ctx, p)) && validFont(fontFile(ctx, p))
 
@@ -121,16 +121,16 @@ object MushafStore {
     /** تحميل صفحة واحدة (JSON + الخط). بيرجع null لو نجح أو رسالة الخطأ. من thread خلفي. */
     fun downloadPage(ctx: Context, p: Int): String? {
         if (!validJson(jsonFile(ctx, p))) {
-            val e1 = fetch(JSON_URL.format(p), jsonFile(ctx, p))
-            if (e1 != null) fetch(JSON_MIRROR.format(p), jsonFile(ctx, p))?.let { return "$e1 | المرآة: $it" }
+            val e1 = fetch(JSON_URL.format(java.util.Locale.US, p), jsonFile(ctx, p))
+            if (e1 != null) fetch(JSON_MIRROR.format(java.util.Locale.US, p), jsonFile(ctx, p))?.let { return "$e1 | المرآة: $it" }
         }
         if (!validJson(jsonFile(ctx, p))) return "ملف الصفحة غير صالح"
         // تأكد إن الـ JSON سليم
         try { parse(jsonFile(ctx, p).readText()) } catch (e: Exception) { jsonFile(ctx, p).delete(); return "ملف الصفحة تالف" }
         if (!validFont(fontFile(ctx, p))) {
             fontFile(ctx, p).delete()
-            val f1 = fetch(FONT_URL.format(p), fontFile(ctx, p))
-            if (f1 != null) fetch(FONT_MIRROR.format(p), fontFile(ctx, p))?.let { return "$f1 | المرآة: $it" }
+            val f1 = fetch(FONT_URL.format(java.util.Locale.US, p), fontFile(ctx, p))
+            if (f1 != null) fetch(FONT_MIRROR.format(java.util.Locale.US, p), fontFile(ctx, p))?.let { return "$f1 | المرآة: $it" }
             if (!validFont(fontFile(ctx, p))) { fontFile(ctx, p).delete(); return "خط الصفحة غير صالح" }
         }
         return null

@@ -67,7 +67,7 @@ object Muezzins {
                 ?: if (ms > 0) f.length() * 8 * 1000 / ms else 0L
             r.release()
             val sec = ms / 1000
-            "%d:%02d • ≈%d kbps".format(sec / 60, sec % 60, br / 1000)
+            "%d:%02d • ≈%d kbps".format(java.util.Locale.US, sec / 60, sec % 60, br / 1000)
         } catch (e: Exception) {
             ""
         }
