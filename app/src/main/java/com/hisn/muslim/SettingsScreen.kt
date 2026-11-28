@@ -326,8 +326,27 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                 pmx.isIgnoringBatteryOptimizations(ctx.packageName)
             )
             val bad = checks.count { !it }
+            var fix by remember { mutableStateOf(false) }
+            fun go(i: Intent) { try { ctx.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {} }
+            val pkg = Uri.parse("package:${ctx.packageName}")
+            if (fix) androidx.compose.material3.AlertDialog(
+                onDismissRequest = { fix = false },
+                containerColor = Ink, titleContentColor = Gold, textContentColor = OnCard,
+                title = { Text("أذونات ناقصة") },
+                text = {
+                    Column {
+                        if (!checks[0]) StatusRow(false, "الإشعارات", "سماح") { go(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName)) }
+                        if (!checks[1]) StatusRow(false, "التنبيهات الدقيقة", "سماح") { if (Build.VERSION.SDK_INT >= 31) go(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkg)) }
+                        if (!checks[2]) StatusRow(false, "العرض فوق التطبيقات", "سماح") { go(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkg)) }
+                        if (!checks[3]) StatusRow(false, "شاشة الأذان فوق القفل", "سماح") { if (Build.VERSION.SDK_INT >= 34) go(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, pkg)) }
+                        if (!checks[4]) StatusRow(false, "استثناء من توفير البطارية", "سماح") { go(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkg)) }
+                        Text("بعد السماح ارجع للتطبيق وهتتحدّث الحالة.", fontSize = 11.sp, color = Muted)
+                    }
+                },
+                confirmButton = { TextButton(onClick = { fix = false }) { Text("إغلاق", color = Gold) } }
+            )
             Row(
-                Modifier.fillMaxWidth().glassSurface(20.dp).clickable(enabled = bad > 0) { sec = 3 }.padding(14.dp),
+                Modifier.fillMaxWidth().glassSurface(20.dp).clickable(enabled = bad > 0) { fix = true }.padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 androidx.compose.material3.Icon(
@@ -446,10 +465,10 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                         "huawei" in oem || "honor" in oem -> "هواوي/هونر: الإعدادات ← التطبيقات ← إطلاق التطبيقات ← حصن المسلم ← «إدارة يدوية» وفعّل الخيارات الثلاثة."
                         else -> "لو الأذان ما اشتغلش على جهازك فعّل «التشغيل التلقائي» (إن وُجد) واستثنِ التطبيق من توفير البطارية."
                     }
-                    Text(
+                    LearnMore { Text(
                         "$oemTip\nالمسارات تختلف حسب إصدار النظام. الميزة لم تُختبر على كل الأجهزة.",
                         fontSize = 11.sp, color = Muted
-                    )
+                    ) }
                 }
                 Spacer(Modifier.height(6.dp))
                 Text("مستوى صوت الأذان: $volume%", fontSize = 14.sp)
@@ -480,11 +499,12 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
         item {
             Glass {
                 SectionTitle("صوت المؤذن", Icons.Rounded.VolumeUp)
-                Text(
-                    "حمّل الأذان مرة واحدة وبعدها يشتغل بدون إنترنت. جودة الصوت بتتحدد بملف المصدر (بنعرضها تحت كل مؤذن بعد التحميل). " +
+                Text("حمّل الأذان مرة واحدة وبعدها يشتغل بدون إنترنت.", fontSize = 12.sp, color = Muted)
+                LearnMore { Text(
+                    "جودة الصوت بتتحدد بملف المصدر (بنعرضها تحت كل مؤذن بعد التحميل). " +
                         "لأعلى جودة اختار «ملف أذان من جهازك» (mp3 / m4a / flac / wav).",
                     fontSize = 12.sp, color = Muted
-                )
+                ) }
             }
         }
         item {
