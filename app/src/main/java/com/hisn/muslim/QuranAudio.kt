@@ -202,10 +202,31 @@ object QuranAudio {
     /** عدد مرات تكرار القائمة كلها المتبقية (٠ = حسب وضع التكرار العادي) */
     private var loopsLeft = 0
 
+    /** آخر قارئ/قائمة تشغيل (للمشغّل الخلفي: اسم القارئ وأزرار التالي/السابق) */
+    var lastReciter: String = ""
+        private set
+    private var lastCtx: Context? = null
+    private var lastList: List<Ayah> = emptyList()
+    private var lastIdx = 0
+    private var lastRepeat: () -> Int = { 0 }
+    private var lastFinished: () -> Unit = {}
+
+    /** انتقال للآية التالية/السابقة في القائمة الحالية (من أزرار الإشعار) */
+    fun skip(delta: Int) {
+        val c = lastCtx ?: return
+        val n = lastIdx + delta
+        if (lastList.isEmpty() || n !in lastList.indices) return
+        val g = ++gen
+        playAt(c, lastReciter, lastList, n, lastRepeat, lastFinished, g)
+    }
+
     fun play(ctx: Context, reciter: String, list: List<Ayah>, start: Int, repeat: () -> Int, loops: Int = 0, onFinished: () -> Unit) {
         stop()
         loopsLeft = loops
         if (list.isEmpty()) return
+        lastReciter = reciter
+        // مشغّل في الخلفية بإشعار (زي أي مشغّل صوت): الصوت يكمّل لو خرجت من التطبيق
+        try { androidx.core.content.ContextCompat.startForegroundService(ctx.applicationContext, android.content.Intent(ctx.applicationContext, QuranPlayService::class.java)) } catch (_: Exception) {}
         reciters.firstOrNull { it.id == reciter }?.surahUrl?.let { url ->
             playSurah(url, list[start.coerceIn(0, list.size - 1)].surah, repeat)
             return
@@ -218,6 +239,7 @@ object QuranAudio {
     private fun playAt(ctx: Context, reciter: String, list: List<Ayah>, idx: Int, repeat: () -> Int, onFinished: () -> Unit, g: Int) {
         if (g != gen) return
         val a = list[idx]
+        lastCtx = ctx; lastList = list; lastIdx = idx; lastRepeat = repeat; lastFinished = onFinished
         current = a.surah to a.num
         loading = true
         Thread {
@@ -228,6 +250,7 @@ object QuranAudio {
             if (err == null) {
                 try {
                     p = MediaPlayer().also {
+                        it.setWakeMode(ctx, android.os.PowerManager.PARTIAL_WAKE_LOCK)
                         it.setAudioAttributes(
                             AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
                                 .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()

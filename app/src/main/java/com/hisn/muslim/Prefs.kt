@@ -174,6 +174,12 @@ class Prefs(ctx: Context) {
         putIntSet("khDay_${dayKey()}", khatmaReadToday() + page)
     }
 
+    /** تراجع عن تسجيل صفحة كمقروءة (الختمة + اليوم) */
+    fun unmarkPageRead(page: Int) {
+        putIntSet("khPages", khatmaPagesRead() - page)
+        putIntSet("khDay_${dayKey()}", khatmaReadToday() - page)
+    }
+
     fun startKhatma(days: Int) {
         khatmaActive = true
         khatmaDays = days

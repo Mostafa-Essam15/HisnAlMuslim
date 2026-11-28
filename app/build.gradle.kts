@@ -49,6 +49,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.media:media:1.7.0")
     implementation("com.google.android.gms:play-services-location:21.3.0")
     // حساب مواقيت الصلاة
     implementation("com.batoulapps.adhan:adhan:1.2.1")

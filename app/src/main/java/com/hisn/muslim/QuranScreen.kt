@@ -244,6 +244,8 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
     var rFrom by remember(page) { mutableIntStateOf(0) }
     var rTo by remember(page) { mutableIntStateOf(0) }
     var rTimes by remember { mutableIntStateOf(3) }
+    // نهاية النطاق: ٠ = آية من الصفحة، ١ = آخر السورة، ٢ = آخر المصحف
+    var rEnd by remember(page) { mutableIntStateOf(0) }
     val pageBg = when (theme) { 0 -> Color(0xFFF5ECD6); 1 -> Color(0xFFFFFFFF); else -> Color(0xCC0B1A14) }
     val ink = if (theme == 2) Color.White else Color(0xFF2B2118)
     val accent = if (theme == 2) Gold else Color(0xFF8A6A1F)
@@ -461,14 +463,14 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
         val doneB: @Composable (Modifier) -> Unit = { m ->
             Button(
                 onClick = {
-                    prefs.recordPageRead(page)
+                    // ضغطة تانية على صفحة مقروءة = تراجع. الموضع (آخر صفحة) بيتحفظ دايمًا وبيرجع لنفس الصفحة لو خرجت من التطبيق.
+                    if (isRead) prefs.unrecordPageRead(page) else prefs.recordPageRead(page)
+                    prefs.quranPage = page
                     readTick++
-                    if (page < Quran.TOTAL_PAGES) onPage(page + 1)
                 },
-                enabled = !isRead,
                 modifier = m, contentPadding = PaddingValues(horizontal = 6.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Gold.copy(alpha = 0.22f), contentColor = Gold, disabledContainerColor = Color(0x22FFFFFF), disabledContentColor = Muted)
-            ) { Text(if (isRead) "✓ مقروءة" else "أتممت الصفحة ✓", fontSize = 13.sp, textAlign = TextAlign.Center) }
+                colors = ButtonDefaults.buttonColors(containerColor = if (isRead) Gold else Gold.copy(alpha = 0.22f), contentColor = if (isRead) Color.Black else Gold)
+            ) { Text(if (isRead) "✓ مقروءة (اضغط للتراجع)" else "أتممت الصفحة ✓", fontSize = 13.sp, textAlign = TextAlign.Center) }
         }
         val nextB: @Composable (Modifier) -> Unit = { m ->
             TextButton(onClick = { if (page < Quran.TOTAL_PAGES) onPage(page + 1) }, modifier = m, contentPadding = PaddingValues(horizontal = 6.dp)) { Text("التالية", color = Gold, fontSize = 13.sp, textAlign = TextAlign.Center) }
@@ -563,7 +565,10 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                         val opts = pageAyahs.mapIndexed { i, a -> i.toString() to "آية ${Quran.arabicDigits(a.num)}" }
                         PickRow("من", opts.getOrNull(rFrom)?.second ?: "", opts) { rFrom = it.toInt(); if (rTo < rFrom) rTo = rFrom }
                         androidx.compose.material3.HorizontalDivider(color = Gold.copy(alpha = 0.12f))
-                        PickRow("إلى", opts.getOrNull(rTo)?.second ?: "", opts.filter { it.first.toInt() >= rFrom }) { rTo = it.toInt() }
+                        PickRow(
+                            "إلى", when (rEnd) { 1 -> "آخر السورة"; 2 -> "آخر المصحف"; else -> opts.getOrNull(rTo)?.second ?: "" },
+                            opts.filter { it.first.toInt() >= rFrom } + listOf("S" to "آخر السورة", "Q" to "آخر المصحف")
+                        ) { v -> when (v) { "S" -> rEnd = 1; "Q" -> rEnd = 2; else -> { rEnd = 0; rTo = v.toInt() } } }
                         androidx.compose.material3.HorizontalDivider(color = Gold.copy(alpha = 0.12f))
                         Spacer(Modifier.height(6.dp))
                         Text("عدد المرات", color = Muted, fontSize = 12.sp)
@@ -574,7 +579,15 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                             onClick = {
                                 showAudioSheet = false
                                 val to = rTo.coerceIn(rFrom, pageAyahs.size - 1)
-                                QuranAudio.play(ctx, reciter, pageAyahs.subList(rFrom, to + 1), 0, { if (rTimes == 0) 2 else 0 }, rTimes) {}
+                                val st = pageAyahs[rFrom.coerceIn(0, pageAyahs.size - 1)]
+                                val from = Quran.ayahs.indexOfFirst { it.surah == st.surah && it.num == st.num }.coerceAtLeast(0)
+                                val range = when (rEnd) {
+                                    1 -> Quran.ayahs.subList(from, Quran.ayahs.size).takeWhile { it.surah == st.surah }
+                                    2 -> Quran.ayahs.subList(from, Quran.ayahs.size)
+                                    else -> pageAyahs.subList(rFrom, to + 1)
+                                }
+                                if (rEnd != 0) followNav = true
+                                QuranAudio.play(ctx, reciter, range, 0, { if (rTimes == 0) 2 else 0 }, rTimes) {}
                             },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)

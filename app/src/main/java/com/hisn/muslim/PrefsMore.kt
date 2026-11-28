@@ -92,6 +92,11 @@ fun Prefs.toggleBookmark(page: Int) {
 
 /** الصفحات اللي اتمّت قراءتها في يوم (مستقلة عن الختمة) */
 fun Prefs.pagesReadOn(day: String): Set<Int> = intSetOf("qRead_$day")
+fun Prefs.unrecordPageRead(page: Int) {
+    val day = dayKey()
+    putIntSetOf("qRead_$day", pagesReadOn(day) - page)
+    unmarkPageRead(page)
+}
 fun Prefs.recordPageRead(page: Int) {
     val day = dayKey()
     putIntSetOf("qRead_$day", pagesReadOn(day) + page)
