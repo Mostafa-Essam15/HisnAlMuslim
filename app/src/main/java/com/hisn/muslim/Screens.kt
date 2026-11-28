@@ -407,16 +407,52 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
     }
 }
 
+/** مبدّل أقسام زجاجي (بدل شرائح GoldChip) */
+@Composable
+fun SegTabs(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).glassSurface(18.dp).padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        labels.forEachIndexed { i, t ->
+            val on = i == selected
+            Box(
+                Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(if (on) Gold else Color.Transparent)
+                    .clickable { onSelect(i) }.padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(t, fontSize = 13.sp, maxLines = 1, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                    color = if (on) (if (Look.light) Color.White else Color.Black) else OnCard)
+            }
+        }
+    }
+}
+
+/** حلقة تقدّم دائرية بمحتوى في الوسط */
+@Composable
+fun RingProgress(frac: Float, size: androidx.compose.ui.unit.Dp, stroke: androidx.compose.ui.unit.Dp, content: @Composable () -> Unit) {
+    val track = Track
+    val gold = Gold
+    Box(Modifier.size(size), contentAlignment = Alignment.Center) {
+        androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+            val st = androidx.compose.ui.graphics.drawscope.Stroke(stroke.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            val inset = stroke.toPx() / 2
+            val sz = androidx.compose.ui.geometry.Size(this.size.width - inset * 2, this.size.height - inset * 2)
+            val tl = androidx.compose.ui.geometry.Offset(inset, inset)
+            drawArc(track, 0f, 360f, false, tl, sz, style = st)
+            if (frac > 0f) drawArc(gold, -90f, 360f * frac, false, tl, sz, style = st)
+        }
+        content()
+    }
+}
+
 // ───────────────────────── التحديات ─────────────────────────
 
 @Composable
 fun ChallengesScreen(prefs: Prefs) {
     var mode by remember { mutableIntStateOf(0) }
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            GoldChip("متابعة الصلوات", mode == 0) { mode = 0 }
-            GoldChip("التحديات والقضاء", mode == 1) { mode = 1 }
-        }
+        SegTabs(listOf("متابعة الصلوات", "التحديات والقضاء"), mode) { mode = it }
         if (mode == 0) PrayerTrackPane(prefs) else ChallengesPane(prefs)
     }
 }
@@ -443,9 +479,20 @@ private fun ChallengesPane(prefs: Prefs) {
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             Glass {
-                SectionTitle("سلسلة المحافظة الحالية", Icons.Rounded.EmojiEvents)
-                Text("$streak يوم", fontSize = 40.sp, fontWeight = FontWeight.Bold, fontFamily = Serif)
-                Text("تُحسب الأيام التي سجّلت فيها الفروض الخمسة كاملة.", fontSize = 12.sp, color = Muted)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RingProgress((streak / 7f).coerceIn(0f, 1f), 96.dp, 8.dp) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("$streak", fontSize = 30.sp, fontWeight = FontWeight.Bold, fontFamily = Serif, color = Gold)
+                            Text("يوم", fontSize = 11.sp, color = Muted)
+                        }
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("سلسلة المحافظة", fontSize = 20.sp, fontWeight = FontWeight.Bold, fontFamily = Serif, color = Gold)
+                        Text(if (streak >= 7) "ما شاء الله، أكملت أسبوعًا فأكثر" else "${7 - streak} أيام ويكتمل الأسبوع", fontSize = 13.sp)
+                        Text("تُحسب الأيام التي سجّلت فيها الفروض الخمسة كاملة.", fontSize = 12.sp, color = Muted)
+                    }
+                }
             }
         }
         item {
@@ -466,18 +513,21 @@ private fun ChallengesPane(prefs: Prefs) {
         }
         item { CustomChallengesCard(prefs) }
         items(list) { c ->
-            Glass {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(c.title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text(if (c.cur >= c.goal) "✅ تم" else "${c.cur}/${c.goal}", color = Gold)
+            val done = c.cur >= c.goal
+            Row(
+                Modifier.fillMaxWidth().glassSurface(22.dp).padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RingProgress((c.cur.toFloat() / c.goal).coerceIn(0f, 1f), 54.dp, 5.dp) {
+                    if (done) Icon(Icons.Rounded.EmojiEvents, null, tint = Gold, modifier = Modifier.size(22.dp))
+                    else Text("${c.cur}/${c.goal}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Gold)
                 }
-                Text(c.desc, fontSize = 13.sp, color = Muted)
-                Spacer(Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = { (c.cur.toFloat() / c.goal).coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                    color = Gold, trackColor = Track
-                )
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(c.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(c.desc, fontSize = 12.sp, color = Muted)
+                }
+                if (done) Text("تم", color = Gold, fontWeight = FontWeight.Bold)
             }
         }
     }
