@@ -185,6 +185,11 @@ fun LazyListScope.downloadsItems(ctx: Context) {
                     if (err != null) Text(err, fontSize = 11.sp, color = Muted)
                 }
             }
+            Column(Modifier.fillMaxWidth().glassSurface(24.dp).padding(18.dp)) {
+                Text("فحص الاتصال والتخزين", color = Gold, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("لو التنزيل مش شغّال: يفحص الإنترنت، ويجرّب تنزيل ملف فعلي، ويختبر الكتابة على تخزين التطبيق.", fontSize = 12.sp, color = Muted)
+                NetDiagButton()
+            }
             groups.forEach { (title, items) ->
                 Column(Modifier.fillMaxWidth().glassSurface(24.dp).padding(vertical = 10.dp, horizontal = 8.dp)) {
                     Text(title, color = Gold, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
