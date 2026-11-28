@@ -257,12 +257,12 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
     fun reschedule() = Reminders.scheduleAll(ctx)
 
     Column(Modifier.fillMaxSize()) {
-    val tabIcons = listOf(Icons.Rounded.VolumeUp, Icons.Rounded.Notifications, Icons.Rounded.AccessTime, Icons.Rounded.AutoAwesome)
+    val tabIcons = listOf(Icons.Rounded.VolumeUp, Icons.Rounded.Notifications, Icons.Rounded.AccessTime, Icons.Rounded.AutoAwesome, Icons.Rounded.CheckCircle)
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).glassSurface(18.dp).padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        listOf("الأذان", "التذكيرات", "المواقيت", "المظهر").forEachIndexed { i, t ->
+        listOf("الأذان", "التذكيرات", "المواقيت", "المظهر", "التنزيلات").forEachIndexed { i, t ->
             val on = sec == i
             Column(
                 Modifier.weight(1f).clip(RoundedCornerShape(14.dp))
@@ -278,6 +278,7 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
     }
     LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
+        if (sec == 4) downloadsItems(ctx)
         if (sec == 0) {
         // ───── حالة الأذان ─────
         item {
