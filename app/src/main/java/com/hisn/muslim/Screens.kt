@@ -170,7 +170,12 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                 Glass(Modifier.border(1.5.dp, Gold, RoundedCornerShape(24.dp))) {
                     SectionTitle("تحديث جديد متاح", Icons.Rounded.AutoAwesome)
                     if (up.notes.isNotBlank()) Text(up.notes, fontSize = 14.sp)
-                    if (up.size > 0) Text("الحجم: ${"%.1f".format(Locale.US, up.size / 1048576.0)} ميجا", fontSize = 12.sp, color = Muted)
+                    if (up.size > 0) {
+                        val full = "%.1f".format(Locale.US, up.size / 1048576.0)
+                        if (up.patchUrl != null && up.patchSize > 0)
+                            Text("تحديث بالفرق: ≈ ${"%.1f".format(Locale.US, up.patchSize / 1048576.0)} ميجا بدل $full ميجا", fontSize = 12.sp, color = Gold)
+                        else Text("الحجم: $full ميجا (مفيش ملف فرق لنسختك)", fontSize = 12.sp, color = Muted)
+                    }
                     if (Updater.progress >= 0) {
                         Spacer(Modifier.height(6.dp))
                         LinearProgressIndicator(progress = { Updater.progress / 100f }, modifier = Modifier.fillMaxWidth(), color = Gold, trackColor = Track)
