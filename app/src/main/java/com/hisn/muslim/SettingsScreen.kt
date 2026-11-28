@@ -900,6 +900,15 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                         }
                     }
                 }
+                Updater.available?.let { up ->
+                    val full = "%.1f".format(java.util.Locale.US, up.size / 1048576.0)
+                    Text(
+                        if (up.patchUrl != null && up.patchSize > 0)
+                            "التحديث بالفرق: ≈ ${"%.1f".format(java.util.Locale.US, up.patchSize / 1048576.0)} ميجا بدل $full ميجا"
+                        else "مفيش ملف فرق لنسختك (${Updater.installedCode(ctxS)}) فالتحميل كامل ≈ $full ميجا. بعد ما تتحدّث مرة، الجاية هتبقى بالفرق.",
+                        fontSize = 12.sp, color = Gold
+                    )
+                }
                 if (Updater.message.isNotBlank()) Text(Updater.message, fontSize = 12.sp, color = Muted)
                 Text("يُنزَّل التحديث من صفحة الإصدارات على GitHub، ولا يُثبَّت إلا لو كان بنفس توقيع نسختك الحالية.", fontSize = 11.sp, color = Muted)
             }
