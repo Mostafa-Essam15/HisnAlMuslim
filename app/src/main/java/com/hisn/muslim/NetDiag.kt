@@ -75,6 +75,36 @@ object NetDiag {
                 sb.appendLine("HTTPS ✗ ${e.javaClass.simpleName}: ${e.message?.take(70) ?: ""}")
             } finally { c?.disconnect() }
         }
+        // اختبار تنزيل فعلي: نفس طريقة التطبيق (GET كامل بدون Range) ونكتب الملف على التخزين الداخلي
+        sb.appendLine()
+        sb.appendLine("اختبار تنزيل فعلي:")
+        listOf(
+            "صوت everyayah" to "https://everyayah.com/data/Alafasy_128kbps/001001.mp3",
+            "صوت archive.org" to "https://archive.org/download/Hassan_Saleh_Hafs/001001.mp3",
+            "صفحة مصحف (JSON)" to "https://raw.githubusercontent.com/zonetecde/mushaf-layout/v2/mushaf/QPC1/page-001.json",
+            "خط مصحف (TTF)" to "https://raw.githubusercontent.com/mustafa0x/qpc-fonts/master/mushaf/QCF_P001.TTF"
+        ).forEach { (name, url) ->
+            val t0 = System.currentTimeMillis()
+            val tmp = java.io.File(ctx.filesDir, "diag_test.part")
+            var c: HttpURLConnection? = null
+            try {
+                c = (URL(url).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 15_000; readTimeout = 30_000
+                    setRequestProperty("User-Agent", "HisnAlMuslim/2.0")
+                }
+                val code = c.responseCode
+                if (code !in 200..299) { sb.appendLine("• $name: كود $code (${c.url.host})"); return@forEach }
+                var n = 0L
+                c.inputStream.use { i -> java.io.FileOutputStream(tmp).use { o -> n = i.copyTo(o) } }
+                sb.appendLine("• $name: ✓ نزل ${n / 1024} KB، حُفظ ${tmp.length() / 1024} KB (${System.currentTimeMillis() - t0}ms)")
+            } catch (e: Exception) {
+                sb.appendLine("• $name: ✗ ${e.javaClass.simpleName}: ${e.message?.take(80) ?: ""}")
+            } finally { c?.disconnect(); tmp.delete() }
+        }
+        try {
+            val st = android.os.StatFs(ctx.filesDir.path)
+            sb.appendLine("المساحة الحرة: ${st.availableBytes / 1048576} ميجا")
+        } catch (_: Exception) {}
         return sb.toString().trim()
     }
 }
