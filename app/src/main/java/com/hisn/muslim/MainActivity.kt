@@ -182,7 +182,7 @@ fun App() {
                 Box(Modifier.fillMaxWidth().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color.Transparent, Ink.copy(alpha = 0.92f))))) {
                 androidx.compose.foundation.layout.Row(
                     Modifier.fillMaxWidth().navigationBarsPadding()
-                        .padding(start = 12.dp, end = 12.dp, top = 18.dp, bottom = 8.dp)
+                        .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 6.dp)
                         .background(Ink.copy(alpha = 0.78f), androidx.compose.foundation.shape.RoundedCornerShape(28.dp))
                         .glassSurface(28.dp).padding(5.dp),
                     horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(2.dp),
@@ -196,7 +196,7 @@ fun App() {
                                 .clip(androidx.compose.foundation.shape.RoundedCornerShape(22.dp))
                                 .background(if (on) Gold else Color.Transparent)
                                 .clickable { tab = i }
-                                .padding(vertical = 8.dp),
+                                .padding(vertical = 6.dp),
                             horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
                         ) {
                             Icon(t.icon, contentDescription = t.title, tint = fg, modifier = Modifier.size(22.dp))

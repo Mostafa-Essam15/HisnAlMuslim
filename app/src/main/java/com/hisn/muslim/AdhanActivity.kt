@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -29,6 +30,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -124,6 +126,8 @@ fun AdhanScreen(prayer: Prayer, city: String, hijri: String = "", onStop: () -> 
         infiniteRepeatable(tween(2400, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "glow"
     )
+    // موجات ناعمة بتتوسّع من الحلقة (زي صدى الصوت)
+    val rip by t.animateFloat(0f, 1f, infiniteRepeatable(tween(3600, easing = LinearEasing)), label = "rip")
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { shown = true }
     val appear by animateFloatAsState(if (shown) 1f else 0f, tween(700), label = "appear")
@@ -154,6 +158,10 @@ fun AdhanScreen(prayer: Prayer, city: String, hijri: String = "", onStop: () -> 
                         drawCircle(
                             Brush.radialGradient(listOf(gold.copy(alpha = glow), Color.Transparent), radius = size.minDimension / 2f)
                         )
+                        for (k in 0..1) {
+                            val ph = (rip + k * 0.5f) % 1f
+                            drawCircle(gold.copy(alpha = (1f - ph) * 0.35f), radius = size.minDimension * (0.40f + 0.10f * ph), style = Stroke(1.5.dp.toPx()))
+                        }
                         drawCircle(gold.copy(alpha = 0.85f), radius = size.minDimension * 0.40f, style = Stroke(3.dp.toPx()))
                         drawCircle(Color.White.copy(alpha = 0.10f), radius = size.minDimension * 0.44f, style = Stroke(1.dp.toPx()))
                     }
@@ -192,12 +200,10 @@ fun AdhanScreen(prayer: Prayer, city: String, hijri: String = "", onStop: () -> 
                     }
                 }
                 Spacer(Modifier.height(24.dp))
-                Box(
-                    Modifier.size(76.dp).clip(CircleShape).background(gold).clickable { onStop() },
-                    contentAlignment = Alignment.Center
-                ) { Text("⏹", color = Color.Black, fontSize = 30.sp) }
-                Spacer(Modifier.height(6.dp))
-                Text("إيقاف الأذان", color = Color(0xFFE9EFEC), fontSize = 13.sp)
+                Row(
+                    Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(28.dp)).background(gold).clickable { onStop() },
+                    horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
+                ) { Text("⏹  إيقاف الأذان", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold) }
                 TextButton(onClick = onOpenApp) { Text("فتح التطبيق", color = gold, fontSize = 15.sp) }
             }
         }

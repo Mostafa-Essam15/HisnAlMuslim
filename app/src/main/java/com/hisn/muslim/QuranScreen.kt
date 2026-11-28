@@ -165,7 +165,7 @@ fun QuranScreen(prefs: Prefs, jumpTo: Int, onJumpConsumed: () -> Unit) {
             val moreSec = section == 3 || section == 4 || section == 5
             var moreMenu by remember { mutableStateOf(false) }
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically
             ) {
                 listOf("القراءة" to 0, "التفسير" to 6, "السور" to 1, "الختمة" to 2).forEach { (l, sec) ->
@@ -197,7 +197,7 @@ fun QuranScreen(prefs: Prefs, jumpTo: Int, onJumpConsumed: () -> Unit) {
 private fun TabPill(label: String, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(18.dp)
     Box(
-        Modifier.fillMaxWidth().height(38.dp).clip(shape)
+        Modifier.fillMaxWidth().height(34.dp).clip(shape)
             .background(if (selected) Gold else if (Look.light) Color(0x14000000) else Color(0x33000000))
             .then(if (selected) Modifier else Modifier.border(1.dp, Gold.copy(alpha = 0.25f), shape))
             .clickable { onClick() },
@@ -277,22 +277,22 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
     androidx.activity.compose.BackHandler(enabled = readerFull) { readerFull = false }
 
     Box(Modifier.fillMaxSize()) {
-    Column(Modifier.fillMaxSize().padding(horizontal = if (readerFull) 4.dp else 16.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = if (readerFull) 4.dp else 8.dp)) {
         if (!readerFull) Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text("صفحة ${Quran.arabicDigits(page)} من ${Quran.arabicDigits(Quran.TOTAL_PAGES)}", color = Gold, fontWeight = FontWeight.Bold)
-                if (first != null) Text("الجزء ${Quran.arabicDigits(first.juz)} • ${Quran.surahName(first.surah)}", color = Muted, fontSize = 12.sp)
+            Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("صفحة ${Quran.arabicDigits(page)}", color = Gold, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                if (first != null) Text("  •  الجزء ${Quran.arabicDigits(first.juz)}  •  ${Quran.surahName(first.surah)}", color = Muted, fontSize = 12.sp, maxLines = 1)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { prefs.toggleBookmark(page); bmTick++ }) {
-                    Text(if (bookmarked) "★" else "☆", color = Gold, fontSize = 22.sp)
+                Box(Modifier.size(34.dp).clip(CircleShape).clickable { prefs.toggleBookmark(page); bmTick++ }, contentAlignment = Alignment.Center) {
+                    Text(if (bookmarked) "★" else "☆", color = Gold, fontSize = 20.sp)
                 }
                 Box {
-                    TextButton(onClick = { optMenu = true }) { Text("⋮", color = Gold, fontSize = 24.sp, fontWeight = FontWeight.Bold) }
+                    Box(Modifier.size(34.dp).clip(CircleShape).clickable { optMenu = true }, contentAlignment = Alignment.Center) { Text("⋮", color = Gold, fontSize = 22.sp, fontWeight = FontWeight.Bold) }
                     androidx.compose.material3.DropdownMenu(expanded = optMenu, onDismissRequest = { optMenu = false }) {
                         androidx.compose.material3.DropdownMenuItem(text = { Text("⛶  شاشة كاملة") }, onClick = { optMenu = false; readerFull = true })
                         androidx.compose.material3.DropdownMenuItem(
@@ -315,7 +315,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 }
             }
         }
-        if (!readerFull) Spacer(Modifier.height(6.dp))
+        if (!readerFull) Spacer(Modifier.height(2.dp))
 
         if (mode == 1) {
             key(page) {
@@ -324,7 +324,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                     Modifier.weight(1f).fillMaxWidth()
                         .clip(RoundedCornerShape(22.dp))
                         .background(pageBg)
-                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                        .padding(horizontal = 4.dp, vertical = 4.dp)
                         .pinchZoom(onZoom = { z -> mscale = (mscale * z).coerceIn(0.75f, 2.5f) }, onEnd = { prefs.mushafScale = mscale })
                         .pointerInput(page) {
                             detectHorizontalDragGestures(
@@ -410,13 +410,13 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
         }
 
         if (!readerFull) {
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(4.dp))
         // التلاوة: شريط واحد مدمج؛ القارئ والنطاق والتنزيل والسرعة والنوم في نافذة سفلية
         val barShape = RoundedCornerShape(30.dp)
         val reciterName = QuranAudio.reciters.firstOrNull { it.id == reciter }?.name ?: "القارئ"
         Row(
             Modifier.fillMaxWidth().clip(barShape).background(CardBg)
-                .border(1.dp, Gold.copy(alpha = 0.30f), barShape).padding(horizontal = 12.dp, vertical = 8.dp),
+                .border(1.dp, Gold.copy(alpha = 0.30f), barShape).padding(horizontal = 12.dp, vertical = 5.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { showAudioSheet = true }.padding(horizontal = 4.dp, vertical = 2.dp)) {
@@ -432,7 +432,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
             }
             RoundBtn("⏹") { QuranAudio.stop() }
             Box(
-                Modifier.size(52.dp).clip(CircleShape).background(Gold).clickable {
+                Modifier.size(46.dp).clip(CircleShape).background(Gold).clickable {
                     if (QuranAudio.loading) QuranAudio.stop()
                     else if (QuranAudio.current != null) QuranAudio.pauseResume()
                     else if (pageAyahs.isEmpty()) android.widget.Toast.makeText(ctx, "لا توجد آيات محمّلة لهذه الصفحة؛ حمّل نص المصحف أولًا", android.widget.Toast.LENGTH_LONG).show()
@@ -472,7 +472,7 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
             }
         } else {
             Row(
-                Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                Modifier.fillMaxWidth().padding(bottom = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
