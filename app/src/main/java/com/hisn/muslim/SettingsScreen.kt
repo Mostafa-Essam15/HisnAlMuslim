@@ -40,6 +40,8 @@ import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Notifications
@@ -144,6 +146,17 @@ fun LearnMore(startOpen: Boolean = false, content: @Composable () -> Unit) {
     Text(if (open) "إخفاء الشرح ˄" else "اعرف أكتر ˅", color = Gold, fontSize = 12.sp,
         modifier = Modifier.clickable { open = !open }.padding(vertical = 6.dp))
     if (open) content()
+}
+
+/** زر تحريك صغير (فوق/تحت) بدل ▲▼ */
+@Composable
+fun MoveBtn(icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.padding(start = 6.dp).size(34.dp).clip(RoundedCornerShape(12.dp))
+            .background(Gold.copy(alpha = if (enabled) 0.14f else 0.04f))
+            .clickable(enabled = enabled) { onClick() },
+        contentAlignment = Alignment.Center
+    ) { androidx.compose.material3.Icon(icon, null, tint = if (enabled) Gold else Muted.copy(alpha = 0.4f), modifier = Modifier.size(20.dp)) }
 }
 
 @Composable
@@ -478,10 +491,14 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                     valueRange = 20f..100f,
                     colors = SliderDefaults.colors(thumbColor = Gold, activeTrackColor = Gold)
                 )
-                Prayer.values().forEach { p ->
+                Spacer(Modifier.height(8.dp))
+                androidx.compose.material3.HorizontalDivider(color = Gold.copy(alpha = 0.15f))
+                Text("الأذان لكل صلاة", color = Gold, fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+                Prayer.values().forEachIndexed { n, p ->
                     SwitchRow("أذان ${p.ar}", perPrayer[p] ?: true) {
                         perPrayer[p] = it; prefs.setPrayerEnabled(p, it); reschedule()
                     }
+                    if (n < Prayer.values().size - 1) androidx.compose.material3.HorizontalDivider(color = Gold.copy(alpha = 0.08f))
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1017,13 +1034,14 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                         Box(Modifier.weight(1f)) {
                             SwitchRow(label, on) { v -> save(layout.toMutableList().also { it[i] = id to v }) }
                         }
-                        TextButton(enabled = i > 0, onClick = {
+                        MoveBtn(Icons.Rounded.KeyboardArrowUp, i > 0) {
                             save(layout.toMutableList().also { val t = it[i]; it[i] = it[i - 1]; it[i - 1] = t })
-                        }) { Text("▲", color = Gold) }
-                        TextButton(enabled = i < layout.size - 1, onClick = {
+                        }
+                        MoveBtn(Icons.Rounded.KeyboardArrowDown, i < layout.size - 1) {
                             save(layout.toMutableList().also { val t = it[i]; it[i] = it[i + 1]; it[i + 1] = t })
-                        }) { Text("▼", color = Gold) }
+                        }
                     }
+                    if (i < layout.lastIndex) androidx.compose.material3.HorizontalDivider(color = Gold.copy(alpha = 0.12f))
                 }
                 TextButton(onClick = { save(HOME_CARDS.map { it.first to true }) }) { Text("استعادة الترتيب الافتراضي", color = Gold) }
             }
