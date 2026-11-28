@@ -288,6 +288,14 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                 if (first != null) Text("  •  الجزء ${Quran.arabicDigits(first.juz)}  •  ${Quran.surahName(first.surah)}", color = Muted, fontSize = 12.sp, maxLines = 1)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(34.dp).clip(CircleShape).clickable {
+                    if (mode == 1) { mscale = (mscale - 0.25f).coerceAtLeast(0.75f); prefs.mushafScale = mscale }
+                    else { fontF = (font - 2f).coerceAtLeast(18f); prefs.quranFont = fontF.roundToInt() }
+                }, contentAlignment = Alignment.Center) { Text("أ−", color = Gold, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+                Box(Modifier.size(34.dp).clip(CircleShape).clickable {
+                    if (mode == 1) { mscale = (mscale + 0.25f).coerceAtMost(2.5f); prefs.mushafScale = mscale }
+                    else { fontF = (font + 2f).coerceAtMost(44f); prefs.quranFont = fontF.roundToInt() }
+                }, contentAlignment = Alignment.Center) { Text("أ+", color = Gold, fontSize = 17.sp, fontWeight = FontWeight.Bold) }
                 Box(Modifier.size(34.dp).clip(CircleShape).clickable { prefs.toggleBookmark(page); bmTick++ }, contentAlignment = Alignment.Center) {
                     Text(if (bookmarked) "★" else "☆", color = Gold, fontSize = 20.sp)
                 }
