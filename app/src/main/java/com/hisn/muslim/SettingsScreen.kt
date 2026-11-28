@@ -885,8 +885,7 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
 
         }
         if (sec == 5) {
-        // ───── عن التطبيق والمطوّر + التحديثات ─────
-        aboutItems()
+        // ───── التحديثات أولًا ثم عن التطبيق والمطوّر ─────
         item {
             var un by remember { mutableStateOf(prefs.updateNotify) }
             val ctxS = androidx.compose.ui.platform.LocalContext.current
@@ -905,6 +904,7 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                 Text("يُنزَّل التحديث من صفحة الإصدارات على GitHub، ولا يُثبَّت إلا لو كان بنفس توقيع نسختك الحالية.", fontSize = 11.sp, color = Muted)
             }
         }
+        aboutItems()
         }
         if (sec == 3) {
         item {
