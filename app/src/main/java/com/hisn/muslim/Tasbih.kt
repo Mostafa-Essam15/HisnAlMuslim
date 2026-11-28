@@ -8,6 +8,7 @@ import android.hardware.SensorManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -48,6 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -97,43 +99,69 @@ fun TasbihScreen(prefs: Prefs) {
         onDispose { TasbihBus.onVolume = null }
     }
 
+    // نبضة خفيفة للدايرة مع كل تسبيحة
+    var pulse by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(count) {
+        if (count > 0) { pulse = true; kotlinx.coroutines.delay(90); pulse = false }
+    }
+    val pulseScale by androidx.compose.animation.core.animateFloatAsState(if (pulse) 0.95f else 1f, androidx.compose.animation.core.tween(90), label = "pulse")
+
     LazyColumn(
-        Modifier.fillMaxSize().padding(16.dp),
+        Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                all.forEachIndexed { i, t -> GoldChip(t, idx == i) { idx = i; prefs.tasbihIndex = i } }
-                GoldChip("＋ ذكر جديد", false) { addDialog = true }
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                all.forEachIndexed { i, t ->
+                    val on = idx == i
+                    Box(
+                        Modifier.clip(CircleShape)
+                            .then(if (on) Modifier.background(Gold) else Modifier.glassSurface(50.dp))
+                            .clickable { idx = i; prefs.tasbihIndex = i }
+                            .padding(horizontal = 16.dp, vertical = 9.dp)
+                    ) { Text(t, fontSize = 13.sp, maxLines = 1, softWrap = false, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                        color = if (on) (if (Look.light) Color.White else Color.Black) else OnCard) }
+                }
+                Box(
+                    Modifier.clip(CircleShape).glassSurface(50.dp).clickable { addDialog = true }.padding(horizontal = 16.dp, vertical = 9.dp)
+                ) { Text("＋ ذكر جديد", fontSize = 13.sp, color = Gold, maxLines = 1, softWrap = false) }
             }
         }
-        item { Text(name, fontSize = 28.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = Gold, fontFamily = Serif) }
         item {
-            Box(
-                Modifier.size(230.dp).clip(CircleShape)
-                    .background(Brush.radialGradient(listOf(Gold, GoldDeep)))
-                    .clickable { bump() },
-                contentAlignment = Alignment.Center
-            ) {
-                Text("$inRound", fontSize = 68.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-            }
-        }
-        item {
-            LinearProgressIndicator(
-                progress = { inRound / target.toFloat() },
-                modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                color = Gold, trackColor = Track
-            )
-            Text("الهدف: $target • دورات مكتملة: $rounds • إجمالي اليوم لهذا الذكر: $count", color = Muted, fontSize = 12.sp, textAlign = TextAlign.Center)
-            Text("إجمالي التسبيح اليوم (كل الأذكار): $total", color = Gold, fontSize = 13.sp)
-        }
-        item {
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(33, 34, 99, 100, 1000).forEach { t -> GoldChip("$t", target == t) { prefs.setTasbihTarget(name, t); tick++ } }
-                GoldChip(if (vib) "الاهتزاز: يعمل" else "الاهتزاز: مغلق", vib) { vib = !vib; prefs.vibrateOn = vib }
-                GoldChip(if (volOn) "أزرار الصوت: تعدّ" else "أزرار الصوت: مغلقة", volOn) { volOn = !volOn; prefs.tasbihVolume = volOn }
-                GoldChip("ملء الشاشة", false) { full = true }
+            Glass {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(name, fontSize = 26.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = Gold, fontFamily = Serif)
+                    Spacer(Modifier.height(14.dp))
+                    RingProgress((inRound / target.toFloat()).coerceIn(0f, 1f), 264.dp, 10.dp) {
+                        Box(
+                            Modifier.size(212.dp).graphicsLayer { scaleX = pulseScale; scaleY = pulseScale }.clip(CircleShape)
+                                .background(Brush.radialGradient(listOf(Gold, GoldDeep)))
+                                .background(Brush.verticalGradient(listOf(Color(0x55FFFFFF), Color(0x00FFFFFF))))
+                                .clickable { bump() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("$inRound", fontSize = 64.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                                Text("من $target", fontSize = 14.sp, color = Color(0x99000000))
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Text("الجولة ${rounds + 1} • اكتملت $rounds", color = OnCard, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Text("اليوم لهذا الذكر: $count • كل الأذكار: $total", color = Muted, fontSize = 12.sp, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(14.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        TasbihCtl("📳", vib, "الاهتزاز") { vib = !vib; prefs.vibrateOn = vib }
+                        TasbihCtl("🔊", volOn, "العدّ بأزرار الصوت") { volOn = !volOn; prefs.tasbihVolume = volOn }
+                        TasbihCtl("⛶", false, "ملء الشاشة") { full = true }
+                        TasbihCtl("↺", false, "تصفير هذا الذكر") { confirmReset = true }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Text("الهدف", color = Muted, fontSize = 12.sp, modifier = Modifier.align(Alignment.Start))
+                    val targets = listOf(33, 34, 99, 100, 1000)
+                    SegRow(targets.map { "$it" }, targets.indexOf(target)) { prefs.setTasbihTarget(name, targets[it]); tick++ }
+                }
             }
         }
         item {
@@ -144,6 +172,7 @@ fun TasbihScreen(prefs: Prefs) {
             val dn = listOf("إث", "ثل", "أر", "خم", "جم", "سب", "أح")
             Glass {
                 Text("إحصائيات التسبيح", fontWeight = FontWeight.Bold, color = Gold)
+                Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth().height(110.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom) {
                     week.forEach { (d, v) ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
@@ -153,20 +182,16 @@ fun TasbihScreen(prefs: Prefs) {
                         }
                     }
                 }
+                Spacer(Modifier.height(6.dp))
                 Text("آخر ٧ أيام: ${week.sumOf { it.second }} • آخر ٣٠ يومًا: ${hist.sumOf { it.second }}", fontSize = 12.sp, color = Muted)
                 if (top.isNotEmpty()) Text("الأكثر خلال ٣٠ يومًا: " + top.joinToString("، ") { "${it.first} (${it.second})" }, fontSize = 12.sp, color = Muted)
             }
         }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { confirmReset = true }) { Text("تصفير هذا الذكر", color = Gold) }
-                if (idx >= Content.tasbih.size) {
-                    TextButton(onClick = {
-                        val l = custom.toMutableList(); l.removeAt(idx - Content.tasbih.size)
-                        prefs.customDhikr = l; custom = l; idx = 0; prefs.tasbihIndex = 0
-                    }) { Text("حذف الذكر", color = Color(0xFFFF8A80)) }
-                }
-            }
+        if (idx >= Content.tasbih.size) item {
+            TextButton(onClick = {
+                val l = custom.toMutableList(); l.removeAt(idx - Content.tasbih.size)
+                prefs.customDhikr = l; custom = l; idx = 0; prefs.tasbihIndex = 0
+            }) { Text("حذف هذا الذكر", color = Color(0xFFFF8A80)) }
         }
     }
 
@@ -177,7 +202,9 @@ fun TasbihScreen(prefs: Prefs) {
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(name, fontSize = 30.sp, color = Gold, fontFamily = Serif, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 24.dp))
-                Text("$inRound", fontSize = 130.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                RingProgress((inRound / target.toFloat()).coerceIn(0f, 1f), 300.dp, 12.dp) {
+                    Text("$inRound", fontSize = 110.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                }
                 Text("من $target • دورات: $rounds", color = Muted)
                 Text("المس أي مكان للعدّ", color = Muted, fontSize = 12.sp)
                 OutlinedButton(onClick = { full = false }) { Text("إغلاق", color = Gold) }
@@ -204,6 +231,21 @@ fun TasbihScreen(prefs: Prefs) {
         },
         dismissButton = { TextButton(onClick = { addDialog = false }) { Text("إلغاء") } }
     )
+}
+
+/** زر دائري صغير لأدوات السبحة (اهتزاز/صوت/ملء الشاشة/تصفير) */
+@Composable
+private fun TasbihCtl(symbol: String, active: Boolean, desc: String, onClick: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier.size(48.dp).clip(CircleShape)
+                .background(if (active) Gold.copy(alpha = 0.22f) else Color.Transparent)
+                .border(androidx.compose.foundation.BorderStroke(1.dp, Gold.copy(alpha = if (active) 0.9f else 0.35f)), CircleShape)
+                .clickable { onClick() },
+            contentAlignment = Alignment.Center
+        ) { Text(symbol, fontSize = 20.sp, color = if (active) Gold else OnCard) }
+        Text(desc, fontSize = 9.sp, color = Muted, maxLines = 1, softWrap = false, modifier = Modifier.padding(top = 3.dp))
+    }
 }
 
 // ───────────────────────── القبلة ─────────────────────────
