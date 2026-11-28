@@ -308,7 +308,7 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
     fun reschedule() = Reminders.scheduleAll(ctx)
 
     Column(Modifier.fillMaxSize()) {
-    val secTitles = listOf("الأذان", "التذكيرات", "الموقع والمواقيت", "المظهر والأذونات", "التنزيلات")
+    val secTitles = listOf("الأذان", "التذكيرات", "الموقع والمواقيت", "المظهر والأذونات", "التنزيلات", "حول التطبيق والتحديثات")
     if (sec >= 0) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).glassSurface(18.dp)
@@ -387,7 +387,9 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                 SecRow(1, Icons.Rounded.Notifications, "التذكيرات", "تأكيد الصلاة، السنن، الأذكار، رمضان"),
                 SecRow(2, Icons.Rounded.AccessTime, "الموقع والمواقيت", prefs.city.ifBlank { "الموقع غير محدد" }),
                 SecRow(3, Icons.Rounded.AutoAwesome, "المظهر والأذونات", (if (Look.light) "ثيم فاتح" else "ثيم داكن") + " • الخلفية • الشاشة الرئيسية"),
-                SecRow(4, Icons.Rounded.CheckCircle, "التنزيلات", "المصحف، التفاسير، أصوات القرّاء، المؤذنون")
+                SecRow(4, Icons.Rounded.CheckCircle, "التنزيلات", "المصحف، التفاسير، أصوات القرّاء، المؤذنون"),
+                SecRow(5, Icons.Rounded.Spa, "حول التطبيق والتحديثات",
+                    if (Updater.available != null) "تحديث جديد متاح" else "الإصدار ${runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: ""} • التحقق من التحديث • المطوّر")
             )
             Column(Modifier.fillMaxWidth().glassSurface(24.dp).padding(vertical = 6.dp)) {
                 rows.forEachIndexed { n, r ->
@@ -882,118 +884,8 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
         }
 
         }
-        if (sec == 3) {
-        // ───── أذونات ─────
-        item {
-            Glass {
-                SectionTitle("الأذونات المهمة", Icons.Rounded.Notifications)
-                StatusRow(
-                    Scheduler.canExact(ctx), "التنبيهات الدقيقة (عشان الأذان يشتغل في ميعاده بالظبط)", "السماح"
-                ) {
-                    if (Build.VERSION.SDK_INT >= 31) ctx.startActivity(
-                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${ctx.packageName}"))
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    )
-                }
-                StatusRow(
-                    ForcedOverlay.can(ctx),
-                    "العرض فوق التطبيقات (يُظهر الأذان وسؤال «هل صليت؟» إجباريًا على الشاشة)", "السماح"
-                ) {
-                    ctx.startActivity(
-                        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${ctx.packageName}"))
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    )
-                }
-                val fsOk = Build.VERSION.SDK_INT < 34 ||
-                    ctx.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
-                StatusRow(fsOk, "شاشة الأذان الكاملة فوق شاشة القفل", "السماح") {
-                    if (Build.VERSION.SDK_INT >= 34) ctx.startActivity(
-                        Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:${ctx.packageName}"))
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    )
-                }
-                Text(
-                    "نصيحة: استثنِ التطبيق من «توفير البطارية» عشان النظام ما يقتلوش في الخلفية.",
-                    fontSize = 12.sp, color = Muted
-                )
-            }
-        }
-
-        }
-        if (sec == 2) {
-        // ───── الموقع ─────
-        item {
-            Glass {
-                SectionTitle("الموقع", Icons.Rounded.LocationOn)
-                if (prefs.hasLocation) {
-                    if (prefs.city.isNotBlank()) Text(prefs.city, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text("(%.3f, %.3f)".format(Locale.US, prefs.lat, prefs.lng) + if (prefs.locAt > 0) " • آخر تحديث " + java.text.SimpleDateFormat("d/M HH:mm", Locale("ar")).format(java.util.Date(prefs.locAt)) else "", color = Muted, fontSize = 12.sp)
-                } else Text("لم يتم تحديد الموقع بعد")
-                Spacer(Modifier.height(6.dp))
-                Button(
-                    onClick = { (ctx as? MainActivity)?.fetchLocation(true) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
-                ) { Text("تحديث الموقع") }
-                Spacer(Modifier.height(8.dp))
-                var bgLoc by remember { mutableStateOf(prefs.bgLocation) }
-                SwitchRow("تحديث الموقع في الخلفية كل ٣ ساعات", bgLoc) { bgLoc = it; prefs.bgLocation = it; Reminders.scheduleLocationCheck(ctx) }
-                if (bgLoc) {
-                    StatusRow(LocationUpdater.hasBackgroundPermission(ctx), "إذن الموقع «طوال الوقت»", "فتح الإعدادات") {
-                        ctx.startActivity(
-                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:${ctx.packageName}"))
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
-                    }
-                    Text(
-                        "عشان يشتغل والتطبيق مقفول: الأذونات ← الموقع ← «السماح طوال الوقت». الأندرويد ممكن يأخّر التحديث لتوفير البطارية، والتحديث بيتم عند فتح التطبيق برضه.",
-                        fontSize = 11.sp, color = Muted
-                    )
-                }
-            }
-        }
-
-        // ───── طريقة الحساب ─────
-        item {
-            Glass {
-                SectionTitle("طريقة حساب المواقيت", Icons.Rounded.AccessTime)
-                var hanafi by remember { mutableStateOf(prefs.asrMethod == "HANAFI") }
-                var adjTick by remember { mutableIntStateOf(0) }
-                SwitchRow("العصر على المذهب الحنفي (ظل مثلين)", hanafi) {
-                    hanafi = it; prefs.asrMethod = if (it) "HANAFI" else "SHAFI"; reschedule(); refreshTick.intValue++
-                }
-                Spacer(Modifier.height(6.dp))
-                Text("تعديل يدوي للمواقيت بالدقائق (لمطابقة مسجد/تقويم محلي):", fontSize = 13.sp, color = Muted)
-                Prayer.values().forEach { pr ->
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(pr.ar, Modifier.weight(1f))
-                        GoldChip("−", false) { prefs.setAdj(pr, prefs.adj(pr) - 1); adjTick++; reschedule(); refreshTick.intValue++ }
-                        Text(
-                            "${if (prefs.adj(pr) > 0) "+" else ""}${prefs.adj(pr).also { adjTick }}",
-                            Modifier.width(44.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        GoldChip("+", false) { prefs.setAdj(pr, prefs.adj(pr) + 1); adjTick++; reschedule(); refreshTick.intValue++ }
-                    }
-                }
-                Spacer(Modifier.height(6.dp))
-                Text("خطوط العرض العالية (بلاد الليل/النهار الطويل):", fontSize = 13.sp, color = Muted)
-                var hl by remember { mutableStateOf(prefs.highLat) }
-                listOf(
-                    "DEFAULT" to "افتراضي", "MIDDLE_OF_THE_NIGHT" to "منتصف الليل",
-                    "SEVENTH_OF_THE_NIGHT" to "سُبع الليل", "TWILIGHT_ANGLE" to "زاوية الشفق"
-                ).forEach { (id, name) ->
-                    RadioRow(name, hl == id) { hl = id; prefs.highLat = id; reschedule(); refreshTick.intValue++ }
-                }
-                Content.methods.forEach { (id, name) ->
-                    RadioRow(name, method == id) {
-                        method = id; prefs.method = id; reschedule(); refreshTick.intValue++
-                    }
-                }
-            }
-        }
-
-        }
-        if (sec == 3) {
-        // ───── عن التطبيق والمطوّر (AboutSection.kt) ─────
+        if (sec == 5) {
+        // ───── عن التطبيق والمطوّر + التحديثات ─────
         aboutItems()
         item {
             var un by remember { mutableStateOf(prefs.updateNotify) }
@@ -1013,6 +905,8 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                 Text("يُنزَّل التحديث من صفحة الإصدارات على GitHub، ولا يُثبَّت إلا لو كان بنفس توقيع نسختك الحالية.", fontSize = 11.sp, color = Muted)
             }
         }
+        }
+        if (sec == 3) {
         item {
             var light by remember { mutableStateOf(prefs.lightTheme) }
             Glass {
