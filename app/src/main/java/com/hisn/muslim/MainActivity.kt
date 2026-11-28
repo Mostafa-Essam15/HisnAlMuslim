@@ -14,6 +14,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -174,24 +179,28 @@ fun App() {
                 // الشريط السفلي مساحته ثابتة: نحدّ خط عناوينه عند ١٫١٥ (الأيقونات تكمّل المعنى)
                 val navDens = androidx.compose.ui.platform.LocalDensity.current
                 if (!readerFull) CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(navDens.density, navDens.fontScale.coerceAtMost(1.15f))) {
-                NavigationBar(
-                    modifier = Modifier.drawBehind { drawLine(Gold.copy(alpha = 0.28f), androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(size.width, 0f), 1.dp.toPx()) },
-                    containerColor = if (Look.light) Color(0xEBFFFFFF) else Color(0xC8051510)
+                androidx.compose.foundation.layout.Row(
+                    Modifier.fillMaxWidth().navigationBarsPadding()
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .glassSurface(28.dp).padding(5.dp),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(2.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                 ) {
                     appTabs.forEachIndexed { i, t ->
-                        NavigationBarItem(
-                            selected = tab == i,
-                            onClick = { tab = i },
-                            icon = { Icon(t.icon, contentDescription = t.title) },
-                            label = { Text(t.title, fontSize = 11.sp, maxLines = 1, softWrap = false) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = Color.Black,
-                                selectedTextColor = Gold,
-                                indicatorColor = Gold,
-                                unselectedIconColor = Color(0xFFB7C4BE),
-                                unselectedTextColor = Color(0xFFB7C4BE)
-                            )
-                        )
+                        val on = tab == i
+                        val fg = if (on) (if (Look.light) Color.White else Color.Black) else Muted
+                        androidx.compose.foundation.layout.Column(
+                            Modifier.weight(if (on) 1.5f else 1f)
+                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(22.dp))
+                                .background(if (on) Gold else Color.Transparent)
+                                .clickable { tab = i }
+                                .padding(vertical = 8.dp),
+                            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                        ) {
+                            Icon(t.icon, contentDescription = t.title, tint = fg, modifier = Modifier.size(22.dp))
+                            if (on) Text(t.title, fontSize = 10.sp, maxLines = 1, softWrap = false, color = fg,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        }
                     }
                 }
                 }
