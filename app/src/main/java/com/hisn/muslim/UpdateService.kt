@@ -18,6 +18,9 @@ class UpdateService : Service() {
         val code = intent?.getIntExtra("code", 0) ?: 0
         val url = intent?.getStringExtra("url")
         val size = intent?.getLongExtra("size", 0L) ?: 0L
+        val sha = intent?.getStringExtra("sha") ?: ""
+        val patchUrl = intent?.getStringExtra("patchUrl")
+        val patchSize = intent?.getLongExtra("patchSize", 0L) ?: 0L
         if (url == null || code == 0) { Updater.progress = -1; stopSelf(); return START_NOT_STICKY }
         Notif.ensureChannels(this)
         fun note(pct: Int) = Notif.builder(this, Notif.CH_UPDATE_DL, "جارٍ تنزيل التحديث", if (pct > 0) "$pct%" else "بدء التنزيل…")
@@ -31,7 +34,7 @@ class UpdateService : Service() {
         Thread {
             try {
                 var last = -1
-                val apk = Updater.downloadResumable(app, UpdateInfo(code, "", "", url, size)) { pct ->
+                val apk = Updater.downloadResumable(app, UpdateInfo(code, "", "", url, size, sha, patchUrl, patchSize)) { pct ->
                     Updater.progress = pct
                     if (pct != last && pct % 2 == 0) { last = pct; Notif.notify(app, Notif.ID_UPDATE_DL, note(pct)) }
                 }

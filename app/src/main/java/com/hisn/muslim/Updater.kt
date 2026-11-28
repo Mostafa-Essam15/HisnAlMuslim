@@ -16,7 +16,11 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-class UpdateInfo(val code: Int, val name: String, val notes: String, val apkUrl: String, val size: Long)
+class UpdateInfo(
+    val code: Int, val name: String, val notes: String, val apkUrl: String, val size: Long,
+    /** تحديث بالفرق: SHA-256 للـAPK الجديد + رابط ملف الفرق من نسختك المثبّتة (لو متاح) */
+    val sha256: String = "", val patchUrl: String? = null, val patchSize: Long = 0
+)
 
 /**
  * التحديث من داخل التطبيق: بيقرأ update.json من صفحة الـRelease على GitHub، ولو فيه نسخة أحدث
@@ -48,9 +52,18 @@ object Updater {
         try {
             if (c.responseCode !in 200..299) throw java.io.IOException("كود ${c.responseCode}")
             val o = JSONObject(c.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() })
+            val mine = installedCode(ctx)
+            var patchUrl: String? = null; var patchSize = 0L
+            o.optJSONArray("patches")?.let { arr ->
+                for (i in 0 until arr.length()) {
+                    val pj = arr.getJSONObject(i)
+                    if (pj.optLong("from") == mine) { patchUrl = "$BASE/" + pj.getString("file"); patchSize = pj.optLong("size", 0) }
+                }
+            }
             val info = UpdateInfo(
                 o.getInt("versionCode"), o.optString("versionName"), o.optString("notes"),
-                "$BASE/" + o.optString("apk", "HisnAlMuslim.apk"), o.optLong("size", 0)
+                "$BASE/" + o.optString("apk", "HisnAlMuslim.apk"), o.optLong("size", 0),
+                o.optString("sha256"), patchUrl, patchSize
             )
             return if (info.code > installedCode(ctx)) info else null
         } finally { c.disconnect() }
@@ -91,24 +104,47 @@ object Updater {
             androidx.core.content.ContextCompat.startForegroundService(
                 app,
                 Intent(app, UpdateService::class.java).putExtra("code", info.code).putExtra("url", info.apkUrl).putExtra("size", info.size)
+                    .putExtra("sha", info.sha256).putExtra("patchUrl", info.patchUrl).putExtra("patchSize", info.patchSize)
             )
         } catch (e: Exception) {
             progress = -1; message = "تعذّر بدء التنزيل: ${e.message ?: ""}"
         }
     }
 
-    /** تنزيل قابل للاستئناف. بيرجع ملف الـAPK الكامل أو بيرمي استثناء. من thread خلفي. */
+    /** تنزيل قابل للاستئناف. لو فيه ملف فرق لنسختك بنجرّبه الأول (أصغر بكتير)، ولو فشل بنرجع للـAPK الكامل. */
     fun downloadResumable(app: Context, info: UpdateInfo, onPct: (Int) -> Unit): File {
         val dir = File(app.cacheDir, "update").apply { mkdirs() }
         val prefix = "HisnAlMuslim-${info.code}"
         dir.listFiles()?.filter { !it.name.startsWith(prefix) }?.forEach { it.delete() }
         val out = File(dir, "$prefix.apk")
-        val part = File(dir, "$prefix.part")
         if (out.exists() && info.size > 0 && out.length() == info.size) return out
+        val pu = info.patchUrl
+        if (pu != null && info.sha256.isNotBlank() && (info.size <= 0 || info.patchSize in 1 until info.size)) {
+            try {
+                val pf = fetchResumable(pu, File(dir, "$prefix.patch"), File(dir, "$prefix.patch.part"), info.patchSize) { onPct(it * 6 / 10) }
+                val applied = File(dir, "$prefix.patched")
+                ApkPatch.apply(File(app.applicationInfo.sourceDir), pf, applied) { onPct(60 + it * 35 / 100) }
+                if (ApkPatch.sha256(applied) == info.sha256.lowercase()) {
+                    out.delete()
+                    if (applied.renameTo(out)) { pf.delete(); return out }
+                }
+                applied.delete()
+                message = "تعذّر التحديث بالفرق، جارٍ تنزيل الملف كاملًا…"
+            } catch (e: Exception) {
+                message = "تعذّر التحديث بالفرق (${e.javaClass.simpleName})، جارٍ تنزيل الملف كاملًا…"
+            }
+            File(dir, "$prefix.patch").delete(); File(dir, "$prefix.patch.part").delete()
+        }
+        return fetchResumable(info.apkUrl, out, File(dir, "$prefix.part"), info.size, onPct)
+    }
+
+    /** تنزيل قابل للاستئناف من [url] إلى [out] (حجمه المتوقع [size]). بيرمي استثناء لو فشل. */
+    private fun fetchResumable(url: String, out: File, part: File, size: Long, onPct: (Int) -> Unit): File {
+        if (out.exists() && size > 0 && out.length() == size) return out
         var attempts = 0
         while (true) {
             var have = if (part.exists()) part.length() else 0L
-            val c = open(info.apkUrl)
+            val c = open(url)
             try {
                 c.readTimeout = 60_000
                 if (have > 0) c.setRequestProperty("Range", "bytes=$have-")
@@ -118,7 +154,7 @@ object Updater {
                 val append = rc == 206
                 if (!append) have = 0L
                 val len = c.contentLengthLong
-                val total = if (len > 0) have + len else info.size
+                val total = if (len > 0) have + len else size
                 var done = have
                 c.inputStream.use { i ->
                     FileOutputStream(part, append).use { o ->
