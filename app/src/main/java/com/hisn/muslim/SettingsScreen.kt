@@ -94,7 +94,7 @@ fun pickTime(ctx: Context, minutes: Int, onPick: (Int) -> Unit) {
 @Composable
 fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth(),
+        Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(vertical = 5.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -103,7 +103,7 @@ fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
             checked = checked, onCheckedChange = onChange,
             colors = SwitchDefaults.colors(
                 checkedTrackColor = Gold, checkedThumbColor = Color.Black,
-                uncheckedTrackColor = Color(0x33FFFFFF), uncheckedThumbColor = Muted
+                uncheckedTrackColor = Color(0x33FFFFFF), uncheckedThumbColor = Muted, uncheckedBorderColor = Color(0x55FFFFFF)
             )
         )
     }
@@ -194,7 +194,10 @@ fun MuezzinRow(
 @Composable
 fun StatusRow(ok: Boolean, text: String, actionLabel: String, onAction: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(if (ok) "✅" else "⚠️")
+        androidx.compose.material3.Icon(
+            if (ok) Icons.Rounded.CheckCircle else Icons.Rounded.Notifications, null, Modifier.size(20.dp),
+            tint = if (ok) Gold else Color(0xFFFF8A80)
+        )
         Text("  $text", Modifier.weight(1f), fontSize = 13.sp)
         if (!ok) TextButton(onClick = onAction) { Text(actionLabel, color = Gold) }
     }
@@ -254,17 +257,60 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
     fun reschedule() = Reminders.scheduleAll(ctx)
 
     Column(Modifier.fillMaxSize()) {
+    val tabIcons = listOf(Icons.Rounded.VolumeUp, Icons.Rounded.Notifications, Icons.Rounded.AccessTime, Icons.Rounded.AutoAwesome)
     Row(
-        Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).glassSurface(18.dp).padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        listOf("الأذان", "التذكيرات", "المواقيت", "المظهر والأذونات").forEachIndexed { i, t ->
-            GoldChip(t, sec == i) { sec = i }
+        listOf("الأذان", "التذكيرات", "المواقيت", "المظهر").forEachIndexed { i, t ->
+            val on = sec == i
+            Column(
+                Modifier.weight(1f).clip(RoundedCornerShape(14.dp))
+                    .background(if (on) Gold else Color.Transparent)
+                    .clickable { sec = i }.padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                androidx.compose.material3.Icon(tabIcons[i], null, Modifier.size(20.dp), tint = if (on) (if (Look.light) Color.White else Color.Black) else Muted)
+                Text(t, fontSize = 12.sp, maxLines = 1, softWrap = false, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                    color = if (on) (if (Look.light) Color.White else Color.Black) else OnCard)
+            }
         }
     }
     LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
         if (sec == 0) {
+        // ───── حالة الأذان ─────
+        item {
+            val nm = ctx.getSystemService(NotificationManager::class.java)
+            val pmx = ctx.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+            val checks = listOf(
+                nm.areNotificationsEnabled(),
+                Scheduler.canExact(ctx),
+                ForcedOverlay.can(ctx),
+                Build.VERSION.SDK_INT < 34 || nm.canUseFullScreenIntent(),
+                pmx.isIgnoringBatteryOptimizations(ctx.packageName)
+            )
+            val bad = checks.count { !it }
+            Row(
+                Modifier.fillMaxWidth().glassSurface(20.dp).clickable(enabled = bad > 0) { sec = 3 }.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                androidx.compose.material3.Icon(
+                    if (bad == 0) Icons.Rounded.CheckCircle else Icons.Rounded.Notifications, null, Modifier.size(28.dp),
+                    tint = if (bad == 0) Gold else Color(0xFFFF8A80)
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(if (bad == 0) "الأذان جاهز" else "الأذان محتاج ضبط", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(
+                        if (bad == 0) "كل الأذونات المهمة شغّالة (${checks.size}/${checks.size})"
+                        else "$bad من ${checks.size} أذونات ناقصة — ممكن تمنع الأذان في ميعاده",
+                        fontSize = 12.sp, color = Muted
+                    )
+                }
+                if (bad > 0) Text("إصلاح ‹", color = Gold, fontWeight = FontWeight.Bold)
+            }
+        }
         // ───── الأذان ─────
         item {
             Glass {
