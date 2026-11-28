@@ -49,12 +49,25 @@ object Photos {
     }
 
     /** بيحمّل صورة مصغّرة/كاملة من الـ assets (inSampleSize لتخفيف الذاكرة) */
-    fun load(ctx: Context, i: Int, sample: Int = 1): ImageBitmap? = try {
-        ctx.assets.open(name(i)).use { s ->
-            val o = BitmapFactory.Options().apply { inSampleSize = sample }
-            BitmapFactory.decodeStream(s, null, o)?.asImageBitmap()
+    /** آخر سبب فشل في فك الصورة (للتشخيص) */
+    var lastError: String? = null
+
+    fun load(ctx: Context, i: Int, sample: Int = 1): ImageBitmap? {
+        // لو الذاكرة ضاقت أو فك الصورة فشل بنجرّب تصغير أكبر بدل ما الخلفية تختفي (أجهزة قليلة الرام)
+        var sz = sample
+        repeat(4) {
+            try {
+                ctx.assets.open(name(i)).use { s ->
+                    val o = BitmapFactory.Options().apply { inSampleSize = sz; inPreferredConfig = android.graphics.Bitmap.Config.RGB_565 }
+                    val bm = BitmapFactory.decodeStream(s, null, o)
+                    if (bm != null) { lastError = null; return bm.asImageBitmap() }
+                    lastError = "decodeStream رجّعت null (sample=$sz)"
+                }
+            } catch (e: Throwable) {
+                lastError = "${e.javaClass.simpleName}: ${e.message?.take(60) ?: ""} (sample=$sz)"
+            }
+            sz *= 2
         }
-    } catch (e: Exception) {
-        null
+        return null
     }
 }

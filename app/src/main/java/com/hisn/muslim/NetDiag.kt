@@ -101,6 +101,16 @@ object NetDiag {
                 sb.appendLine("• $name: ✗ ${e.javaClass.simpleName}: ${e.message?.take(80) ?: ""}")
             } finally { c?.disconnect(); tmp.delete() }
         }
+        // اختبار الكتابة على التخزين الداخلي وفك صورة الخلفية
+        try {
+            val t = java.io.File(ctx.filesDir, "diag_write.tmp")
+            t.writeBytes(ByteArray(2048)); val ok = t.length() == 2048L; t.delete()
+            sb.appendLine("كتابة ملف في تخزين التطبيق: " + if (ok) "✓" else "✗ الحجم غير مطابق")
+        } catch (e: Exception) { sb.appendLine("كتابة ملف في تخزين التطبيق: ✗ ${e.javaClass.simpleName}: ${e.message?.take(60) ?: ""}") }
+        try {
+            val bm = Photos.load(ctx, 4, 1)
+            sb.appendLine("فك صورة الخلفية: " + (if (bm != null) "✓ ${bm.width}x${bm.height}" else "✗ ${Photos.lastError}"))
+        } catch (e: Throwable) { sb.appendLine("فك صورة الخلفية: ✗ ${e.javaClass.simpleName}") }
         try {
             val st = android.os.StatFs(ctx.filesDir.path)
             sb.appendLine("المساحة الحرة: ${st.availableBytes / 1048576} ميجا")
