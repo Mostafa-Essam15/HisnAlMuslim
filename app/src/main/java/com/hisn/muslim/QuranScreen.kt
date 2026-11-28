@@ -296,6 +296,9 @@ private fun ReaderPane(prefs: Prefs, page: Int, onPage: (Int) -> Unit) {
                     if (mode == 1) { mscale = (mscale + 0.25f).coerceAtMost(2.5f); prefs.mushafScale = mscale }
                     else { fontF = (font + 2f).coerceAtMost(44f); prefs.quranFont = fontF.roundToInt() }
                 }, contentAlignment = Alignment.Center) { Text("أ+", color = Gold, fontSize = 17.sp, fontWeight = FontWeight.Bold) }
+                Box(Modifier.size(34.dp).clip(CircleShape).clickable { readerFull = true }, contentAlignment = Alignment.Center) {
+                    Text("⛶", color = Gold, fontSize = 20.sp)
+                }
                 Box(Modifier.size(34.dp).clip(CircleShape).clickable { prefs.toggleBookmark(page); bmTick++ }, contentAlignment = Alignment.Center) {
                     Text(if (bookmarked) "★" else "☆", color = Gold, fontSize = 20.sp)
                 }
