@@ -213,9 +213,12 @@ fun HomeScreen(prefs: Prefs, onNavigate: (Int) -> Unit = {}) {
                     )
                 }
                 WeatherLine()
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
+                androidx.compose.material3.HorizontalDivider(color = Gold.copy(alpha = 0.18f))
+                Spacer(Modifier.height(10.dp))
                 PrayerStrip(prefs, times, next?.first, day, now)
-                Text("اضغط لعرض كل المواقيت", fontSize = 11.sp, color = Muted)
+                Spacer(Modifier.height(6.dp))
+                Text("اضغط لعرض كل المواقيت", fontSize = 11.sp, color = Muted, modifier = Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 if (!prefs.hasLocation) {
                     Spacer(Modifier.height(8.dp))
                     Text(

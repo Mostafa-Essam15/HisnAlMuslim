@@ -179,9 +179,11 @@ fun App() {
                 // الشريط السفلي مساحته ثابتة: نحدّ خط عناوينه عند ١٫١٥ (الأيقونات تكمّل المعنى)
                 val navDens = androidx.compose.ui.platform.LocalDensity.current
                 if (!readerFull) CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(navDens.density, navDens.fontScale.coerceAtMost(1.15f))) {
+                Box(Modifier.fillMaxWidth().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color.Transparent, Ink.copy(alpha = 0.92f))))) {
                 androidx.compose.foundation.layout.Row(
                     Modifier.fillMaxWidth().navigationBarsPadding()
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .padding(start = 12.dp, end = 12.dp, top = 18.dp, bottom = 8.dp)
+                        .background(Ink.copy(alpha = 0.78f), androidx.compose.foundation.shape.RoundedCornerShape(28.dp))
                         .glassSurface(28.dp).padding(5.dp),
                     horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(2.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
@@ -202,6 +204,7 @@ fun App() {
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
                         }
                     }
+                }
                 }
                 }
             }
