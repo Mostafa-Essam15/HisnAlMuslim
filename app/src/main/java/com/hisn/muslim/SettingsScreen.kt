@@ -36,6 +36,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessTime
+import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Image
@@ -253,33 +254,30 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
         }
     }
 
-    var sec by androidx.compose.runtime.saveable.rememberSaveable { mutableIntStateOf(0) }
+    var sec by androidx.compose.runtime.saveable.rememberSaveable { mutableIntStateOf(-1) }
+    androidx.activity.compose.BackHandler(enabled = sec >= 0) { sec = -1 }
     fun reschedule() = Reminders.scheduleAll(ctx)
 
     Column(Modifier.fillMaxSize()) {
-    val tabIcons = listOf(Icons.Rounded.VolumeUp, Icons.Rounded.Notifications, Icons.Rounded.AccessTime, Icons.Rounded.AutoAwesome, Icons.Rounded.CheckCircle)
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).glassSurface(18.dp).padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        listOf("الأذان", "التذكيرات", "المواقيت", "المظهر", "التنزيلات").forEachIndexed { i, t ->
-            val on = sec == i
-            Column(
-                Modifier.weight(1f).clip(RoundedCornerShape(14.dp))
-                    .background(if (on) Gold else Color.Transparent)
-                    .clickable { sec = i }.padding(vertical = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                androidx.compose.material3.Icon(tabIcons[i], null, Modifier.size(20.dp), tint = if (on) (if (Look.light) Color.White else Color.Black) else Muted)
-                Text(t, fontSize = 12.sp, maxLines = 1, softWrap = false, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
-                    color = if (on) (if (Look.light) Color.White else Color.Black) else OnCard)
-            }
+    val secTitles = listOf("الأذان", "التذكيرات", "الموقع والمواقيت", "المظهر والأذونات", "التنزيلات")
+    if (sec >= 0) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).glassSurface(18.dp)
+                .clickable { sec = -1 }.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            androidx.compose.material3.Icon(Icons.Rounded.ArrowForward, "رجوع", tint = Gold, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(10.dp))
+            Text(secTitles[sec], fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Gold, fontFamily = Serif)
         }
+    } else {
+        Text("الإعدادات", fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Gold, fontFamily = Serif,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp))
     }
     LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
         if (sec == 4) downloadsItems(ctx)
-        if (sec == 0) {
+        if (sec == 0 || sec == -1) {
         // ───── حالة الأذان ─────
         item {
             val nm = ctx.getSystemService(NotificationManager::class.java)
@@ -312,6 +310,39 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                 if (bad > 0) Text("إصلاح ‹", color = Gold, fontWeight = FontWeight.Bold)
             }
         }
+        }
+        if (sec == -1) {
+        item {
+            class SecRow(val i: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector, val title: String, val sub: String)
+            val rows = listOf(
+                SecRow(0, Icons.Rounded.VolumeUp, "الأذان", (if (adhanOn) "مفعّل" else "متوقف") + " • " + Muezzins.byKey(muezzin).name),
+                SecRow(1, Icons.Rounded.Notifications, "التذكيرات", "تأكيد الصلاة، السنن، الأذكار، رمضان"),
+                SecRow(2, Icons.Rounded.AccessTime, "الموقع والمواقيت", prefs.city.ifBlank { "الموقع غير محدد" }),
+                SecRow(3, Icons.Rounded.AutoAwesome, "المظهر والأذونات", (if (Look.light) "ثيم فاتح" else "ثيم داكن") + " • الخلفية • الشاشة الرئيسية"),
+                SecRow(4, Icons.Rounded.CheckCircle, "التنزيلات", "المصحف، التفاسير، أصوات القرّاء، المؤذنون")
+            )
+            Column(Modifier.fillMaxWidth().glassSurface(24.dp).padding(vertical = 6.dp)) {
+                rows.forEachIndexed { n, r ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { sec = r.i }.padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(Modifier.size(42.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Gold.copy(alpha = 0.14f)), contentAlignment = Alignment.Center) {
+                            androidx.compose.material3.Icon(r.icon, null, tint = Gold, modifier = Modifier.size(22.dp))
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(r.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(r.sub, fontSize = 12.sp, color = Muted, maxLines = 1)
+                        }
+                        Text("‹", color = Gold, fontSize = 22.sp)
+                    }
+                    if (n < rows.lastIndex) androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = Gold.copy(alpha = 0.15f))
+                }
+            }
+        }
+        }
+        if (sec == 0) {
         // ───── الأذان ─────
         item {
             Glass {
