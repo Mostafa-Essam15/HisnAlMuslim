@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessTime
@@ -108,6 +109,41 @@ fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
             )
         )
     }
+}
+
+/** صف اختيار: عنوان + القيمة الحالية، وبالضغط تفتح قائمة اختيار (بدل راديوهات طويلة) */
+@Composable
+fun PickRow(title: String, current: String, options: List<Pair<String, String>>, onPick: (String) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth().clickable { open = true }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = 14.sp)
+            Text(current, fontSize = 12.sp, color = Gold)
+        }
+        Text("اختر ‹", color = Gold, fontSize = 13.sp)
+    }
+    if (open) androidx.compose.material3.AlertDialog(
+        onDismissRequest = { open = false },
+        containerColor = Ink, titleContentColor = Gold, textContentColor = OnCard,
+        title = { Text(title, fontSize = 16.sp) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                options.forEach { (id, name) ->
+                    RadioRow(name, name == current) { onPick(id); open = false }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { open = false }) { Text("إغلاق", color = Gold) } }
+    )
+}
+
+/** شرح طويل مطوي تحت «اعرف أكتر» */
+@Composable
+fun LearnMore(startOpen: Boolean = false, content: @Composable () -> Unit) {
+    var open by remember { mutableStateOf(startOpen) }
+    Text(if (open) "إخفاء الشرح ˄" else "اعرف أكتر ˅", color = Gold, fontSize = 12.sp,
+        modifier = Modifier.clickable { open = !open }.padding(vertical = 6.dp))
+    if (open) content()
 }
 
 @Composable
@@ -373,6 +409,8 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                     fontSize = 12.sp, color = Muted
                 )
                 if (playInSilent) {
+                    LearnMore(startOpen = !dndAccess) {
+                        Column {
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "«عدم الإزعاج» حاجة منفصلة عن الصامت. لو شغّال على «صمت تام» بيكتم المنبهات كمان، وعشان الأذان يشتغل وقتها " +
@@ -380,6 +418,8 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                             "التطبيق ما بيغيّر حاجة من غير الإذن ده، وبتقدر تسحبه من إعدادات الأندرويد في أي وقت.",
                         fontSize = 12.sp, color = Muted
                     )
+                        }
+                    }
                     StatusRow(dndAccess, "إذن الوصول لسياسة عدم الإزعاج", "فتح الإعدادات") {
                         ctx.startActivity(
                             Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
@@ -689,6 +729,117 @@ fun SettingsScreen(prefs: Prefs, bg: Int, bgVersion: Int, onBg: (Int) -> Unit, o
                         val item = Content.randomPopupDhikr()
                         if (AzkarPopup.canOverlay(ctx)) AzkarPopup.show(ctx, item) else AzkarPopup.popupAsNotification(ctx, item)
                     }) { Text("تجربة البوب اب", color = Gold) }
+                }
+            }
+        }
+
+        }
+        if (sec == 3) {
+        // ───── أذونات ─────
+        item {
+            Glass {
+                SectionTitle("الأذونات المهمة", Icons.Rounded.Notifications)
+                StatusRow(
+                    Scheduler.canExact(ctx), "التنبيهات الدقيقة (عشان الأذان يشتغل في ميعاده بالظبط)", "السماح"
+                ) {
+                    if (Build.VERSION.SDK_INT >= 31) ctx.startActivity(
+                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${ctx.packageName}"))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }
+                StatusRow(
+                    ForcedOverlay.can(ctx),
+                    "العرض فوق التطبيقات (يُظهر الأذان وسؤال «هل صليت؟» إجباريًا على الشاشة)", "السماح"
+                ) {
+                    ctx.startActivity(
+                        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${ctx.packageName}"))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }
+                val fsOk = Build.VERSION.SDK_INT < 34 ||
+                    ctx.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
+                StatusRow(fsOk, "شاشة الأذان الكاملة فوق شاشة القفل", "السماح") {
+                    if (Build.VERSION.SDK_INT >= 34) ctx.startActivity(
+                        Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:${ctx.packageName}"))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }
+                Text(
+                    "نصيحة: استثنِ التطبيق من «توفير البطارية» عشان النظام ما يقتلوش في الخلفية.",
+                    fontSize = 12.sp, color = Muted
+                )
+            }
+        }
+
+        }
+        if (sec == 2) {
+        // ───── الموقع ─────
+        item {
+            Glass {
+                SectionTitle("الموقع", Icons.Rounded.LocationOn)
+                if (prefs.hasLocation) {
+                    if (prefs.city.isNotBlank()) Text(prefs.city, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("(%.3f, %.3f)".format(Locale.US, prefs.lat, prefs.lng) + if (prefs.locAt > 0) " • آخر تحديث " + java.text.SimpleDateFormat("d/M HH:mm", Locale("ar")).format(java.util.Date(prefs.locAt)) else "", color = Muted, fontSize = 12.sp)
+                } else Text("لم يتم تحديد الموقع بعد")
+                Spacer(Modifier.height(6.dp))
+                Button(
+                    onClick = { (ctx as? MainActivity)?.fetchLocation(true) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Color.Black)
+                ) { Text("تحديث الموقع") }
+                Spacer(Modifier.height(8.dp))
+                var bgLoc by remember { mutableStateOf(prefs.bgLocation) }
+                SwitchRow("تحديث الموقع في الخلفية كل ٣ ساعات", bgLoc) { bgLoc = it; prefs.bgLocation = it; Reminders.scheduleLocationCheck(ctx) }
+                if (bgLoc) {
+                    StatusRow(LocationUpdater.hasBackgroundPermission(ctx), "إذن الموقع «طوال الوقت»", "فتح الإعدادات") {
+                        ctx.startActivity(
+                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:${ctx.packageName}"))
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
+                    Text(
+                        "عشان يشتغل والتطبيق مقفول: الأذونات ← الموقع ← «السماح طوال الوقت». الأندرويد ممكن يأخّر التحديث لتوفير البطارية، والتحديث بيتم عند فتح التطبيق برضه.",
+                        fontSize = 11.sp, color = Muted
+                    )
+                }
+            }
+        }
+
+        // ───── طريقة الحساب ─────
+        item {
+            Glass {
+                SectionTitle("طريقة حساب المواقيت", Icons.Rounded.AccessTime)
+                var hanafi by remember { mutableStateOf(prefs.asrMethod == "HANAFI") }
+                var adjTick by remember { mutableIntStateOf(0) }
+                SwitchRow("العصر على المذهب الحنفي (ظل مثلين)", hanafi) {
+                    hanafi = it; prefs.asrMethod = if (it) "HANAFI" else "SHAFI"; reschedule(); refreshTick.intValue++
+                }
+                Spacer(Modifier.height(6.dp))
+                Text("تعديل يدوي للمواقيت بالدقائق (لمطابقة مسجد/تقويم محلي):", fontSize = 13.sp, color = Muted)
+                Prayer.values().forEach { pr ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(pr.ar, Modifier.weight(1f))
+                        GoldChip("−", false) { prefs.setAdj(pr, prefs.adj(pr) - 1); adjTick++; reschedule(); refreshTick.intValue++ }
+                        Text(
+                            "${if (prefs.adj(pr) > 0) "+" else ""}${prefs.adj(pr).also { adjTick }}",
+                            Modifier.width(44.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        GoldChip("+", false) { prefs.setAdj(pr, prefs.adj(pr) + 1); adjTick++; reschedule(); refreshTick.intValue++ }
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(10.dp))
+                androidx.compose.material3.HorizontalDivider(color = Gold.copy(alpha = 0.15f))
+                var hl by remember { mutableStateOf(prefs.highLat) }
+                val hlOpts = listOf(
+                    "DEFAULT" to "افتراضي", "MIDDLE_OF_THE_NIGHT" to "منتصف الليل",
+                    "SEVENTH_OF_THE_NIGHT" to "سُبع الليل", "TWILIGHT_ANGLE" to "زاوية الشفق"
+                )
+                PickRow("طريقة الحساب", Content.methods.firstOrNull { it.first == method }?.second ?: "", Content.methods) {
+                    method = it; prefs.method = it; reschedule(); refreshTick.intValue++
+                }
+                androidx.compose.material3.HorizontalDivider(color = Gold.copy(alpha = 0.15f))
+                PickRow("خطوط العرض العالية (بلاد الليل/النهار الطويل)", hlOpts.firstOrNull { it.first == hl }?.second ?: "", hlOpts) {
+                    hl = it; prefs.highLat = it; reschedule(); refreshTick.intValue++
                 }
             }
         }
